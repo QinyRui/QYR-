@@ -1,0 +1,28 @@
+# QYR-
+/*
+📱 九号智能电动车自动签到脚本（可分享版）
+=========================================
+👤 作者：❥﹒﹏非我不可
+📆 更新日期：2025/11/09
+📦 版本：v2.0 Preview Share Edition
+💬 适用平台：Loon / Surge / Quantumult X / Stash / Shadowrocket 等
+🔑 功能简介：
+   - 自动签到九号智能电动车账户
+   - 显示签到经验、N币、补签卡数量
+   - 支持盲盒任务列表（如“惊喜盲盒赚不停”）
+   - 自动记录并展示连续签到天数
+   - 兼容多环境（$$aHR0cENsaWVudCAvIA==$$notification / $persistentStore）
+
+⚙️ 使用说明：
+1️⃣ 打开九号 App，登录后抓取 Header 中的 Authorization 与 deviceId。
+2️⃣ 将下方对应字段中的示例值替换为你自己的。
+3️⃣ 可手动运行脚本或设置定时任务（建议每天上午 8 点执行）：
+
+[Script]
+cron "0 8 * * *" script-path=https://example.com/Ninebot_Sign.js, tag=九号签到
+
+📌 注意：
+- 本脚本仅供学习与研究，请勿用于任何商业用途。
+- 请勿公开分享包含你个人 token 的版本。
+
+=======================================
