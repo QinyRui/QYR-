@@ -9,8 +9,10 @@
       "id": "Ninebot_Sign",
       "name": "九号签到",
       "keys": [
-        "Ninebot_Authorization",
-        "Ninebot_DeviceId"
+        "Ninebot_Authorization_1",
+        "Ninebot_DeviceId_1",
+        "Ninebot_Authorization_2",
+        "Ninebot_DeviceId_2"
       ],
       "descs_html": [
         "📱 <b>功能：</b> 自动签到九号智能电动车账户",
@@ -20,20 +22,36 @@
       ],
       "settings": [
         {
-          "id": "Ninebot_Authorization",
-          "name": "Authorization",
+          "id": "Ninebot_Authorization_1",
+          "name": "Authorization 账号 1",
           "val": "",
           "type": "text",
           "placeholder": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-          "desc": "在 App 抓包请求头中复制 Authorization 值"
+          "desc": "在 App 抓包请求头中复制 Authorization 值 (账号 1)"
         },
         {
-          "id": "Ninebot_DeviceId",
-          "name": "Device ID",
+          "id": "Ninebot_DeviceId_1",
+          "name": "Device ID 账号 1",
           "val": "",
           "type": "text",
           "placeholder": "06965B02-DE89-45AB-9116-9B69923BF54C",
-          "desc": "九号 App “关于”页面中的设备ID"
+          "desc": "九号 App “关于”页面中的设备ID (账号 1)"
+        },
+        {
+          "id": "Ninebot_Authorization_2",
+          "name": "Authorization 账号 2",
+          "val": "",
+          "type": "text",
+          "placeholder": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "desc": "在 App 抓包请求头中复制 Authorization 值 (账号 2)"
+        },
+        {
+          "id": "Ninebot_DeviceId_2",
+          "name": "Device ID 账号 2",
+          "val": "",
+          "type": "text",
+          "placeholder": "06965B02-DE89-45AB-9116-9B69923BF54C",
+          "desc": "九号 App “关于”页面中的设备ID (账号 2)"
         }
       ]
     }
