@@ -19,7 +19,7 @@
 🎫 显示补签卡数量  
 📦 支持盲盒任务列表（如「惊喜盲盒赚不停」）  
 🧩 支持 BoxJS 配置，无需修改脚本  
-
+远程订阅链接 https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_AutoSign.conf
 ---
 
 ## ⚙️ 使用方法
