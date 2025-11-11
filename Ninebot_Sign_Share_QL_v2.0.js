@@ -3,7 +3,10 @@ const axios = require('axios');
 // 使用 axios 封装 POST 请求
 async function httpClientPost(request) {
   try {
-    const response = await axios.post(request.url, request.body, { headers: request.headers });
+    const response = await axios.post(request.url, request.body, { 
+      headers: request.headers, 
+      timeout: 10000  // 设置超时时间为 10秒
+    });
     return { response, data: response.data };
   } catch (error) {
     throw new Error(error);
@@ -13,7 +16,10 @@ async function httpClientPost(request) {
 // 使用 axios 封装 GET 请求
 async function httpClientGet(request) {
   try {
-    const response = await axios.get(request.url, { headers: request.headers });
+    const response = await axios.get(request.url, { 
+      headers: request.headers,
+      timeout: 10000  // 设置超时时间为 10秒
+    });
     return { response, data: response.data };
   } catch (error) {
     throw new Error(error);
