@@ -2,7 +2,7 @@
 📱 九号智能电动车自动签到脚本（分享版）
 =========================================
 👤 作者：❥﹒﹏非我不可
-✈️Telegram：https://t.me/WorKingCopyAPP
+✈️Telegram群：https://t.me/JiuHaoAPP
 📆 更新日期：2025/11/09
 📦 版本：v2.0 Share Edition
 💬 适用平台：Loon / Surge / Quantumult X / Stash / Shadowrocket 等
