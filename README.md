@@ -46,7 +46,6 @@
 cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.0.js, tag=九号签到
 ⏰ 建议每天上午 8:00 自动执行签到
 ⚠️ 若首次运行提示“未配置 Authorization”，请先完成 BoxJS 设置
-脚本远程订阅链接 https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_AutoSign.conf
 <div align="center">
 </div>
 ```
