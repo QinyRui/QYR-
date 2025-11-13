@@ -9,7 +9,7 @@
     {
       "id": "Ninebot.Sign.Main",
       "name": "九号签到主任务",
-      "desc": "自动签到、连续天数、N币、盲盒提醒，支持双号",
+      "desc": "自动签到、连续天数展示、双账号通知、盲盒提醒",
       "keys": ["Ninebot_Authorization", "Ninebot_DeviceId", "Ninebot_Names"],
       "author": "❥﹒﹏非我不可",
       "repo": "https://github.com/QinyRui/QYR-",
