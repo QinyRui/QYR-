@@ -1,13 +1,11 @@
 {
-  "name": "九号智能电动车签到 v2.4",
-  "author": "❥﹒﹏非我不可",
-  "description": "自动签到、连续天数、N币余额、盲盒提醒，支持双号分开通知。",
   "scripts": [
     {
       "name": "九号签到",
-      "desc": "每日自动签到任务",
+      "desc": "每日自动签到任务，显示连续天数、N币、盲盒提醒",
       "type": "cron",
       "cron": "0 8 * * *",
+      "timeout": 30,
       "scriptUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.4.js"
     }
   ]
