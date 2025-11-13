@@ -1,21 +1,14 @@
 {
-  "title": "九号智能电动车自动签到 (v2.4)",
-  "desc": "自动签到、连续天数展示、双账号独立通知、支持 BoxJS 配置",
-  "version": "2.4",
+  "name": "九号智能电动车签到 v2.4",
   "author": "❥﹒﹏非我不可",
-  "homepage": "https://github.com/QinyRui/QYR-",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/logo.png",
+  "description": "自动签到、连续天数、N币余额、盲盒提醒，支持双号分开通知。",
   "scripts": [
     {
-      "name": "九号签到 v2.4",
-      "script_url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.4.js",
+      "name": "九号签到",
+      "desc": "每日自动签到任务",
+      "type": "cron",
       "cron": "0 8 * * *",
-      "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/logo.png",
-      "author": "❥﹒﹏非我不可",
-      "desc": "支持多账号自动签到与盲盒提醒"
+      "scriptUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.4.js"
     }
-  ],
-  "boxjs": {
-    "subscribe_url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/boxjs.json"
-  }
+  ]
 }
