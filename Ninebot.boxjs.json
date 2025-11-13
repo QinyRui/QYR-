@@ -1,0 +1,46 @@
+{
+  "id": "Ninebot.Sign",
+  "name": "九号智能电动车签到 v2.4",
+  "author": "❥﹒﹏非我不可",
+  "version": "2.4",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/logo.png",
+  "repo": "https://github.com/QinyRui/QYR-",
+  "apps": [
+    {
+      "id": "Ninebot.Sign.Main",
+      "name": "九号签到主任务",
+      "desc": "自动签到、连续天数、N币、盲盒提醒，支持双号",
+      "keys": ["Ninebot_Authorization", "Ninebot_DeviceId", "Ninebot_Names"],
+      "author": "❥﹒﹏非我不可",
+      "repo": "https://github.com/QinyRui/QYR-",
+      "script": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.4.js",
+      "icons": [
+        "https://raw.githubusercontent.com/QinyRui/QYR-/main/logo.png",
+        "https://raw.githubusercontent.com/QinyRui/QYR-/main/logo.png"
+      ],
+      "settings": [
+        {
+          "id": "Ninebot_Authorization",
+          "name": "Authorization",
+          "val": "",
+          "type": "text",
+          "desc": "从九号 App 请求头中复制 Authorization 值（支持多账号用 & 分隔）"
+        },
+        {
+          "id": "Ninebot_DeviceId",
+          "name": "DeviceId",
+          "val": "",
+          "type": "text",
+          "desc": "在九号 App 设置→关于中查看设备 ID（支持多账号用 & 分隔）"
+        },
+        {
+          "id": "Ninebot_Names",
+          "name": "账户昵称（可选）",
+          "val": "",
+          "type": "text",
+          "desc": "自定义显示名称（如 主号&副号）"
+        }
+      ]
+    }
+  ]
+}
