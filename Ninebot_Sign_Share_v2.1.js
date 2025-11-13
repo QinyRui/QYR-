@@ -4,7 +4,7 @@
 👤 作者：❥﹒﹏非我不可
 ✈️ Telegram群：https://t.me/JiuHaoAPP
 📆 更新日期：2025/11/13
-📦 版本：v2.1 Share Edition
+📦 版本：v2.2 Share Edition
 💬 适用平台：Loon / Surge / Quantumult X / Stash / Shadowrocket 等
 🔑 功能简介：
    - 自动签到九号智能电动车账户
