@@ -4,29 +4,29 @@
 👤 作者：❥﹒﹏非我不可
 ✈️ Telegram群：https://t.me/JiuHaoAPP
 📆 更新日期：2025/11/13
-📦 版本：v2.1 Share Edition
+📦 版本：v2.2 Share Edition
 💬 适用平台：Loon / Surge / Quantumult X / Stash / Shadowrocket 等
 🔑 功能简介：
    - 自动签到九号智能电动车账户
    - 自动捕获 Authorization 与 deviceId
    - 显示签到经验、N币、补签卡数量、盲盒任务
-   - 支持 BoxJS 与 $persistentStore 存储
-   - 已签到时显示简短提示
+   - 已签到时使用简洁提示
+   - 通知排版优化，更直观
 
 ⚙️ 使用说明：
-1️⃣ 打开九号 App 登录后，访问任意接口时会自动捕获 Token（无需手动填写）。
+1️⃣ 打开九号 App 登录后，访问任意接口会自动捕获 Token。
 2️⃣ 若需手动配置，可在 BoxJS 中添加以下变量：
       🔹 Ninebot_Authorization
       🔹 Ninebot_DeviceId
 3️⃣ 可设置定时任务（建议每日 8:00 执行）：
 
 [Script]
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.1.js, tag=九号签到
+cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2.js, tag=九号签到
 # 可选：用于自动捕获Token
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/ requires-body=0,script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.1.js, tag=九号Token捕获
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/ requires-body=0,script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2.js, tag=九号Token捕获
 
 📌 注意：
-- 请勿公开分享包含你个人 Token 的版本。
+- 请勿公开分享包含个人 Token 的版本。
 - 本脚本仅供学习研究使用。
 
 ===========================================================
@@ -116,7 +116,7 @@ async function run() {
 
     if (signData.code === 0) {
       const { score = 0, nCoin = 0 } = signData.data
-      message += `✅ 签到成功 🎉\n🎁 获得 ${score} 经验 + ${nCoin} N币`
+      message += `🎉 今日签到成功！\n🎁 获得 ${score} 经验 + ${nCoin} N币`
     } else if (signData.code === 540004) {
       message += "⚠️ 今日已签到"
     } else {
@@ -129,7 +129,7 @@ async function run() {
     if (statusData.code === 0 && statusData.data) {
       newSignDays = statusData.data.consecutiveDays || 0
       const signCardsNum = statusData.data.signCardsNum || 0
-      message += `\n🗓️ 连续签到：${newSignDays} 天\n🎫 补签卡：${signCardsNum} 张`
+      message += `\n连续签到：${newSignDays}天\n补签卡：${signCardsNum}张`
     }
 
     // === 获取账户余额 ===
@@ -137,26 +137,46 @@ async function run() {
     const balanceData = JSON.parse(balanceRes.data || "{}")
     if (balanceData.code === 0 && balanceData.data) {
       const nBalance = balanceData.data.balance || 0
-      message += `\n💰 当前 N币余额：${nBalance}`
+      message += `\n当前N币余额：${nBalance}`
     }
 
     // === 获取盲盒任务 ===
     const boxRes = await httpClientGet({ url: urls.blindBox, headers })
     const boxData = JSON.parse(boxRes.data || "{}")
     if (boxData.code === 0 && boxData.data?.notOpenedBoxes?.length > 0) {
-      message += `\n\n📦 即将开启盲盒：`
+      message += `\n即将开启盲盒：`
       boxData.data.notOpenedBoxes.forEach(b => {
-        message += `\n  - ${b.awardDays}天盲盒，还需 ${b.leftDaysToOpen} 天`
+        message += `\n- ${b.awardDays}天盲盒，还需${b.leftDaysToOpen}天`
       })
     }
+
   } catch (err) {
     message = `❌ 脚本执行出错：${err.message}`
   } finally {
+    // ===== 通知排版优化 =====
+    let notifTitle = ""
+    let notifBody = ""
+
     if (message.includes("已签到")) {
-      $notification.post(title, `已签到 · 连续 ${newSignDays} 天`, "")
+      notifTitle = `✅ 今日已签到 · 连续 ${newSignDays} 天`
+    } else if (message.includes("签到成功")) {
+      notifTitle = `🎉 签到成功 · 连续 ${newSignDays} 天`
     } else {
-      $notification.post(title, `连续 ${newSignDays} 天`, message)
+      notifTitle = `九号签到`
     }
+
+    const matchCards = message.match(/补签卡：(\d+)/)
+    const matchCoin = message.match(/余额：(\d+)/)
+    const matchBoxes = message.match(/即将开启盲盒：([\s\S]*)/)
+
+    if (matchCards) notifBody += `🎫 补签卡：${matchCards[1]} 张\n`
+    if (matchCoin) notifBody += `💰 N币余额：${matchCoin[1]}\n`
+    if (matchBoxes) {
+      const boxes = matchBoxes[1].trim().split("\n").map(b => b.replace(/^[-\s]+/, "· ")).join("\n")
+      notifBody += `\n📦 盲盒任务：\n${boxes}`
+    }
+
+    $notification.post(title, notifTitle, notifBody.trim())
     console.log("✅ 九号签到完成")
     $done()
   }
