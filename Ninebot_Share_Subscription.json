@@ -7,7 +7,7 @@
       "enabled": true,
       "type": "cron",
       "cron": "0 8 * * *",
-      "script-path": "https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/Ninebot_Sign_Share_v2.2.js",
+      "script-path": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2.js",
       "tag": "九号签到"
     },
     {
@@ -15,7 +15,7 @@
       "type": "http-request",
       "pattern": "^https:\\/\\/cn-cbu-gateway\\.ninebot\\.com\\/",
       "requires-body": false,
-      "script-path": "https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/Ninebot_Sign_Share_v2.2.js",
+      "script-path": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2.js",
       "tag": "九号Token捕获"
     }
   ]
