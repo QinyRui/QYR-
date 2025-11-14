@@ -1,15 +1,15 @@
 /*
-📱 九号智能电动车自动签到脚本（v3.1 Share+ 完整版）
+📱 九号智能电动车自动签到脚本（v3.1 Share+ 稳定版）
 ==================================================
 👤 作者：❥﹒﹏非我不可
-📆 更新日期：2025/11/14
 💬 功能：
   - 自动签到 + 状态显示
   - N币余额 + 补签卡
   - 自动抓取 Authorization & deviceId
-  - 盲盒自动开启 + 开启结果
+  - 自动盲盒开启
   - 多账号支持
   - BoxJS 昵称 + 全量通知
+  - 请求失败自动重试 + 多账号随机延时
 */
 
 const scriptName = "Ninebot Sign v3.1 Share+";
@@ -33,22 +33,38 @@ if (typeof $request !== "undefined" && $request.headers) {
   $done({});
 }
 
-// ====== 网络请求封装 ======
-function httpClientGet(opts) {
-  return new Promise((resolve, reject) => {
-    $httpClient.get(opts, (err, resp, data) => {
-      if (err) reject(err);
-      else resolve({ resp, data });
-    });
+// ====== 网络请求封装 + 重试机制 ======
+function httpClientGet(opts, retry = 1) {
+  return new Promise(async (resolve, reject) => {
+    for (let i = 0; i <= retry; i++) {
+      try {
+        $httpClient.get(opts, (err, resp, data) => {
+          if (err) throw err;
+          resolve({ resp, data });
+        });
+        break;
+      } catch (err) {
+        if (i === retry) reject(err);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
   });
 }
 
-function httpClientPost(opts) {
-  return new Promise((resolve, reject) => {
-    $httpClient.post(opts, (err, resp, data) => {
-      if (err) reject(err);
-      else resolve({ resp, data });
-    });
+function httpClientPost(opts, retry = 1) {
+  return new Promise(async (resolve, reject) => {
+    for (let i = 0; i <= retry; i++) {
+      try {
+        $httpClient.post(opts, (err, resp, data) => {
+          if (err) throw err;
+          resolve({ resp, data });
+        });
+        break;
+      } catch (err) {
+        if (i === retry) reject(err);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
   });
 }
 
@@ -67,22 +83,30 @@ function notify(title, msg) {
 
   for (const acc of accounts) {
     const headers = {
-      "Authorization": acc.authorization || $persistentStore.read("Ninebot_Authorization"),
+      "Authorization": acc.authorization?.startsWith("Bearer ") ? acc.authorization : `Bearer ${acc.authorization || $persistentStore.read("Ninebot_Authorization")}`,
       "deviceId": acc.deviceId || $persistentStore.read("Ninebot_DeviceId"),
-      "User-Agent": acc.userAgent || "NinebotApp/6.x",
+      "User-Agent": acc.userAgent || "NinebotApp/6.9.1 (iPhone; iOS 16.6; Scale/3.00)",
       "Content-Type": "application/json"
     };
 
     let message = `👤 账号：${acc.name || "未命名"}\n`;
 
     try {
+      // === 多账号随机延时 0~1 秒 ===
+      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 1000)));
+
       // === 签到 ===
       message += `\n🚀 开始签到…`;
       const signRes = await httpClientPost({
         url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
         headers,
-        body: JSON.stringify({ deviceId: headers.deviceId })
-      });
+        body: JSON.stringify({
+          deviceId: headers.deviceId,
+          appVersion: "609103606",
+          platform: "ios",
+          channel: "AppStore"
+        })
+      }, 1);
       const signData = JSON.parse(signRes.data || "{}");
       if (signData.code === 0) {
         const score = signData.data?.score || 0;
@@ -143,7 +167,7 @@ function notify(title, msg) {
             url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/open",
             headers,
             body: JSON.stringify({ awardDays: days })
-          });
+          }, 1);
           const openData = JSON.parse(openRes.data || "{}");
           if (openData.code === 0) {
             const reward = openData.data?.awardName || "未知奖励";
