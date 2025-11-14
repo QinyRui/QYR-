@@ -1,0 +1,18 @@
+{
+  "Ninebot_Accounts": [
+    {
+      "name": "主号",
+      "authorization": "$persistentStore.read('Ninebot_Authorization')",
+      "deviceId": "$persistentStore.read('Ninebot_DeviceId')",
+      "userAgent": "NinebotApp/6.x"
+    },
+    {
+      "name": "副号",
+      "authorization": "$persistentStore.read('Ninebot_Authorization')",
+      "deviceId": "$persistentStore.read('Ninebot_DeviceId')",
+      "userAgent": "NinebotApp/6.x"
+    }
+  ],
+  "Ninebot_Notification": true,
+  "Ninebot_BoxJS_Nicknames": true
+}
