@@ -2,14 +2,18 @@
   "scripts": [
     {
       "name": "九号签到",
-      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v3.0.js",
-      "cron": "0 8 * * *"
+      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v3.1.js",
+      "cron": "0 8 * * *",
+      "enabled": true,
+      "tag": "九号签到"
     },
     {
-      "name": "九号Token捕获",
-      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v3.0.js",
+      "name": "九号 Token 捕获",
+      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v3.1.js",
       "pattern": "^https:\\/\\/cn-cbu-gateway\\.ninebot\\.com\\/",
-      "requires-body": false
+      "requires-body": false,
+      "enabled": true,
+      "tag": "九号Token捕获"
     }
   ]
 }
