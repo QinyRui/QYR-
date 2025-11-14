@@ -1,0 +1,15 @@
+{
+  "scripts": [
+    {
+      "name": "九号签到",
+      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v3.0.js",
+      "cron": "0 8 * * *"
+    },
+    {
+      "name": "九号Token捕获",
+      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v3.0.js",
+      "pattern": "^https:\\/\\/cn-cbu-gateway\\.ninebot\\.com\\/",
+      "requires-body": false
+    }
+  ]
+}
