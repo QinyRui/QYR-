@@ -2,14 +2,14 @@
   "Ninebot_Accounts": [
     {
       "name": "主号",
-      "authorization": "<你的 Authorization>",
-      "deviceId": "<你的 DeviceId>",
+      "authorization": "$persistentStore.read('Ninebot_Authorization')",
+      "deviceId": "$persistentStore.read('Ninebot_DeviceId')",
       "userAgent": "NinebotApp/6.x"
     },
     {
       "name": "副号",
-      "authorization": "<你的 Authorization>",
-      "deviceId": "<你的 DeviceId>",
+      "authorization": "$persistentStore.read('Ninebot_Authorization')",
+      "deviceId": "$persistentStore.read('Ninebot_DeviceId')",
       "userAgent": "NinebotApp/6.x"
     }
   ],
