@@ -3,15 +3,16 @@
 =========================================
 👤 作者：❥﹒﹏非我不可
 ✈️ Telegram群：https://t.me/JiuHaoAPP
-📆 更新日期：2025/11/13
-📦 版本：v2.2 Share Edition
+📆 更新日期：2025/11/14
+📦 版本：v2.3 Share Edition
 💬 适用平台：Loon / Surge / Quantumult X / Stash / Shadowrocket 等
 🔑 功能简介：
    - 自动签到九号智能电动车账户
    - 自动捕获 Authorization 与 deviceId
    - 显示签到经验、N币、补签卡数量、盲盒任务
-   - 已签到时使用简洁提示
-   - 通知排版优化，更直观
+   - 修复盲盒 leftDaysToOpen 为 undefined 的问题
+   - 已签到时使用简洁提示（适配你的通知习惯）
+   - 丰富调试日志输出
 
 ⚙️ 使用说明：
 1️⃣ 打开九号 App 登录后，访问任意接口会自动捕获 Token。
@@ -21,9 +22,9 @@
 3️⃣ 可设置定时任务（建议每日 8:00 执行）：
 
 [Script]
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2.js, tag=九号签到
+cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.3.js, tag=九号签到
 # 可选：用于自动捕获Token
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/ requires-body=0,script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2.js, tag=九号Token捕获
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/ requires-body=0,script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.3.js, tag=九号Token捕获
 
 📌 注意：
 - 请勿公开分享包含个人 Token 的版本。
@@ -76,7 +77,7 @@ async function run() {
   const authorization = $persistentStore.read("Ninebot_Authorization") || ""
 
   if (!authorization || !deviceId) {
-    $notification.post("九号签到", "", "⚠️ 请先登录九号 App 抓取 Token（Authorization 与 deviceId）")
+    $notification.post("九号签到", "", "⚠️ 请先登录九号 App 并抓取 Token（Authorization 与 deviceId）")
     return $done()
   }
 
@@ -136,22 +137,25 @@ async function run() {
     const balanceRes = await httpClientGet({ url: urls.balance, headers })
     const balanceData = JSON.parse(balanceRes.data || "{}")
     if (balanceData.code === 0 && balanceData.data) {
-      const nBalance = balanceData.data.balance || 0
+      const nBalance = balanceData.data.balance ?? 0
       message += `\n当前N币余额：${nBalance}`
     }
 
-    // === 获取盲盒任务 ===
+    // === 获取盲盒任务（已修复 undefined ===
     const boxRes = await httpClientGet({ url: urls.blindBox, headers })
     const boxData = JSON.parse(boxRes.data || "{}")
+
     if (boxData.code === 0 && boxData.data?.notOpenedBoxes?.length > 0) {
       message += `\n即将开启盲盒：`
       boxData.data.notOpenedBoxes.forEach(b => {
-        message += `\n- ${b.awardDays}天盲盒，还需${b.leftDaysToOpen}天`
+        const awardDays = b.awardDays ?? "?"
+        const leftDays = b.leftDaysToOpen ?? 0   // 修复 undefined
+        message += `\n- ${awardDays}天盲盒，还需${leftDays}天`
       })
     }
 
   } catch (err) {
-    message = `❌ 脚本执行出错：${err.message}`
+    message = `❌ 脚本执行出错：${err}`
   } finally {
     // ===== 通知排版优化 =====
     let notifTitle = ""
@@ -165,8 +169,9 @@ async function run() {
       notifTitle = `九号签到`
     }
 
+    // 精准匹配
     const matchCards = message.match(/补签卡：(\d+)/)
-    const matchCoin = message.match(/余额：(\d+)/)
+    const matchCoin = message.match(/N币余额：(\d+)/)
     const matchBoxes = message.match(/即将开启盲盒：([\s\S]*)/)
 
     if (matchCards) notifBody += `🎫 补签卡：${matchCards[1]} 张\n`
