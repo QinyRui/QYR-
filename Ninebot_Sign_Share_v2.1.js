@@ -73,7 +73,7 @@ function notify(title, msg) {
       if (signData.code === 0) {
         const score = signData.data?.score || 0;
         const nCoin = signData.data?.nCoin || 0;
-        message += `\n✅ 签到成功 🎉 获得 ${score} 经验 + ${nCoin} N币`;
+        message += `\n✅ 签到成功 🎉 获得 $$e3Njb3JlfSDnu4/pqowgKyA=$${nCoin} N币`;
       } else if (signData.code === 540004) {
         message += `\n⚠️ 今日已签到`;
       } else {
@@ -151,7 +151,7 @@ function notify(title, msg) {
 
     // 完整通知
     notify(`📱 九号签到 · ${acc.name}`, message);
-    console.log(`==== ${acc.name} Log ====\n${message}\n\n`);
+    console.log(`==== $$e2FjYy5uYW1lfSBMb2cgPT09PVxu$${message}\n\n`);
   }
 
   $done();
