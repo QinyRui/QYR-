@@ -1,0 +1,20 @@
+{
+  "scripts": [
+    {
+      "name": "九号签到",
+      "type": "cron",
+      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Auto_v2.2.js",
+      "cron": "0 8 * * *",
+      "enabled": true,
+      "tag": "九号签到"
+    },
+    {
+      "name": "九号Token捕获",
+      "type": "http-request",
+      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Auto_v2.2.js",
+      "pattern": "^https:\\/\\/cn-cbu-gateway\\.ninebot\\.com\\/",
+      "enabled": true,
+      "tag": "九号Token捕获"
+    }
+  ]
+}
