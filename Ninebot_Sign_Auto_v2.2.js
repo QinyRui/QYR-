@@ -1,0 +1,1 @@
+https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Auto_v2.2.js
