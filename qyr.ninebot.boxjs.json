@@ -1,0 +1,30 @@
+{
+  "id": "qyr.ninebot",
+  "name": "九号智能电动车签到 · 多账号支持",
+  "icon": "bolt.circle",
+  "author": "❥﹒﹏非我不可",
+
+  "keys": [
+    "Ninebot_Authorization_1",
+    "Ninebot_DeviceId_1",
+    "Ninebot_Name_1",
+    "Ninebot_Authorization_2",
+    "Ninebot_DeviceId_2",
+    "Ninebot_Name_2"
+  ],
+
+  "settings": [
+    {
+      "id": "Ninebot_Name_1",
+      "name": "主号显示名称",
+      "val": "主号"
+    },
+    {
+      "id": "Ninebot_Name_2",
+      "name": "副号显示名称",
+      "val": "副号"
+    }
+  ],
+
+  "author_url": "https://github.com/QinyRui/QYR-"
+}
