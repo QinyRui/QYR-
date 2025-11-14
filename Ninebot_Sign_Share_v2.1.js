@@ -36,6 +36,7 @@ http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/ requires-body=0,script-pa
 if (typeof $request !== "undefined" && $request.headers) {
   const auth = $request.headers["Authorization"] || $request.headers["authorization"]
   const deviceId = $request.headers["deviceId"] || $request.headers["device_id"]
+
   if (auth) {
     $persistentStore.write(auth, "Ninebot_Authorization")
     console.log("✅ Authorization 捕获成功")
@@ -44,9 +45,11 @@ if (typeof $request !== "undefined" && $request.headers) {
     $persistentStore.write(deviceId, "Ninebot_DeviceId")
     console.log("✅ DeviceId 捕获成功")
   }
+
   if (auth || deviceId) {
     $notification.post("🎯 九号 Token 捕获成功", "", "Authorization 与 DeviceId 已保存")
   }
+
   $done({})
   return
 }
@@ -87,7 +90,8 @@ async function run() {
     "platform": "h5",
     "Origin": "https://h5-bj.ninebot.com",
     "language": "zh",
-    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Segway v6 C 609103606",
+    "User-Agent":
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Segway v6 C 609103606",
     "Referer": "https://h5-bj.ninebot.com/",
     "device_id": deviceId,
   }
@@ -107,15 +111,21 @@ async function run() {
     console.log("🚀 开始执行九号签到...")
 
     // === 签到请求 ===
-    const signRes = await httpClientPost({
-      url: urls.sign,
-      headers,
-      body: JSON.stringify({ deviceId }),
-    })
-    const signData = JSON.parse(signRes.data || "{}")
+    let signData = {}
+    try {
+      const signRes = await httpClientPost({
+        url: urls.sign,
+        headers,
+        body: JSON.stringify({ deviceId }),
+      })
+      signData = JSON.parse(signRes.data || "{}")
+    } catch (e) {
+      console.log("❌ 签到接口解析失败：", e)
+    }
 
     if (signData.code === 0) {
-      const { score = 0, nCoin = 0 } = signData.data
+      const score = signData.data?.score ?? 0
+      const nCoin = signData.data?.nCoin ?? 0
       message += `✅ 签到成功 🎉\n🎁 获得 ${score} 经验 + ${nCoin} N币`
     } else if (signData.code === 540004) {
       message += "⚠️ 今日已签到"
@@ -124,40 +134,58 @@ async function run() {
     }
 
     // === 获取签到状态 ===
-    const statusRes = await httpClientGet({ url: urls.status, headers })
-    const statusData = JSON.parse(statusRes.data || "{}")
-    if (statusData.code === 0 && statusData.data) {
-      newSignDays = statusData.data.consecutiveDays || 0
-      const signCardsNum = statusData.data.signCardsNum || 0
-      message += `\n🗓️ 连续签到：${newSignDays} 天\n🎫 补签卡：${signCardsNum} 张`
+    try {
+      const statusRes = await httpClientGet({ url: urls.status, headers })
+      const statusData = JSON.parse(statusRes.data || "{}")
+      if (statusData.code === 0 && statusData.data) {
+        newSignDays = statusData.data.consecutiveDays || 0
+        const signCards = statusData.data.signCardsNum || 0
+        message += `\n🗓️ 连续签到：${newSignDays} 天\n🎫 补签卡：${signCards} 张`
+      }
+    } catch (e) {
+      console.log("❌ 状态接口解析失败：", e)
     }
 
     // === 获取账户余额 ===
-    const balanceRes = await httpClientGet({ url: urls.balance, headers })
-    const balanceData = JSON.parse(balanceRes.data || "{}")
-    if (balanceData.code === 0 && balanceData.data) {
-      const nBalance = balanceData.data.balance || 0
-      message += `\n💰 当前 N币余额：${nBalance}`
+    try {
+      const balanceRes = await httpClientGet({ url: urls.balance, headers })
+      const balanceData = JSON.parse(balanceRes.data || "{}")
+      const nBalance = balanceData.data?.balance ?? null
+      if (nBalance !== null) {
+        message += `\n💰 当前 N币余额：${nBalance}`
+      }
+    } catch (e) {
+      console.log("❌ 余额接口解析失败：", e)
     }
 
     // === 获取盲盒任务 ===
-    const boxRes = await httpClientGet({ url: urls.blindBox, headers })
-    const boxData = JSON.parse(boxRes.data || "{}")
-    if (boxData.code === 0 && boxData.data?.notOpenedBoxes?.length > 0) {
-      message += `\n\n📦 即将开启盲盒：`
-      boxData.data.notOpenedBoxes.forEach(b => {
-        message += `\n  - ${b.awardDays}天盲盒，还需 ${b.leftDaysToOpen} 天`
-      })
+    try {
+      const boxRes = await httpClientGet({ url: urls.blindBox, headers })
+      const boxData = JSON.parse(boxRes.data || "{}")
+      const list = boxData.data?.notOpenedBoxes || []
+
+      if (list.length > 0) {
+        message += `\n\n📦 即将开启盲盒：`
+        list.forEach(b => {
+          const days = b.awardDays ?? "?"
+          const left = b.leftDaysToOpen ?? "?"
+          message += `\n  - ${days} 天盲盒，还需 ${left} 天`
+        })
+      }
+    } catch (e) {
+      console.log("❌ 盲盒接口解析失败：", e)
     }
   } catch (err) {
-    message = `❌ 脚本执行出错：${err.message}`
+    message = `❌ 脚本执行出错：${err.message || err}`
   } finally {
     if (message.includes("已签到")) {
+      // 用户自定义：已签到 → 简短提示
       $notification.post(title, `已签到 · 连续 ${newSignDays} 天`, "")
     } else {
+      // 正常签到 → 详情通知
       $notification.post(title, `连续 ${newSignDays} 天`, message)
     }
-    console.log("✅ 九号签到完成")
+    console.log("🏁 九号签到完成")
     $done()
   }
 }
