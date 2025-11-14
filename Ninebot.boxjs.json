@@ -1,39 +1,25 @@
 {
-  "id": "ninebot.sign.share",
-  "name": "九号智能电动车签到",
-  "author": "❥﹒﹏非我不可",
-  "version": "2.0",
-  "repo": "QinyRui/QYR-",
-  "apps": [
+  "title": "九号智能电动车签到",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/logo.png",
+  "scripts": [
     {
-      "id": "Ninebot_Sign",
       "name": "九号签到",
-      "keys": [
-        "Ninebot_Authorization",
-        "Ninebot_DeviceId"
-      ],
-      "descs_html": [
-        "📱 <b>功能：</b> 自动签到九号智能电动车账户",
-        "🪪 <b>获取方式：</b> 打开九号App → 登录 → 抓包任意请求头中获取 <code>Authorization</code> 与 <code>deviceId</code>",
-        "⚙️ <b>使用方式：</b> 在 BoxJS 中填写下方两项后保存即可",
-        "📅 <b>建议任务：</b> 每天上午 8:00 自动运行"
-      ],
-      "settings": [
+      "desc": "每日自动签到并获取补签卡、N币、盲盒任务",
+      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.3.js",
+      "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/logo.png",
+      "type": "cron",
+      "cron": "0 8 * * *",
+      "enabled": true,
+      "env": [
         {
-          "id": "Ninebot_Authorization",
-          "name": "Authorization",
-          "val": "",
-          "type": "text",
-          "placeholder": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-          "desc": "在 App 抓包请求头中复制 Authorization 值"
+          "name": "Ninebot_Authorization",
+          "desc": "在九号 App 抓包或登录后获取 Authorization",
+          "value": ""
         },
         {
-          "id": "Ninebot_DeviceId",
-          "name": "Device ID",
-          "val": "",
-          "type": "text",
-          "placeholder": "06965B02-DE89-45AB-9116-9B69923BF54C",
-          "desc": "九号 App “关于”页面中的设备ID"
+          "name": "Ninebot_DeviceId",
+          "desc": "在九号 App 抓包或登录后获取 DeviceId",
+          "value": ""
         }
       ]
     }
