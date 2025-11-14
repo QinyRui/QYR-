@@ -1,0 +1,18 @@
+{
+  "id": "ninebot.app",
+  "name": "九号电动车签到",
+  "keys": ["NINEBOT_ACCOUNTS"],
+  "descs_html": [
+    "支持多账号、自定义昵称、盲盒显示、余额",
+    "抓取 Authorization + deviceId 自动写入"
+  ],
+  "settings": [
+    {
+      "id": "NINEBOT_ACCOUNTS",
+      "name": "账号列表（JSON）",
+      "val": "[]",
+      "type": "textarea",
+      "placeholder": "[{\"name\":\"主号\",\"authorization\":\"xxx\",\"deviceId\":\"xxx\"}]"
+    }
+  ]
+}
