@@ -1,12 +1,27 @@
 {
+  "name": "Ninebot Auto Sign · Share Edition",
+  "description": "九号智能电动车自动签到 · v2.3 分享版",
+  "author": "❥﹒﹏非我不可",
+  "icon": "bolt.circle",
+
   "scripts": [
     {
-      "name": "九号签到 v2.4",
-      "desc": "每日自动签到任务，显示连续天数、N币、盲盒提醒，支持双号通知",
+      "name": "九号签到",
       "type": "cron",
-      "cron": "0 8 * * *",
-      "timeout": 30,
-      "scriptUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.4.js"
+      "time": "0 8 * * *",
+      "script_url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.3.js"
+    },
+    {
+      "name": "九号 Token 捕获",
+      "type": "http-request",
+      "match": "^https:\\/\\/cn-cbu-gateway\\.ninebot\\.com\\/",
+      "script_url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.3.js"
     }
-  ]
+  ],
+
+  "mitm": {
+    "hostnames": [
+      "cn-cbu-gateway.ninebot.com"
+    ]
+  }
 }
