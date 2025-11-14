@@ -2,9 +2,9 @@
   {
     "name": "九号签到 v3.1 Share+",
     "desc": "自动签到 + 盲盒开启 + 多账号支持",
-    "icon": "https://raw.githubusercontent.com/你的用户名/你的仓库/main/icon.png",
+    "icon": "https://raw.githubusercontent.com/ QinyRui/Ninebot/main/icon.png",
     "type": "js",
-    "url": "https://raw.githubusercontent.com/你的用户名/你的仓库/main/scripts/Ninebot_Sign_v3.1_SharePlus.js",
+    "url": "https://raw.githubusercontent.com/ QinyRui/Ninebot/main/scripts/Ninebot_Sign_v3.1_SharePlus.js",
     "enabled": true
   }
 ]
