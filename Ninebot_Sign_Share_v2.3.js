@@ -19,16 +19,14 @@
 2️⃣ 若需手动配置，可在 BoxJS 中添加以下变量：
       🔹 Ninebot_Authorization
       🔹 Ninebot_DeviceId
-3️⃣ 可设置定时任务（建议每日 8:00 执行）：
+3️⃣ 可设置定时任务：
 
 [Script]
 cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.3.js, tag=九号签到
-# 可选：用于自动捕获Token
 http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/ requires-body=0,script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.3.js, tag=九号Token捕获
 
 📌 注意：
-- 请勿公开分享包含个人 Token 的版本。
-- 本脚本仅供学习研究使用。
+- 本脚本仅供学习研究使用，请勿公开分享包含 Token 的版本。
 
 ===========================================================
 */
@@ -37,6 +35,7 @@ http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/ requires-body=0,script-pa
 if (typeof $request !== "undefined" && $request.headers) {
   const auth = $request.headers["Authorization"] || $request.headers["authorization"]
   const deviceId = $request.headers["deviceId"] || $request.headers["device_id"]
+
   if (auth) {
     $persistentStore.write(auth, "Ninebot_Authorization")
     console.log("✅ Authorization 捕获成功")
@@ -45,6 +44,7 @@ if (typeof $request !== "undefined" && $request.headers) {
     $persistentStore.write(deviceId, "Ninebot_DeviceId")
     console.log("✅ DeviceId 捕获成功")
   }
+
   if (auth || deviceId) {
     $notification.post("🎯 九号 Token 捕获成功", "", "Authorization 与 DeviceId 已保存")
   }
@@ -52,7 +52,7 @@ if (typeof $request !== "undefined" && $request.headers) {
   return
 }
 
-// ====== [网络请求封装] ======
+// ====== [封装请求函数] ======
 function httpClientPost(request) {
   return new Promise((resolve, reject) => {
     $httpClient.post(request, (error, response, data) => {
@@ -73,8 +73,8 @@ function httpClientGet(request) {
 
 // ====== [主执行函数] ======
 async function run() {
-  const deviceId = $persistentStore.read("Ninebot_DeviceId") || ""
   const authorization = $persistentStore.read("Ninebot_Authorization") || ""
+  const deviceId = $persistentStore.read("Ninebot_DeviceId") || ""
 
   if (!authorization || !deviceId) {
     $notification.post("九号签到", "", "⚠️ 请先登录九号 App 并抓取 Token（Authorization 与 deviceId）")
@@ -102,12 +102,11 @@ async function run() {
 
   let message = ""
   let newSignDays = 0
-  const title = "九号签到"
 
   try {
     console.log("🚀 开始执行九号签到...")
 
-    // === 签到请求 ===
+    // === 签到 ===
     const signRes = await httpClientPost({
       url: urls.sign,
       headers,
@@ -124,24 +123,24 @@ async function run() {
       message += `❌ 签到失败：${signData.msg || "未知错误"}`
     }
 
-    // === 获取签到状态 ===
+    // === 签到状态 ===
     const statusRes = await httpClientGet({ url: urls.status, headers })
     const statusData = JSON.parse(statusRes.data || "{}")
-    if (statusData.code === 0 && statusData.data) {
+    if (statusData.code === 0) {
       newSignDays = statusData.data.consecutiveDays || 0
       const signCardsNum = statusData.data.signCardsNum || 0
-      message += `\n连续签到：${newSignDays}天\n补签卡：${signCardsNum}张`
+      message += `\n补签卡：${signCardsNum}张\n连续签到：${newSignDays}天`
     }
 
-    // === 获取账户余额 ===
+    // === N 币余额 ===
     const balanceRes = await httpClientGet({ url: urls.balance, headers })
     const balanceData = JSON.parse(balanceRes.data || "{}")
-    if (balanceData.code === 0 && balanceData.data) {
+    if (balanceData.code === 0) {
       const nBalance = balanceData.data.balance ?? 0
       message += `\n当前N币余额：${nBalance}`
     }
 
-    // === 获取盲盒任务（已修复 undefined ===
+    // === 盲盒任务（已修复 undefined） ===
     const boxRes = await httpClientGet({ url: urls.blindBox, headers })
     const boxData = JSON.parse(boxRes.data || "{}")
 
@@ -149,7 +148,7 @@ async function run() {
       message += `\n即将开启盲盒：`
       boxData.data.notOpenedBoxes.forEach(b => {
         const awardDays = b.awardDays ?? "?"
-        const leftDays = b.leftDaysToOpen ?? 0   // 修复 undefined
+        const leftDays = b.leftDaysToOpen ?? 0
         message += `\n- ${awardDays}天盲盒，还需${leftDays}天`
       })
     }
@@ -157,7 +156,8 @@ async function run() {
   } catch (err) {
     message = `❌ 脚本执行出错：${err}`
   } finally {
-    // ===== 通知排版优化 =====
+
+    // =========== 通知格式化 ==============
     let notifTitle = ""
     let notifBody = ""
 
@@ -169,19 +169,34 @@ async function run() {
       notifTitle = `九号签到`
     }
 
-    // 精准匹配
-    const matchCards = message.match(/补签卡：(\d+)/)
-    const matchCoin = message.match(/N币余额：(\d+)/)
-    const matchBoxes = message.match(/即将开启盲盒：([\s\S]*)/)
-
+    // 匹配补签卡
+    const matchCards = message.match(/补签卡：(\d+)张?/)
     if (matchCards) notifBody += `🎫 补签卡：${matchCards[1]} 张\n`
+
+    // 匹配 N 币余额
+    const matchCoin = message.match(/当前N币余额：(\d+)/)
     if (matchCoin) notifBody += `💰 N币余额：${matchCoin[1]}\n`
+
+    // 提取盲盒列表
+    const matchBoxes = message.includes("即将开启盲盒：")
+      ? message.split("即将开启盲盒：")[1].trim()
+      : ""
+
     if (matchBoxes) {
-      const boxes = matchBoxes[1].trim().split("\n").map(b => b.replace(/^[-\s]+/, "· ")).join("\n")
-      notifBody += `\n📦 盲盒任务：\n${boxes}`
+      const boxLines = matchBoxes
+        .split("\n")
+        .map(b => b.replace(/^[-\s]+/, "· "))
+        .join("\n")
+      notifBody += `\n📦 盲盒任务：\n${boxLines}`
     }
 
-    $notification.post(title, notifTitle, notifBody.trim())
+    // 发送通知
+    $notification.post(
+      "九号签到",
+      notifTitle,
+      notifBody.trim()
+    )
+
     console.log("✅ 九号签到完成")
     $done()
   }
