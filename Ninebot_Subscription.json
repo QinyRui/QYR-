@@ -1,10 +1,11 @@
-[
-  {
-    "name": "九号签到 v3.1 Share+",
-    "desc": "自动签到 + 盲盒开启 + 多账号支持",
-    "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png",
-    "type": "js",
-    "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_v3.1_SharePlus.js",
-    "enabled": true
-  }
-]
+{
+  "name": "Ninebot Sign Scripts",
+  "description": "Ninebot Auto Sign Share Scripts",
+  "scripts": [
+    {
+      "name": "Ninebot Sign v3.1 Share+",
+      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_v3.1_SharePlus.js",
+      "enabled": true
+    }
+  ]
+}
