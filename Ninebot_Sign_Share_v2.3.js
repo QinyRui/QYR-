@@ -1,67 +1,33 @@
 /*
-📱 九号智能电动车自动签到脚本（整合版）
+📱 九号智能电动车自动签到脚本（v2.3+升级版）
 =========================================
 👤 作者：❥﹒﹏非我不可
-✈️ Telegram群：https://t.me/JiuHaoAPP
 📆 更新日期：2025/11/14
-📦 版本：v2.3+ 整合版
-💬 适用平台：Loon / Surge / Quantumult X / Stash / Shadowrocket
-🔑 功能：
-  - 自动签到九号智能电动车账户
-  - 自动捕获 Authorization 与 deviceId
-  - 显示签到经验、N币、补签卡数量、盲盒任务
-  - 修复盲盒 leftDaysToOpen 为 undefined 的问题
-  - 已签到时使用简洁提示
-  - 丰富日志输出
+💬 支持：解析 calendarInfo 智能显示盲盒任务
 */
 
-// ====== [Token 捕获逻辑] ======
 if (typeof $request !== "undefined" && $request.headers) {
   const auth = $request.headers["Authorization"] || $request.headers["authorization"];
   const deviceId = $request.headers["deviceId"] || $request.headers["device_id"];
-
-  if (auth) {
-    $persistentStore.write(auth, "Ninebot_Authorization");
-    console.log("✅ Authorization 捕获成功");
-  }
-  if (deviceId) {
-    $persistentStore.write(deviceId, "Ninebot_DeviceId");
-    console.log("✅ DeviceId 捕获成功");
-  }
-
-  if (auth || deviceId) {
-    $notification.post("🎯 九号 Token 捕获成功", "", "Authorization 与 DeviceId 已保存");
-  }
+  if (auth) $persistentStore.write(auth, "Ninebot_Authorization");
+  if (deviceId) $persistentStore.write(deviceId, "Ninebot_DeviceId");
+  if (auth || deviceId) $notification.post("🎯 九号 Token 捕获成功", "", "Authorization 与 DeviceId 已保存");
   $done({});
   return;
 }
 
-// ====== [封装请求函数] ======
 function httpClientPost(request) {
   return new Promise((resolve, reject) => {
-    $httpClient.post(request, (err, resp, data) => err ? reject(err.toString()) : resolve({ resp, data }));
+    $httpClient.post(request, (err, resp, data) => err ? reject(err) : resolve({ resp, data }));
   });
 }
 
 function httpClientGet(request) {
   return new Promise((resolve, reject) => {
-    $httpClient.get(request, (err, resp, data) => err ? reject(err.toString()) : resolve({ resp, data }));
+    $httpClient.get(request, (err, resp, data) => err ? reject(err) : resolve({ resp, data }));
   });
 }
 
-// ====== [盲盒解析函数] ======
-function formatBlindBox(boxData) {
-  if (!boxData?.notOpenedBoxes || boxData.notOpenedBoxes.length === 0) return "";
-  let content = "📦 即将开启盲盒：";
-  boxData.notOpenedBoxes.forEach(b => {
-    const days = b.awardDays ?? "?";
-    const left = b.leftDaysToOpen ?? "?";
-    content += `\n· ${days}天盲盒，还需${left}天`;
-  });
-  return content;
-}
-
-// ====== [主执行函数] ======
 async function run() {
   const authorization = $persistentStore.read("Ninebot_Authorization") || "";
   const deviceId = $persistentStore.read("Ninebot_DeviceId") || "";
@@ -80,29 +46,33 @@ async function run() {
     "language": "zh",
     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Segway v6 C 609103606",
     "Referer": "https://h5-bj.ninebot.com/",
-    "device_id": deviceId
+    "device_id": deviceId,
   };
 
   const urls = {
     sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
     status: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
-    blindBox: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
-    balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606"
+    balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
+    calendar: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/calendar?appVersion=609103606"
   };
 
   let message = "";
-  let consecutiveDays = 0;
+  let newSignDays = 0;
+  let notifBody = "";
 
   try {
     console.log("🚀 开始执行九号签到...");
 
     // === 签到 ===
-    const { data: signRaw } = await httpClientPost({ url: urls.sign, headers, body: JSON.stringify({ deviceId }) });
-    const signData = JSON.parse(signRaw || "{}");
+    const signRes = await httpClientPost({
+      url: urls.sign,
+      headers,
+      body: JSON.stringify({ deviceId }),
+    });
+    const signData = JSON.parse(signRes.data || "{}");
 
     if (signData.code === 0) {
-      const score = signData.data?.score ?? 0;
-      const nCoin = signData.data?.nCoin ?? 0;
+      const { score = 0, nCoin = 0 } = signData.data;
       message += `🎉 今日签到成功！\n🎁 获得 ${score} 经验 + ${nCoin} N币`;
     } else if (signData.code === 540004) {
       message += "⚠️ 今日已签到";
@@ -111,54 +81,50 @@ async function run() {
     }
 
     // === 签到状态 ===
-    const { data: statusRaw } = await httpClientGet({ url: urls.status, headers });
-    const statusData = JSON.parse(statusRaw || "{}");
+    const statusRes = await httpClientGet({ url: urls.status, headers });
+    const statusData = JSON.parse(statusRes.data || "{}");
     if (statusData.code === 0) {
-      consecutiveDays = statusData.data?.consecutiveDays ?? 0;
-      const signCards = statusData.data?.signCardsNum ?? 0;
-      message += `\n补签卡：${signCards}张\n连续签到：${consecutiveDays}天`;
+      newSignDays = statusData.data.consecutiveDays || 0;
+      const signCardsNum = statusData.data.signCardsNum || 0;
+      notifBody += `🎫 补签卡：${signCardsNum} 张\n连续签到：${newSignDays}天\n`;
     }
 
     // === N币余额 ===
-    const { data: balanceRaw } = await httpClientGet({ url: urls.balance, headers });
-    const balanceData = JSON.parse(balanceRaw || "{}");
-    if (balanceData.code === 0) {
-      const nBalance = balanceData.data?.balance ?? 0;
-      message += `\n当前N币余额：${nBalance}`;
+    const balanceRes = await httpClientGet({ url: urls.balance, headers });
+    const balanceData = JSON.parse(balanceRes.data || "{}");
+    if (balanceData.code === 0 && balanceData.data) {
+      const nBalance = balanceData.data.balance ?? 0;
+      notifBody += `💰 N币余额：${nBalance}\n`;
     }
 
-    // === 盲盒任务 ===
-    const { data: boxRaw } = await httpClientGet({ url: urls.blindBox, headers });
-    const boxData = JSON.parse(boxRaw || "{}");
-    const blindBoxMsg = formatBlindBox(boxData);
-    if (blindBoxMsg) message += `\n${blindBoxMsg}`;
+    // === 获取日历盲盒 ===
+    const calendarRes = await httpClientGet({ url: urls.calendar, headers });
+    const calendarData = JSON.parse(calendarRes.data || "{}");
+
+    if (calendarData.code === 0 && Array.isArray(calendarData.data.calendarInfo)) {
+      let boxesMsg = "";
+      calendarData.data.calendarInfo.forEach(day => {
+        if(day.rewardInfo) {
+          const days = day.rewardInfo.days || 7;
+          const received = day.rewardInfo.receiveStatus === 2;
+          const leftDays = received ? 0 : days;
+          boxesMsg += `\n· ${days}天盲盒，还需${leftDays}天${received ? " ✅" : ""}`;
+        }
+      });
+      if(boxesMsg) notifBody += `\n📦 盲盒任务：${boxesMsg}`;
+    }
 
   } catch (err) {
-    message = `❌ 脚本执行出错：${err}`;
+    notifBody += `❌ 脚本执行出错：${err}`;
   } finally {
-    // ====== 通知格式化 ======
     let notifTitle = "";
-    let notifBody = "";
-
     if (message.includes("已签到")) {
-      notifTitle = `✅ 今日已签到 · 连续 ${consecutiveDays} 天`;
+      notifTitle = `✅ 今日已签到 · 连续 ${newSignDays} 天`;
     } else if (message.includes("签到成功")) {
-      notifTitle = `🎉 签到成功 · 连续 ${consecutiveDays} 天`;
+      notifTitle = `🎉 签到成功 · 连续 ${newSignDays} 天`;
     } else {
-      notifTitle = `九号签到`;
+      notifTitle = "九号签到";
     }
-
-    // 匹配补签卡
-    const matchCards = message.match(/补签卡：(\d+)张?/);
-    if (matchCards) notifBody += `🎫 补签卡：${matchCards[1]} 张\n`;
-
-    // 匹配 N币余额
-    const matchCoin = message.match(/当前N币余额：(\d+)/);
-    if (matchCoin) notifBody += `💰 N币余额：${matchCoin[1]}\n`;
-
-    // 盲盒内容
-    const matchBoxes = blindBoxMsg ? blindBoxMsg.split("\n").slice(1).map(b => "· " + b.replace(/^·\s*/, "")).join("\n") : "";
-    if (matchBoxes) notifBody += `\n📦 盲盒任务：\n${matchBoxes}`;
 
     $notification.post("九号签到", notifTitle, notifBody.trim());
     console.log("✅ 九号签到完成");
