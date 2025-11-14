@@ -1,0 +1,12 @@
+[
+  {
+    "displayName": "主号",
+    "authorization": "Bearer 11111111111111111111111111111111",
+    "deviceId": "1234567890abcdef"
+  },
+  {
+    "displayName": "副号",
+    "authorization": "Bearer 22222222222222222222222222222222",
+    "deviceId": "abcdef1234567890"
+  }
+]
