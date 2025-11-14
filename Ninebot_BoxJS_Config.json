@@ -1,24 +1,34 @@
 {
-  "variables": [
+  "name": "九号签到 BoxJS 配置",
+  "description": "可视化管理 Token、显示名称、通知开关",
+  "data": [
     {
-      "name": "Ninebot_Authorization",
+      "title": "Authorization",
+      "key": "Ninebot_Authorization",
       "value": "",
-      "description": "抓包自动获取或手动填写"
+      "type": "text",
+      "desc": "抓包获得 Authorization"
     },
     {
-      "name": "Ninebot_DeviceId",
+      "title": "DeviceId",
+      "key": "Ninebot_DeviceId",
       "value": "",
-      "description": "抓包自动获取或手动填写"
+      "type": "text",
+      "desc": "抓包获得 DeviceId"
     },
     {
-      "name": "User_DisplayName",
+      "title": "签到提醒",
+      "key": "Ninebot_Notification",
+      "value": "1",
+      "type": "toggle",
+      "desc": "是否显示签到通知，1=开启, 0=关闭"
+    },
+    {
+      "title": "自定义显示名称",
+      "key": "Ninebot_DisplayName",
       "value": "主号",
-      "description": "自定义显示名称"
-    },
-    {
-      "name": "Notification_Enable",
-      "value": true,
-      "description": "是否显示签到通知"
+      "type": "text",
+      "desc": "在通知中显示的账号名称"
     }
   ]
 }
