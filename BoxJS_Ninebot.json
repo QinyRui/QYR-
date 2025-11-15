@@ -1,34 +1,43 @@
 [
   {
     "id": "Ninebot.Sign",
-    "name": "九号智能电动车 · 自动签到",
-    "description": "自动签到 / 自动开盲盒 / 显示 N 币、签到天数等信息。",
-    "keys": [
-      "Ninebot_Authorization",
-      "Ninebot_DeviceId",
-      "Ninebot_Config"
-    ],
-    "settings": [
-      {
-        "id": "Ninebot_Config",
-        "name": "脚本高级配置（JSON）",
-        "type": "textarea",
-        "placeholder": "{\"debug\":true,\"customName\":\"主号\"}",
-        "val": "{\"debug\":true}"
-      }
-    ],
+    "name": "九号智能电动车 · 自动签到（多账号旗舰版）",
+    "description": "自动签到 · 自动开盲盒 · 多账号 · N币余额 · 签到天数 · 日志开关 · 通知开关。",
     "author": "❥﹒﹏非我不可",
     "repo": "https://github.com/QinyRui/QYR-",
     "icons": [
       "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png"
     ],
+
+    "keys": [
+      "Ninebot_Accounts",
+      "Ninebot_GlobalConfig"
+    ],
+
+    "settings": [
+      {
+        "id": "Ninebot_Accounts",
+        "name": "📦 多账号配置（JSON）",
+        "val": "[\n  {\n    \"name\": \"主号\",\n    \"Authorization\": \"\",\n    \"DeviceId\": \"\"\n  }\n]",
+        "type": "textarea",
+        "placeholder": "此处可添加多个账号：Authorization / DeviceId"
+      },
+      {
+        "id": "Ninebot_GlobalConfig",
+        "name": "⚙️ 高级设置（JSON）",
+        "val": "{\n  \"debug\": true,\n  \"notify\": true,\n  \"titlePrefix\": \"九号签到\",\n  \"logPrefix\": \"Ninebot-Log\"\n}",
+        "type": "textarea",
+        "placeholder": "debug / notify / 自定义标题 / 日志前缀"
+      }
+    ],
+
     "scripts": [
       {
-        "name": "九号智能电动车 · 自动签到脚本",
+        "name": "九号自动签到（多账号）",
         "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_AutoOpen_Full.js",
         "type": "cron",
         "cron": "0 7 * * *",
-        "timeout": 15,
+        "timeout": 20,
         "enabled": true
       }
     ]
