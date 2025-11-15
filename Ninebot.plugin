@@ -21,17 +21,48 @@
     }
   ],
   "settings": [
-    {"type": "toggle","key": "debug","default": true,"title": "控制台日志开关"},
-    {"type": "toggle","key": "notify","default": true,"title": "通知开关"},
-    {"type": "toggle","key": "autoOpenBox","default": true,"title": "自动开启盲盒"},
+    {
+      "type": "toggle",
+      "key": "debug",
+      "default": true,
+      "title": "控制台日志开关",
+      "desc": "开启后会在控制台显示详细签到日志"
+    },
+    {
+      "type": "toggle",
+      "key": "notify",
+      "default": true,
+      "title": "通知开关",
+      "desc": "开启后会发送签到通知"
+    },
+    {
+      "type": "toggle",
+      "key": "autoOpenBox",
+      "default": true,
+      "title": "自动开启盲盒",
+      "desc": "开启后满足条件的盲盒会自动领取奖励"
+    },
     {
       "type": "list",
       "key": "Ninebot_Accounts",
       "title": "账号列表",
+      "desc": "可添加多个账号，每个账号填写 Authorization 与 DeviceId",
       "items": [
-        {"type": "input","key": "name","title": "账号名称"},
-        {"type": "input","key": "Authorization","title": "Authorization Token"},
-        {"type": "input","key": "DeviceId","title": "DeviceId"}
+        {
+          "type": "input",
+          "key": "name",
+          "title": "账号名称"
+        },
+        {
+          "type": "input",
+          "key": "Authorization",
+          "title": "Authorization Token"
+        },
+        {
+          "type": "input",
+          "key": "DeviceId",
+          "title": "DeviceId"
+        }
       ]
     }
   ]
