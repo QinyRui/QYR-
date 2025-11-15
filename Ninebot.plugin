@@ -3,7 +3,7 @@
   "title": "九号智能电动车自动签到",
   "version": "v2.2 FullMulti",
   "author": "❥﹒﹏非我不可",
-  "description": "抓包捕获 Token，多账号签到，自动开盲盒，日志/通知开关",
+  "description": "多账号签到，自动开盲盒，日志/通知开关",
   "scripts": [
     {
       "name": "抓取 Token",
