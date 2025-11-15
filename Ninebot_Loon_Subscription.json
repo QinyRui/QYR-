@@ -1,0 +1,38 @@
+{
+  "title": "九号智能电动车订阅",
+  "version": "v2.2 FullMulti",
+  "author": "❥﹒﹏非我不可",
+  "description": "支持抓包捕获 Token、自动签到、多账号、自动开盲盒",
+  "scripts": [
+    {
+      "name": "抓取 Token",
+      "type": "http-request",
+      "pattern": "https://cn-cbu-gateway\\.ninebot\\.com/.*",
+      "script-path": "Ninebot_Sign_Share_v2.2_FullMulti.js",
+      "enabled": true,
+      "remarks": "第一次打开 App 抓包自动捕获 Authorization 与 DeviceId"
+    },
+    {
+      "name": "每日签到主脚本",
+      "type": "cron",
+      "schedule": "0 8 * * *",
+      "script-path": "Ninebot_Sign_Share_v2.2_FullMulti.js",
+      "enabled": true,
+      "remarks": "每天 8 点执行签到"
+    },
+    {
+      "name": "测试通知",
+      "type": "cron",
+      "schedule": "0 9 * * *",
+      "script-path": "Ninebot_TestNotify.js",
+      "enabled": true
+    },
+    {
+      "name": "测试日志",
+      "type": "cron",
+      "schedule": "0 9 * * *",
+      "script-path": "Ninebot_TestLog.js",
+      "enabled": true
+    }
+  ]
+}
