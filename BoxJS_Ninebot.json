@@ -1,8 +1,8 @@
 [
   {
     "id": "Ninebot.Sign",
-    "name": "九号智能电动车 · 自动签到（多账号旗舰版）",
-    "description": "自动签到 · 自动开盲盒 · 多账号 · N币余额 · 签到天数 · 日志开关 · 通知开关。",
+    "name": "九号智能电动车 · 多账号自动签到旗舰版",
+    "description": "自动签到 · 多账号 · 自动开盲盒 · 日志开关 · 通知开关 · 完整展示 N 币、签到天数、盲盒进度。",
     "author": "❥﹒﹏非我不可",
     "repo": "https://github.com/QinyRui/QYR-",
     "icons": [
@@ -18,23 +18,36 @@
       {
         "id": "Ninebot_Accounts",
         "name": "📦 多账号配置（JSON）",
-        "val": "[\n  {\n    \"name\": \"主号\",\n    \"Authorization\": \"\",\n    \"DeviceId\": \"\"\n  }\n]",
         "type": "textarea",
-        "placeholder": "此处可添加多个账号：Authorization / DeviceId"
+        "val": "[\n  {\n    \"name\": \"主号\",\n    \"Authorization\": \"\",\n    \"DeviceId\": \"\"\n  }\n]",
+        "placeholder": "示例：[{ \"name\":\"主号\", \"Authorization\":\"xxx\", \"DeviceId\":\"xxx\" }]"
       },
       {
         "id": "Ninebot_GlobalConfig",
-        "name": "⚙️ 高级设置（JSON）",
-        "val": "{\n  \"debug\": true,\n  \"notify\": true,\n  \"titlePrefix\": \"九号签到\",\n  \"logPrefix\": \"Ninebot-Log\"\n}",
+        "name": "⚙️ 全局设置（JSON）",
         "type": "textarea",
-        "placeholder": "debug / notify / 自定义标题 / 日志前缀"
+        "val": "{\n  \"debug\": true,\n  \"notify\": true,\n  \"titlePrefix\": \"九号签到\",\n  \"logPrefix\": \"Ninebot-LOG\",\n  \"autoOpenBox\": true\n}",
+        "placeholder": "debug, notify, titlePrefix, logPrefix, autoOpenBox"
+      }
+    ],
+
+    "actions": [
+      {
+        "id": "test_notify",
+        "name": "🔔 测试通知",
+        "script": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_TestNotify.js"
+      },
+      {
+        "id": "test_log",
+        "name": "📝 测试日志输出",
+        "script": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_TestLog.js"
       }
     ],
 
     "scripts": [
       {
-        "name": "九号自动签到（多账号）",
-        "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_AutoOpen_Full.js",
+        "name": "九号自动签到 · 多账号旗舰版",
+        "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Full_Multi.js",
         "type": "cron",
         "cron": "0 7 * * *",
         "timeout": 20,
