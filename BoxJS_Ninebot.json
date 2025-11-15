@@ -1,27 +1,34 @@
 [
   {
     "id": "Ninebot.Sign",
-    "name": "Ninebot 自动签到",
-    "keys": ["Ninebot_Config"],
+    "name": "九号智能电动车 · 自动签到",
+    "description": "自动签到 / 自动开盲盒 / 显示 N 币、签到天数等信息。",
+    "keys": [
+      "Ninebot_Authorization",
+      "Ninebot_DeviceId",
+      "Ninebot_Config"
+    ],
     "settings": [
       {
         "id": "Ninebot_Config",
-        "name": "脚本配置 (JSON)",
-        "val": "{\"debug\":true,\"customTitle\":\"Ninebot Sign AutoOpen\",\"userAgent\":\"Mozilla/5.0\"}",
+        "name": "脚本高级配置（JSON）",
         "type": "textarea",
-        "placeholder": "{\"debug\":false}"
+        "placeholder": "{\"debug\":true,\"customName\":\"主号\"}",
+        "val": "{\"debug\":true}"
       }
     ],
     "author": "❥﹒﹏非我不可",
     "repo": "https://github.com/QinyRui/QYR-",
-    "icons": ["https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png"],
+    "icons": [
+      "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png"
+    ],
     "scripts": [
       {
-        "name": "九号签到脚本",
+        "name": "九号智能电动车 · 自动签到脚本",
         "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_AutoOpen_Full.js",
         "type": "cron",
         "cron": "0 7 * * *",
-        "timeout": 20,
+        "timeout": 15,
         "enabled": true
       }
     ]
