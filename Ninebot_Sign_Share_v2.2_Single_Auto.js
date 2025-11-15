@@ -4,6 +4,7 @@
  * 版本：v2.2 FullSingle
  * 作者：❥﹒﹏非我不可
  * 更新：2025/11/15
+ * telegram = https://t.me/JiuHaoAPP
  *
  * 功能：
  *  - 单账号
