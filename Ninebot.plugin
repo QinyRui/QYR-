@@ -1,0 +1,38 @@
+{
+  "plugin": true,
+  "title": "九号智能电动车自动签到",
+  "version": "v2.2 FullMulti",
+  "author": "❥﹒﹏非我不可",
+  "description": "抓包捕获 Token，多账号签到，自动开盲盒，日志/通知开关",
+  "scripts": [
+    {
+      "name": "抓取 Token",
+      "type": "http-request",
+      "pattern": "https://cn-cbu-gateway\\.ninebot\\.com/.*",
+      "script-path": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_FullMulti.js",
+      "enabled": true
+    },
+    {
+      "name": "每日签到",
+      "type": "cron",
+      "schedule": "0 8 * * *",
+      "script-path": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_FullMulti.js",
+      "enabled": true
+    }
+  ],
+  "settings": [
+    {"type": "toggle","key": "debug","default": true,"title": "控制台日志开关"},
+    {"type": "toggle","key": "notify","default": true,"title": "通知开关"},
+    {"type": "toggle","key": "autoOpenBox","default": true,"title": "自动开启盲盒"},
+    {
+      "type": "list",
+      "key": "Ninebot_Accounts",
+      "title": "账号列表",
+      "items": [
+        {"type": "input","key": "name","title": "账号名称"},
+        {"type": "input","key": "Authorization","title": "Authorization Token"},
+        {"type": "input","key": "DeviceId","title": "DeviceId"}
+      ]
+    }
+  ]
+}
