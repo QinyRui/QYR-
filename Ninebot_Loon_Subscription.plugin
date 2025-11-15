@@ -1,21 +1,5 @@
-{
-  "name": "九号签到插件订阅",
-  "description": "自动签到 + 自动抓取 Token + 自动领取盲盒",
-  "type": "plugin",
-  "scripts": [
-    {
-      "name": "九号签到",
-      "type": "cron",
-      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Plugin_v2.3.js",
-      "cron": "0 8 * * *",
-      "tag": "九号签到"
-    },
-    {
-      "name": "九号Token捕获",
-      "type": "http-request",
-      "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Plugin_v2.3.js",
-      "pattern": "^https:\\/\\/cn-cbu-gateway\\.ninebot\\.com\\/",
-      "tag": "九号Token捕获"
-    }
-  ]
-}
+[Script]
+# 九号智能电动车签到插件
+script-path=https://cdn.jsdelivr.net/gh/QinyRui/QYR-@main/Ninebot_Sign_Plugin_v2.3.js
+tag=九号签到
+cron "0 8 * * *"
