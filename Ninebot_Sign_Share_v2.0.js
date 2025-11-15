@@ -1,124 +1,148 @@
 /*
-📱 九号智能电动车自动签到脚本（发布版 · 可远程订阅）
+📱 九号智能电动车自动签到脚本（分享版）
 =========================================
 👤 作者：❥﹒﹏非我不可
-📆 更新日期：2025/11/15
-📦 版本：v2.2 AutoOpen Full Edition + 日志开关
-🔧 新增：
-   - DEBUG 可通过 BoxJS 配置开关控制
-   - 主体执行日志全量输出
-   - 可直接用于 Loon / Surge / QX / Stash
+✈️Telegram群：https://t.me/JiuHaoAPP
+📆 更新日期：2025/11/09
+📦 版本：v2.0 Share Edition
+💬 适用平台：Loon / Surge / Quantumult X / Stash / Shadowrocket 等
+🔑 功能简介：
+   - 自动签到九号智能电动车账户
+   - 显示签到经验、N币、补签卡数量
+   - 支持盲盒任务列表（如“惊喜盲盒赚不停”）
+   - 自动记录并展示连续签到天数
+   - 兼容多环境（$notification / $persistentStore）
+
+⚙️ 使用说明：
+1️⃣ 打开九号 App 登录后，抓取任意请求头中的 Authorization 与 deviceId。
+   - Authorization：请求头中的 Authorization 值（JWT Token）
+   - deviceId：可在 App「我的」→「设置」→「关于」中找到
+2️⃣ 可通过 BoxJS 或脚本内填写变量。
+   BoxJS 环境变量示例：
+      🔹 Ninebot_Authorization
+      🔹 Ninebot_DeviceId
+3️⃣ 可设置定时任务（建议每日 8:00 执行）：
+
+[Script]
+cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.0.js, tag=九号签到
+
+📌 注意：
+- 请勿公开分享包含你个人 Token 的版本。
+- 本脚本仅供学习研究使用。
+
+===========================================================
 */
 
-// ---------- BoxJS / 脚本配置 ----------
-let CONFIG = {
-  debug: true,  // 日志开关，BoxJS 可修改
-  customTitle: "Ninebot Sign AutoOpen",
-  userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6"
-};
-
-// 如果 BoxJS 可用，可覆盖默认配置
-if (typeof $config !== "undefined") {
-  try { CONFIG = { ...CONFIG, ...JSON.parse($config.value) }; } catch(e){ }
+// Helper to promisify $httpClient.post
+function httpClientPost(request) {
+  return new Promise((resolve, reject) => {
+    $httpClient.post(request, (error, response, data) => {
+      if (error) reject(new Error(error))
+      else resolve({ response, data })
+    })
+  })
 }
 
-function log(...msg){ if(CONFIG.debug) console.log("[Ninebot]", ...msg); }
-
-// ---------- Token 捕获 ----------
-if(typeof $request !== "undefined" && $request.headers){
-  const auth = $request.headers["Authorization"]||$request.headers["authorization"];
-  const devId = $request.headers["deviceId"]||$request.headers["device_id"];
-  log("📥 捕获请求头：",$request.headers);
-
-  if(auth){ $persistentStore.write(auth,"Ninebot_Authorization"); log("✅ Authorization 捕获成功 →", auth); }
-  if(devId){ $persistentStore.write(devId,"Ninebot_DeviceId"); log("✅ DeviceId 捕获成功 →", devId); }
-  if(auth||devId) $notification.post("🎯 Ninebot Token 捕获成功","","Authorization 与 DeviceId 已保存");
-  $done({}); return;
+// Helper to promisify $httpClient.get
+function httpClientGet(request) {
+  return new Promise((resolve, reject) => {
+    $httpClient.get(request, (error, response, data) => {
+      if (error) reject(new Error(error))
+      else resolve({ response, data })
+    })
+  })
 }
 
-// ---------- 网络请求封装 ----------
-function httpPost(req){ log("➡️ POST:", req.url); return new Promise((resolve,reject)=>{ $httpClient.post(req,(err,resp,data)=>{ if(err){ log("❌ POST 错误:",err); reject(err.toString()); } else { log("⬅️ POST 返回:", data); resolve({resp,data}); } }); }); }
-function httpGet(req){ log("➡️ GET:", req.url); return new Promise((resolve,reject)=>{ $httpClient.get(req,(err,resp,data)=>{ if(err){ log("❌ GET 错误:",err); reject(err.toString()); } else { log("⬅️ GET 返回:", data); resolve({resp,data}); } }); }); }
+async function run() {
+  // === 获取配置 ===
+  const deviceId = $persistentStore.read("Ninebot_DeviceId") || "请填写你的 deviceId"
+  const authorization = $persistentStore.read("Ninebot_Authorization") || "请填写你的 Authorization"
 
-// ---------- 奖励解析 ----------
-function parseReward(data){ log("🎁 解析奖励:",data); if(!data)return "未知奖励"; switch(data.rewardType){ case 1:return `${data.rewardValue} N币`; case 2:return `补签卡 ×${data.rewardValue}`; default:return `奖励(${data.rewardType}) ×${data.rewardValue}`; } }
+  if (authorization.includes("请填写")) {
+    $notification.post("九号签到", "", "⚠️ 请先配置 Authorization 与 deviceId，再运行脚本。")
+    return $done()
+  }
 
-// ---------- 自动开启盲盒 ----------
-async function openBlindBox(headers){
-  log("📦 尝试开启盲盒...");
-  try{
-    const res = await httpPost({url:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive", headers, body:"{}"});
-    const json = JSON.parse(res.data||"{}");
-    log("📦 开盲盒返回:", json);
-    return json.code===0 ? parseReward(json.data) : "领取失败："+(json.msg||"");
-  }catch(err){ return "执行异常："+err; }
-}
+  const taskListUrl = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list"
+  const signUrl = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign"
+  const statusUrl = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status"
+  const accountInfoUrl = "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606"
 
-// ---------- 主执行 ----------
-async function run(){
-  log("🚀 启动 Ninebot Sign AutoOpen 任务...");
-  const deviceId=$persistentStore.read("Ninebot_DeviceId");
-  const authorization=$persistentStore.read("Ninebot_Authorization");
-  log("🔐 Token:", {deviceId, authorization});
-  if(!deviceId||!authorization){ $notification.post(CONFIG.customTitle,"","⚠️ 请先打开九号 App 抓包以获取 Token"); return $done(); }
+  const commonHeaders = {
+    "Content-Type": "application/json",
+    "Accept": "application/json, text/plain, */*",
+    "Authorization": authorization,
+    "platform": "h5",
+    "Origin": "https://h5-bj.ninebot.com",
+    "language": "zh",
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Segway v6 C 609103606",
+    "Referer": "https://h5-bj.ninebot.com/",
+    "device_id": deviceId,
+  }
 
-  const headers={
-    "Content-Type":"application/json","Authorization":authorization,"platform":"h5",
-    "Origin":"https://h5-bj.ninebot.com","language":"zh",
-    "User-Agent":CONFIG.userAgent,"Referer":"https://h5-bj.ninebot.com/","device_id":deviceId
-  };
-  log("📨 请求头:", headers);
+  let newSignDays = 0
+  let signScore = 0
+  let nCoin = 0
+  let signCardsNum = 0
+  let currentNCoinBalance = 0
 
-  const urls={
-    sign:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
-    status:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
-    blindBoxList:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
-    balance:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606"
-  };
-  log("🌐 接口列表:", urls);
+  const key = "ninebot_consecutive_sign_days"
+  const title = "九号签到"
+  let message = ""
 
-  let notify="", days=0;
+  try {
+    console.log("开始执行九号签到...")
 
-  try{
-    // 签到
-    log("📝 开始签到...");
-    const signRes=await httpPost({url:urls.sign, headers, body:JSON.stringify({deviceId})});
-    const signJson=JSON.parse(signRes.data||"{}");
-    log("📝 签到返回:", signJson);
-    if(signJson.code===0){ notify+=`🎉 签到成功\n🎁 +${signJson.data.score} 经验，+${signJson.data.nCoin} N币`; }
-    else if(signJson.code===540004){ notify+=`⚠️ 今日已签到`; }
-    else{ notify+=`❌ 签到失败：${signJson.msg||""}`; }
+    // === 签到请求 ===
+    const signReq = { url: signUrl, method: "POST", headers: commonHeaders, body: JSON.stringify({ deviceId }) }
+    const { data: signData } = await httpClientPost(signReq)
+    const signResult = JSON.parse(signData || "{}")
 
-    // 签到状态
-    log("📊 获取签到状态...");
-    const statusRes=await httpGet({url:urls.status, headers});
-    const statusJson=JSON.parse(statusRes.data||"{}");
-    log("📊 状态 JSON:", statusJson);
-    if(statusJson.code===0){ const s=statusJson.data; days=s.consecutiveDays||0; notify+=`\n🗓 连续签到：${days} 天\n🎫 补签卡：${s.signCardsNum} 张`; }
-
-    // N币余额
-    log("💰 查询 N 币余额...");
-    const balRes=await httpGet({url:urls.balance, headers});
-    const balJson=JSON.parse(balRes.data||"{}");
-    log("💰 余额 JSON:", balJson);
-    if(balJson.code===0){ notify+=`\n💰 N币余额：${balJson.data.balance}`; }
-
-    // 盲盒
-    log("📦 查询盲盒任务...");
-    const boxRes=await httpGet({url:urls.blindBoxList, headers});
-    const boxJson=JSON.parse(boxRes.data||"{}");
-    log("📦 盲盒 JSON:", boxJson);
-    const notOpened=boxJson.data?.notOpenedBoxes||[];
-    if(notOpened.length>0){
-      notify+=`\n\n📦 盲盒任务：`;
-      notOpened.forEach(b=>notify+=`\n- ${b.awardDays}天盲盒，还需 ${b.leftDaysToOpen} 天`);
-      const ready=notOpened.filter(b=>b.leftDaysToOpen===0&&b.rewardStatus===2);
-      log("📦 可开启盲盒：", ready);
-      if(ready.length>0){ notify+=`\n\n🎉 自动开启盲盒...`; for(const b of ready){ log(`📦 开启 ${b.awardDays} 天盲盒`); const reward=await openBlindBox(headers); notify+=`\n🎁 ${b.awardDays}天盲盒获得：${reward}`; } }
+    if (signResult.code === 0) {
+      signScore = signResult.data.score || 0
+      nCoin = signResult.data.nCoin || 0
+      message += `✅ 签到成功！🎁 获得 ${signScore} 经验 + ${nCoin} N币`
+    } else if (signResult.code === 540004) {
+      message += "⚠️ 今日已签到"
+    } else {
+      message += `❌ 签到失败：${signResult.msg || "未知错误"}`
     }
 
-  }catch(error){ log("❌ 脚本异常捕获：", error); notify="❌ 脚本异常："+error; }
-  finally{ log("📤 最终通知内容:", notify); const title=CONFIG.customTitle; if(notify.includes("今日已签到")) $notification.post(title,`已签到 · 连续 ${days} 天`,notify); else $notification.post(title,`连续 ${days} 天`,notify); log("🏁 Ninebot Sign AutoOpen 完成"); $done(); }
+    // === 获取签到状态 ===
+    const { data: statusData } = await httpClientGet({ url: statusUrl, method: "GET", headers: commonHeaders })
+    const statusResult = JSON.parse(statusData || "{}")
+    if (statusResult.code === 0 && statusResult.data) {
+      newSignDays = statusResult.data.consecutiveDays || 0
+      signCardsNum = statusResult.data.signCardsNum || 0
+      message += `\n🗓️ 连续签到: ${newSignDays} 天\n🎫 补签卡: ${signCardsNum} 张`
+    }
+
+    // === 获取账户余额 ===
+    const { data: accountData } = await httpClientGet({ url: accountInfoUrl, method: "GET", headers: commonHeaders })
+    const accountResult = JSON.parse(accountData || "{}")
+    if (accountResult.code === 0 && accountResult.data) {
+      currentNCoinBalance = accountResult.data.balance || 0
+      message += `\n💰 当前N币余额: ${currentNCoinBalance}`
+    }
+
+    // === 盲盒任务 ===
+    const { data: taskData } = await httpClientGet({ url: taskListUrl, method: "GET", headers: commonHeaders })
+    const taskResult = JSON.parse(taskData || "{}")
+    if (taskResult.code === 0 && taskResult.data?.notOpenedBoxes?.length > 0) {
+      message += `\n\n📦 即将开启盲盒:`
+      taskResult.data.notOpenedBoxes.forEach(box => {
+        message += `\n  - ${box.awardDays}天盲盒，还需${box.leftDaysToOpen}天`
+      })
+    }
+
+  } catch (err) {
+    message = `❌ 脚本执行出错：${err.message}`
+    console.log("错误详情:", err)
+  } finally {
+    $notification.post(title, `连续 ${newSignDays} 天`, message)
+    console.log("签到完成。")
+    if (typeof $done !== "undefined") $done()
+  }
 }
 
-run();
+run()
