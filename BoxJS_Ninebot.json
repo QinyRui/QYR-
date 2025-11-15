@@ -1,19 +1,29 @@
-{
-  "id": "Ninebot.Sign.Config",
-  "name": "Ninebot Sign AutoOpen 配置",
-  "keys": ["Ninebot_Config"],
-  "settings": [
-    {
-      "id": "Ninebot_Config",
-      "name": "脚本 JSON 配置",
-      "val": "{\"debug\":true,\"customTitle\":\"Ninebot Sign AutoOpen\",\"userAgent\":\"Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6\"}",
-      "type": "textarea",
-      "placeholder": "可修改 debug 开关、通知标题、UA"
-    }
-  ],
-  "author": "❥﹒﹏非我不可",
-  "repo": "https://github.com/QinyRui/QYR-",
-  "icons": [
-    "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png"
-  ]
-}
+[
+  {
+    "id": "Ninebot.Sign",
+    "name": "Ninebot 自动签到",
+    "keys": ["Ninebot_Config"],
+    "settings": [
+      {
+        "id": "Ninebot_Config",
+        "name": "配置 (JSON)",
+        "val": "{\"debug\":true,\"customTitle\":\"九号签到\"}",
+        "type": "textarea",
+        "placeholder": "{}"
+      }
+    ],
+    "author": "❥﹒﹏非我不可",
+    "repo": "https://github.com/QinyRui/QYR-",
+    "icons": ["https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png"],
+    "scripts": [
+      {
+        "name": "签到脚本",
+        "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_AutoOpen_Full.js",
+        "type": "cron",
+        "cron": "0 7 * * *",
+        "timeout": 20,
+        "enabled": true
+      }
+    ]
+  }
+]
