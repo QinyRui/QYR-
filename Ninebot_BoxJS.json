@@ -1,21 +1,22 @@
 {
   "name": "Ninebot BoxJS 配置",
-  "description": "九号电动车自动签到 / 多账号 / 自动盲盒 / Token捕获",
+  "description": "九号智能电动车自动签到 / 多账号 / 自动盲盒 / Token捕获",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png",
+  "type": "config",
   "actions": [
     {
       "type": "text-input",
       "title": "Ninebot_Accounts",
       "key": "Ninebot_Accounts",
       "placeholder": "在此填写账号 JSON 数组",
-      "default": "[]"
+      "default": "[\n  {\n    \"name\": \"主号\",\n    \"Authorization\": \"\",\n    \"DeviceId\": \"\"\n  },\n  {\n    \"name\": \"副号\",\n    \"Authorization\": \"\",\n    \"DeviceId\": \"\"\n  }\n]"
     },
     {
       "type": "text-input",
       "title": "Ninebot_GlobalConfig",
       "key": "Ninebot_GlobalConfig",
       "placeholder": "在此填写全局配置 JSON",
-      "default": "{\"debug\":true,\"notify\":true,\"autoOpenBox\":true}"
+      "default": "{\n  \"debug\": true,\n  \"notify\": true,\n  \"titlePrefix\": \"九号签到\",\n  \"logPrefix\": \"Ninebot-LOG\",\n  \"autoOpenBox\": true,\n  \"concurrentDelayMs\": 600\n}"
     }
   ]
 }
