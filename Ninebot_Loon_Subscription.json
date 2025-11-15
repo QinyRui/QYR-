@@ -1,38 +1,20 @@
 {
-  "title": "九号智能电动车订阅",
-  "version": "v2.2 FullMulti",
-  "author": "❥﹒﹏非我不可",
-  "description": "支持抓包捕获 Token、自动签到、多账号、自动开盲盒",
+  "name": "Ninebot Sign Share v2.2 FullMulti",
+  "description": "九号智能电动车自动签到 / 自动盲盒 / Token捕获 / 多账号循环",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png",
   "scripts": [
     {
-      "name": "抓取 Token",
+      "name": "每日签到（多账号循环）",
+      "type": "cron",
+      "schedule": "0 7 * * *",
+      "script-path": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_FullMulti.js",
+      "timeout": 20
+    },
+    {
+      "name": "Token 捕获",
       "type": "http-request",
-      "pattern": "https://cn-cbu-gateway\\.ninebot\\.com/.*",
-      "script-path": "Ninebot_Sign_Share_v2.2_FullMulti.js",
-      "enabled": true,
-      "remarks": "第一次打开 App 抓包自动捕获 Authorization 与 DeviceId"
-    },
-    {
-      "name": "每日签到主脚本",
-      "type": "cron",
-      "schedule": "0 8 * * *",
-      "script-path": "Ninebot_Sign_Share_v2.2_FullMulti.js",
-      "enabled": true,
-      "remarks": "每天 8 点执行签到"
-    },
-    {
-      "name": "测试通知",
-      "type": "cron",
-      "schedule": "0 9 * * *",
-      "script-path": "Ninebot_TestNotify.js",
-      "enabled": true
-    },
-    {
-      "name": "测试日志",
-      "type": "cron",
-      "schedule": "0 9 * * *",
-      "script-path": "Ninebot_TestLog.js",
-      "enabled": true
+      "match": "^https:\\/\\/cn-cbu-gateway\\.ninebot\\.com\\/portal\\/api\\/user-sign\\/v2\\/status",
+      "script-path": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_FullMulti.js"
     }
   ]
 }
