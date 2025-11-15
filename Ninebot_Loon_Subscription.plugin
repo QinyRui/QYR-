@@ -1,3 +1,0 @@
-[Script]
-# 九号智能电动车自动签到插件（含自动抓包 Token + 自动领取盲盒）
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Plugin_v2.3.js, tag=九号签到
