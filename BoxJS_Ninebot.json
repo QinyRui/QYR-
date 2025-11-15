@@ -6,10 +6,10 @@
     "settings": [
       {
         "id": "Ninebot_Config",
-        "name": "配置 (JSON)",
-        "val": "{\"debug\":true,\"customTitle\":\"九号签到\"}",
+        "name": "脚本配置 (JSON)",
+        "val": "{\"debug\":true,\"customTitle\":\"Ninebot Sign AutoOpen\",\"userAgent\":\"Mozilla/5.0\"}",
         "type": "textarea",
-        "placeholder": "{}"
+        "placeholder": "{\"debug\":false}"
       }
     ],
     "author": "❥﹒﹏非我不可",
@@ -17,7 +17,7 @@
     "icons": ["https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png"],
     "scripts": [
       {
-        "name": "签到脚本",
+        "name": "九号签到脚本",
         "url": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_AutoOpen_Full.js",
         "type": "cron",
         "cron": "0 7 * * *",
