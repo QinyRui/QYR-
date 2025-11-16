@@ -1,4 +1,69 @@
 {
+  "id": "ninebot.sign.single",
+  "name": "九号智能电动车单号签到",
+  "author": "❥﹒﹏非我不可",
+  "version": "2.2",
+  "repo": "QinyRui/QYR-",
+  "apps": [
+    {
+      "id": "Ninebot_Sign_Single",
+      "name": "九号签到（单号）",
+      "keys": [
+        "Ninebot_Authorization",
+        "Ninebot_DeviceId",
+        "Ninebot_DisplayName",
+        "Ninebot_Notification",
+        "Ninebot_Log"
+      ],
+      "descs_html": [
+        "📱 <b>功能：</b> 自动签到单个九号智能电动车账户",
+        "🪪 <b>获取方式：</b> 打开九号 App → 登录 → 抓包获取 <code>Authorization</code> 与 <code>deviceId</code>",
+        "⚙️ <b>使用方式：</b> 填写下方配置后保存即可",
+        "📅 <b>建议任务：</b> 每天上午 7:00 自动运行"
+      ],
+      "settings": [
+        {
+          "id": "Ninebot_Authorization",
+          "name": "🟢 Authorization",
+          "val": "",
+          "type": "text",
+          "placeholder": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "desc": "在 App 抓包请求头中复制 Authorization 值"
+        },
+        {
+          "id": "Ninebot_DeviceId",
+          "name": "🔵 Device ID",
+          "val": "",
+          "type": "text",
+          "placeholder": "06965B02-DE89-45AB-9116-9B69923BF54C",
+          "desc": "九号 App “关于”页面中的设备ID"
+        },
+        {
+          "id": "Ninebot_DisplayName",
+          "name": "⭐ 自定义显示名称",
+          "val": "主号",
+          "type": "text",
+          "placeholder": "主号/副号",
+          "desc": "在通知中显示的账号名称"
+        },
+        {
+          "id": "Ninebot_Notification",
+          "name": "🔔 签到通知开关",
+          "val": "1",
+          "type": "toggle",
+          "desc": "是否显示签到通知，1=开启, 0=关闭"
+        },
+        {
+          "id": "Ninebot_Log",
+          "name": "📄 控制台日志开关",
+          "val": "0",
+          "type": "toggle",
+          "desc": "是否在控制台输出详细日志，1=开启, 0=关闭"
+        }
+      ]
+    }
+  ]
+}{
   "id": "ninebot.auto.sign",
   "name": "九号智能电动车自动签到脚本",
   "author": "QinyRui",
