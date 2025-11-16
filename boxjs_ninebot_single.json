@@ -5,18 +5,14 @@
   "repo": "https://github.com/QinyRui/QYR-",
   "version": "1.0",
   "keys": [
-    "ninebot.name",
     "ninebot.authorization",
     "ninebot.deviceId",
-    "ninebot.userAgent",
-    "ninebot.log"
+    "ninebot.debug",
+    "ninebot.notify",
+    "ninebot.autoOpenBox",
+    "ninebot.titlePrefix"
   ],
   "settings": [
-    {
-      "id": "ninebot.name",
-      "name": "自定义显示名称（如 主号）",
-      "val": "九号账号"
-    },
     {
       "id": "ninebot.authorization",
       "name": "Authorization",
@@ -28,23 +24,27 @@
       "val": ""
     },
     {
-      "id": "ninebot.userAgent",
-      "name": "User-Agent",
-      "val": ""
+      "id": "ninebot.debug",
+      "name": "调试日志开关（debug）",
+      "type": "boolean",
+      "val": true
     },
     {
-      "id": "ninebot.log",
-      "name": "是否显示详细日志",
+      "id": "ninebot.notify",
+      "name": "通知开关（notify）",
       "type": "boolean",
-      "val": false
+      "val": true
+    },
+    {
+      "id": "ninebot.autoOpenBox",
+      "name": "自动开启盲盒（autoOpenBox）",
+      "type": "boolean",
+      "val": true
+    },
+    {
+      "id": "ninebot.titlePrefix",
+      "name": "自定义通知标题",
+      "val": "九号签到"
     }
   ]
 }
-
-/*
-• 👤 拥有者：QinyRui
-• 📦 版本：v1.0（2025/11/16）
-• 📆 更新：2025/11/16
-• 📱 适配：iOS 系统
-✈️ 群 telegram = https://t.me/JiuHaoAPP
-*/
