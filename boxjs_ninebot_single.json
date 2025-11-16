@@ -1,62 +1,59 @@
 {
   "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到（单账号版）",
+  "name": "九号智能电动车自动签到脚本",
   "author": "QinyRui",
   "version": "1.1",
-  "keys": [
-    "ninebot.authorization",
-    "ninebot.deviceId",
-    "ninebot.debug",
-    "ninebot.notify",
-    "ninebot.autoOpenBox",
-    "ninebot.titlePrefix",
-    "ninebot.userAgent"
-  ],
-  "settings": [
+  "repo": "QinyRui/QYR-",
+  "apps": [
     {
-      "id": "ninebot.authorization",
-      "name": "Authorization",
-      "val": "",
-      "type": "text",
-      "placeholder": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-    },
-    {
-      "id": "ninebot.deviceId",
-      "name": "DeviceId",
-      "val": "",
-      "type": "text",
-      "placeholder": "06965B02-DE89-45AB-9116-9B69923BF54C"
-    },
-    {
-      "id": "ninebot.debug",
-      "name": "调试日志开关",
-      "type": "boolean",
-      "val": false
-    },
-    {
-      "id": "ninebot.notify",
-      "name": "通知开关",
-      "type": "boolean",
-      "val": true
-    },
-    {
-      "id": "ninebot.autoOpenBox",
-      "name": "自动开启盲盒",
-      "type": "boolean",
-      "val": true
-    },
-    {
-      "id": "ninebot.titlePrefix",
-      "name": "自定义通知标题",
-      "type": "text",
-      "val": "九号签到"
-    },
-    {
-      "id": "ninebot.userAgent",
-      "name": "User-Agent（自动抓取）",
-      "type": "text",
-      "val": "",
-      "placeholder": "自动从抓包获取"
+      "id": "NinebotAutoSign",
+      "name": "九号签到",
+      "keys": [
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.debug",
+        "ninebot.notify",
+        "ninebot.autoOpenBox",
+        "ninebot.titlePrefix"
+      ],
+      "settings": [
+        {
+          "id": "ninebot.authorization",
+          "name": "Authorization",
+          "type": "text",
+          "val": ""
+        },
+        {
+          "id": "ninebot.deviceId",
+          "name": "DeviceId",
+          "type": "text",
+          "val": ""
+        },
+        {
+          "id": "ninebot.debug",
+          "name": "调试日志开关",
+          "type": "boolean",
+          "val": true
+        },
+        {
+          "id": "ninebot.notify",
+          "name": "通知开关",
+          "type": "boolean",
+          "val": true
+        },
+        {
+          "id": "ninebot.autoOpenBox",
+          "name": "自动开启盲盒",
+          "type": "boolean",
+          "val": true
+        },
+        {
+          "id": "ninebot.titlePrefix",
+          "name": "自定义通知标题",
+          "type": "text",
+          "val": "九号签到"
+        }
+      ]
     }
   ]
 }
