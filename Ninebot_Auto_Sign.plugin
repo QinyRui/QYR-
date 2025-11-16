@@ -11,7 +11,7 @@
 # ✈️ 群 telegram = https://t.me/JiuHaoAPP
 
 [Script]
-# ✨ 自动签到（每日 08:15）
+# ✨ 自动签到（每天 08:15）
 cron "15 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号自动签到
 
 # ✨ 抓包写入 Authorization / DeviceId / User-Agent
