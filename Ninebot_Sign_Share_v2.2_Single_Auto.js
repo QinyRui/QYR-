@@ -1,10 +1,9 @@
 /**
- * Ninebot_Sign_Share_v2.2_Single_Auto.js
+ * Ninebot_Sign_Share_v2.2_FullSingle.js
  * 九号智能电动车 — 单账号自动签到脚本
  * 版本：v2.2 FullSingle
  * 作者：❥﹒﹏非我不可
  * 更新：2025/11/15
- * telegram = https://t.me/JiuHaoAPP
  *
  * 功能：
  *  - 单账号
