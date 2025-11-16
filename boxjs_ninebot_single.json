@@ -1,50 +1,45 @@
-[
-  {
-    "id": "ninebot.auto.sign",
-    "name": "九号智能电动车自动签到脚本",
-    "keys": [
-      "ninebot.authorization",
-      "ninebot.deviceId",
-      "ninebot.debug",
-      "ninebot.notify",
-      "ninebot.autoOpenBox",
-      "ninebot.titlePrefix"
-    ],
-    "author": "QinyRui",
-    "settings": [
-      {
-        "id": "ninebot.authorization",
-        "name": "Authorization",
-        "val": ""
-      },
-      {
-        "id": "ninebot.deviceId",
-        "name": "DeviceId",
-        "val": ""
-      },
-      {
-        "id": "ninebot.debug",
-        "name": "调试日志开关",
-        "type": "boolean",
-        "val": true
-      },
-      {
-        "id": "ninebot.notify",
-        "name": "通知开关",
-        "type": "boolean",
-        "val": true
-      },
-      {
-        "id": "ninebot.autoOpenBox",
-        "name": "自动开启盲盒",
-        "type": "boolean",
-        "val": true
-      },
-      {
-        "id": "ninebot.titlePrefix",
-        "name": "自定义通知标题",
-        "val": "九号签到"
-      }
-    ]
-  }
-]
+{
+  "title": "九号智能电动车自动签到脚本",
+  "desc": "",
+  "id": "ninebot.auto.sign",
+  "icon": "",
+  "author": "QinyRui",
+  "version": "1.0",
+  "repo": "",
+  "homepage": "",
+  "settings": [
+    {
+      "key": "authorization",
+      "name": "Authorization",
+      "value": ""
+    },
+    {
+      "key": "deviceId",
+      "name": "DeviceId",
+      "value": ""
+    },
+    {
+      "key": "debug",
+      "name": "调试日志开关",
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "key": "notify",
+      "name": "通知开关",
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "key": "autoOpenBox",
+      "name": "自动开启盲盒",
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "key": "titlePrefix",
+      "name": "自定义通知标题",
+      "value": "九号签到"
+    }
+  ]
+}
