@@ -17,67 +17,19 @@
     },
     {
       "id": "ninebot.debug",
-      "name": "调试日志开关（debug）",
+      "name": "调试日志开关",
       "type": "boolean",
       "val": true
     },
     {
       "id": "ninebot.notify",
-      "name": "通知开关（notify）",
+      "name": "通知开关",
       "type": "boolean",
       "val": true
     },
     {
       "id": "ninebot.autoOpenBox",
-      "name": "自动开启盲盒（autoOpenBox）",
-      "type": "boolean",
-      "val": true
-    },
-    {
-      "id": "ninebot.titlePrefix",
-      "name": "自定义通知标题",
-      "val": "九号签到"
-    }
-  ]
-}{
-  "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到脚本",
-  "author": "QinyRui",
-  "version": "1.1",
-  "keys": [
-    "ninebot.authorization",
-    "ninebot.deviceId",
-    "ninebot.debug",
-    "ninebot.notify",
-    "ninebot.autoOpenBox",
-    "ninebot.titlePrefix"
-  ],
-  "settings": [
-    {
-      "id": "ninebot.authorization",
-      "name": "Authorization",
-      "val": ""
-    },
-    {
-      "id": "ninebot.deviceId",
-      "name": "DeviceId",
-      "val": ""
-    },
-    {
-      "id": "ninebot.debug",
-      "name": "调试日志开关（debug）",
-      "type": "boolean",
-      "val": true
-    },
-    {
-      "id": "ninebot.notify",
-      "name": "通知开关（notify）",
-      "type": "boolean",
-      "val": true
-    },
-    {
-      "id": "ninebot.autoOpenBox",
-      "name": "自动开启盲盒（autoOpenBox）",
+      "name": "自动开启盲盒",
       "type": "boolean",
       "val": true
     },
