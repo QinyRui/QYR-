@@ -1,11 +1,11 @@
 #!name=九号智能电动车自动签到脚本
 #!desc=九号电动车单账号自动签到（支持盲盒任务 · BoxJS 配置 · 日志开关）
 #!author=QinyRui
-#!version=1.0
+#!version=1.1
 #!homepage=https://t.me/JiuHaoAPP
 
 # • 👤 拥有者：QinyRui
-# • 📦 版本：v1.0（2025/11/16）
+# • 📦 版本：v1.1（2025/11/16）
 # • 📆 更新：2025/11/16
 # • 📱 适配：iOS 系统
 # ✈️ 群 telegram = https://t.me/JiuHaoAPP
