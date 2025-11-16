@@ -1,0 +1,31 @@
+{
+  "plugin": [
+    {
+      "name": "Ninebot Sign Auto",
+      "description": "九号电动车单账号自动签到 / 盲盒任务 / N币余额查询 / Token自动捕获",
+      "author": "❥﹒﹏非我不可",
+      "version": "2.2 Single_Auto (Fix)",
+      "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon/ninebot.png",
+      "platform": "iOS / Loon / Surge / Quantumult X / Stash / Shadowrocket",
+      "telegram": "https://t.me/JiuHaoAPP",
+      "script": {
+        "http-request": [
+          {
+            "pattern": "^https:\\/\\/cn-cbu-gateway\\.ninebot\\.com\\/portal\\/api\\/user-sign",
+            "script-path": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_Single_Auto.js",
+            "timeout": 10,
+            "enable": true
+          }
+        ],
+        "cron": [
+          {
+            "schedule": "0 9 * * *",
+            "script-path": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share_v2.2_Single_Auto.js",
+            "timeout": 20,
+            "enable": true
+          }
+        ]
+      }
+    }
+  ]
+}
