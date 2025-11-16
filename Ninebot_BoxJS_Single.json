@@ -18,16 +18,14 @@
       "name": "Authorization",
       "val": "",
       "type": "text",
-      "placeholder": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "desc": "抓包任意请求头获取 Authorization"
+      "placeholder": "抓包任意请求头获取 Authorization"
     },
     {
       "id": "ninebot.deviceId",
       "name": "DeviceId",
       "val": "",
       "type": "text",
-      "placeholder": "06965B02-DE89-45AB-9116-9B69923BF54C",
-      "desc": "来自九号 App"
+      "placeholder": "来自九号 App"
     },
     {
       "id": "ninebot.debug",
