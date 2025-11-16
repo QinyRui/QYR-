@@ -1,52 +1,15 @@
 {
-  "id": "ninebot.sign.single",
-  "name": "九号电动车自动签到（单账号）",
+  "id": "Ninebot.Single",
+  "name": "九号电动车 · 单账号",
+  "keys": ["Ninebot_Account_Single"],
   "author": "❥﹒﹏非我不可",
-  "icon": "https://www.pngfind.com/mpng/hhJxbJh_segway-ninebot-segway-ninebot-logo-hd-png-download/",
-  "version": "2.2",
-  "repo": "QinyRui/QYR-",
-  "apps": [
+  "settings": [
     {
-      "id": "Ninebot_Sign_Single",
-      "name": "九号签到 · 单账号",
-      "keys": [
-        "Ninebot_Authorization",
-        "Ninebot_DeviceId",
-        "Ninebot_DisplayName",
-        "Ninebot_Notification",
-        "Ninebot_Log",
-        "Ninebot_TokenCaptured"
-      ],
-      "descs_html": [
-        "<b>📱 功能：</b> 九号电动车自动签到（单账号旗舰版）",
-        "<b>🪪 获取 Token：</b> 打开九号 APP → 抓包任意请求 → 自动保存 Authorization & DeviceId",
-        "<b>⚙️ 使用方式：</b> 保存配置后脚本即可自动运行",
-        "<b>📅 建议任务：</b> 每天 08:00 自动签到"
-      ],
-      "settings": [
-        {
-          "id": "Ninebot_DisplayName",
-          "name": "自定义显示名称",
-          "val": "主号",
-          "type": "text",
-          "placeholder": "主号/副号",
-          "desc": "通知显示使用的账号名称"
-        },
-        {
-          "id": "Ninebot_Notification",
-          "name": "通知开关",
-          "val": "1",
-          "type": "boolean",
-          "desc": "启用签到通知"
-        },
-        {
-          "id": "Ninebot_Log",
-          "name": "日志输出",
-          "val": "0",
-          "type": "boolean",
-          "desc": "是否在控制台输出详细日志"
-        }
-      ]
+      "id": "Ninebot_Account_Single",
+      "name": "账号配置（JSON）",
+      "val": "{\"name\":\"九号账号\",\"Authorization\":\"\",\"DeviceId\":\"\",\"UserAgent\":\"NBScooterApp/5.9.1\"}",
+      "type": "text",
+      "desc": "填写你自己的名称 / Authorization / DeviceId"
     }
   ]
 }
