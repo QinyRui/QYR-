@@ -6,49 +6,53 @@
   "repo": "QinyRui/QYR-",
   "apps": [
     {
-      "id": "NinebotAutoSign",
-      "name": "九号签到",
+      "id": "Ninebot_AutoSign",
+      "name": "九号签到（自动盲盒）",
       "keys": [
-        "ninebot.authorization",
-        "ninebot.deviceId",
-        "ninebot.debug",
-        "ninebot.notify",
-        "ninebot.autoOpenBox",
-        "ninebot.titlePrefix"
+        "Ninebot_Authorization",
+        "Ninebot_DeviceId",
+        "Ninebot_Debug",
+        "Ninebot_Notify",
+        "Ninebot_AutoOpenBox",
+        "Ninebot_TitlePrefix"
       ],
       "settings": [
         {
-          "id": "ninebot.authorization",
+          "id": "Ninebot_Authorization",
           "name": "Authorization",
           "type": "text",
-          "val": ""
+          "val": "",
+          "placeholder": "Bearer eyJhbGc...",
+          "desc": "在九号 App 请求头中抓取 Authorization"
         },
         {
-          "id": "ninebot.deviceId",
+          "id": "Ninebot_DeviceId",
           "name": "DeviceId",
           "type": "text",
-          "val": ""
+          "val": "",
+          "placeholder": "06965B02-DE89-45AB-9116-9B69923BF54C",
+          "desc": "九号 App 关于页面中的设备 ID"
         },
         {
-          "id": "ninebot.debug",
+          "id": "Ninebot_Debug",
           "name": "调试日志开关",
           "type": "boolean",
           "val": true
         },
         {
-          "id": "ninebot.notify",
+          "id": "Ninebot_Notify",
           "name": "通知开关",
           "type": "boolean",
           "val": true
         },
         {
-          "id": "ninebot.autoOpenBox",
+          "id": "Ninebot_AutoOpenBox",
           "name": "自动开启盲盒",
           "type": "boolean",
           "val": true
         },
         {
-          "id": "ninebot.titlePrefix",
+          "id": "Ninebot_TitlePrefix",
           "name": "自定义通知标题",
           "type": "text",
           "val": "九号签到"
