@@ -1,127 +1,108 @@
 /*
-📱 九号智能电动车自动签到脚本（单账号版 v2.2 修复版）
-=====================================================
+📱 九号智能电动车自动签到脚本（单账号版 v2.2）
+=========================================
 👤 作者：❥﹒﹏非我不可
-📆 保持版本号：2.2（仅修复 Bug，不升级）
+📆 更新日期：2025/11/15
+✈️ Telegram群：https://t.me/JiuHaoAPP
 */
 
-const AUTH_KEY = "Ninebot_Authorization";
-const DEVICE_KEY = "Ninebot_DeviceId";
-const NAME_KEY = "Ninebot_DisplayName";
-const NOTIFY_KEY = "Ninebot_Notification";
-const LOG_KEY = "Ninebot_Log";
+const $ = new Env("Ninebot Sign Single Auto");
 
-// 环境判断
-const env = (() => ({
-  isLoon: typeof $loon !== "undefined",
-  isQuanX: typeof $task !== "undefined",
-  isSurge: typeof $httpClient !== "undefined"
-}))();
+// BoxJS KEY
+const BOX_KEY = "Ninebot_Account_Single";
 
-// 读写
-function read(key) {
-  if (env.isQuanX) return $prefs.valueForKey(key);
-  return $persistentStore.read(key);
-}
-function write(key, val) {
-  if (env.isQuanX) return $prefs.setValueForKey(val, key);
-  return $persistentStore.write(val, key);
+// 读取本地或 BoxJS
+function getConf() {
+  const local = $.getdata(BOX_KEY);
+  if (local) {
+    try { return JSON.parse(local); } catch {}
+  }
+  return {
+    name: "九号账号",
+    Authorization: "",
+    DeviceId: "",
+    UserAgent: "NBScooterApp/5.9.1"
+  };
 }
 
-// 日志
-function log(msg) {
-  if (read(LOG_KEY) === "1") console.log(msg);
+// 保存配置
+function saveConf(conf) {
+  $.setdata(JSON.stringify(conf), BOX_KEY);
 }
 
-// 通知
-function notify(title, subtitle, msg) {
-  if (read(NOTIFY_KEY) !== "1") return;
-  if (env.isQuanX) $notify(title, subtitle, msg);
-  else $notification.post(title, subtitle, msg);
-}
+// 主流程
+!(async () => {
+  let conf = getConf();
 
-/* ---------------- Token 捕获 ---------------- */
-if (typeof $request !== "undefined") {
-  const auth = $request.headers["Authorization"] || $request.headers["authorization"];
-  const deviceId = $request.headers["deviceId"] || $request.headers["Deviceid"];
-
-  if (auth && deviceId) {
-    write(AUTH_KEY, auth);
-    write(DEVICE_KEY, deviceId);
-    notify("九号 Token 捕获成功", "", "Authorization 与 DeviceId 已保存（仅需抓包一次）");
+  if ($request && $request.headers) {
+    const auth = $request.headers["Authorization"] || $request.headers["authorization"];
+    const device = $request.headers["deviceld"] || $request.headers["deviceid"];
+    if (auth && device) {
+      conf.Authorization = auth;
+      conf.DeviceId = device;
+      saveConf(conf);
+      $.msg("九号 Token 捕获成功", "", "Authorization 与 DeviceId 已保存（仅需一次）");
+    }
+    return;
   }
 
-  $done({});
-  return;
-}
+  if (!conf.Authorization || !conf.DeviceId) {
+    $.msg(
+      "九号签到",
+      "未配置账号",
+      "请在 BoxJS 中填写账号，或抓包一次自动保存 Token。"
+    );
+    return;
+  }
 
-/* ---------------- 主逻辑 ---------------- */
+  await signMain(conf);
+})().catch((err) => $.logErr(err)).finally(() => $.done());
 
-const Authorization = read(AUTH_KEY);
-const DeviceId = read(DEVICE_KEY);
-const DisplayName = read(NAME_KEY) || "九号账号";  // ★ 修复 undefined → 默认正常名称
-
-if (!Authorization || !DeviceId) {
-  notify("九号签到", "未配置账号", "请前往 BoxJS 填写 Authorization 与 DeviceId");
-  $done();
-  return;
-}
-
-// POST 封装
-function post(url, body = {}) {
+// 签到主函数
+async function signMain(conf) {
   const headers = {
-    "Authorization": Authorization,
-    "deviceId": DeviceId,
+    "Authorization": conf.Authorization,
+    "DeviceId": conf.DeviceId,
+    "User-Agent": conf.UserAgent,
     "Content-Type": "application/json"
   };
 
-  return new Promise(resolve => {
-    if (env.isQuanX) {
-      $task.fetch({ url, method: "POST", headers, body: JSON.stringify(body) })
-        .then(resp => resolve(JSON.parse(resp.body || "{}")));
-    } else {
-      $httpClient.post({ url, headers, body: JSON.stringify(body) }, (err, resp, data) => {
-        resolve(JSON.parse(data || "{}"));
-      });
-    }
+  const sign = await post("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign", headers, "{}");
+  const status = await get("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status", headers);
+  const balance = await get("https://cn-cbu-gateway.ninebot.com/portal/api/user-balance/v2/balance", headers);
+
+  const day = status?.data?.continueDay || 0;
+  const card = status?.data?.repairCard || 0;
+  const exp = sign?.data?.exp || 0;
+
+  const nCoin = balance?.data?.nCoin || 0;
+
+  const box = status?.data?.calendarInfo?.blindBoxTask || [];
+  const boxTxt = box
+    .map((b) => `- ${b.taskDay}天盲盒，还需 ${b.remainDay} 天`)
+    .join("\n");
+
+  const text =
+    `连续签到：${day}天\n` +
+    `补签卡：${card}张\n` +
+    `经验：${exp}\n` +
+    `N币余额：${nCoin}\n\n` +
+    `盲盒任务：\n${boxTxt}`;
+
+  $.msg(`${conf.name || "九号签到"}`, "签到成功", text);
+}
+
+function get(url, headers) {
+  return new Promise((resolve) => {
+    $.get({ url, headers }, (_, __, data) => resolve(JSON.parse(data || "{}")));
   });
 }
 
-(async () => {
-  try {
-    log("开始请求签到…");
+function post(url, headers, body) {
+  return new Promise((resolve) => {
+    $.post({ url, headers, body }, (_, __, data) => resolve(JSON.parse(data || "{}")));
+  });
+}
 
-    const sign = await post("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign");
-    const status = await post("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status");
-    const balance = await post("https://cn-cbu-gateway.ninebot.com/portal/api/user/ncoin/balance");
-    const box = await post("https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list");
-
-    // ★ 修复 undefined 字段
-    const days = status?.data?.calendarInfo?.days || 0;
-    const exp = sign?.data?.experience ?? 0;
-    const card = status?.data?.calendarInfo?.reissueCard ?? 0;
-    const ncoin = balance?.data?.balance ?? 0;
-
-    const boxList = box?.data?.list || [];
-    const boxMsg = boxList
-      .map(i => `- ${i?.title || "盲盒"}，还需 ${i?.remainDays ?? 0} 天`)
-      .join("\n");
-
-    // ★ 全面修复通知错乱（最重要）
-    const msg =
-      `连续 ${days} 天\n` +
-      `签到成功\n` +
-      `+${exp} 经验\n` +
-      `补签卡：${card} 张\n` +
-      `N币余额：${ncoin}\n\n` +
-      `盲盒任务：\n${boxMsg}`;
-
-    notify(`九号签到（${DisplayName}）`, "", msg);
-
-  } catch (err) {
-    notify("九号签到失败", "", String(err));
-    console.log("错误：", err);
-  }
-
-  $done();
-})();
+function Env(t,s){return new class{constructor(t,s){this.name=t,this.logs=[],this.isMute=false,this.isNeedRewrite=false,this.logSeparator="\n";this.startTime=new Date().getTime(),Object.assign(this,s)}isQuanX(){return"undefined"!=typeof $task}isLoon(){return"undefined"!=typeof $loon}isSurge(){return"undefined"!=typeof $httpClient&&"undefined"==typeof $loon}getdata(t){let s=this.getval(t);if(/^@/.test(t)){const[,e]=/^@(.*?)\.(.*?)$/.exec(t);const r=e;const i=this.getval("@"+r);if(i)try{const o=JSON.parse(i);s=o[e]}catch{} }return s}setdata(t,s){let e=false;if(/^@/.test(s)){const[,r,i]=/^@(.*?)\.(.*?)$/.exec(s);const o=this.getval("@"+r);const n=r;const a=o?JSON.parse(o):{};a[i]=t,e=this.setval(JSON.stringify(a),"@"+n)}else e=this.setval(t,s);return e}getval(t){return this.isSurge()||this.isLoon()?$persistentStore.read(t):this.isQuanX()?$prefs.valueForKey(t):this.isNode()?(this.data=this.loadData(),this.data[t]):this.data&&this.data[t]}setval(t,s){return this.isSurge()||this.isLoon()?$persistentStore.write(t,s):this.isQuanX()?$prefs.setValueForKey(t,s):this.isNode()?(this.data=this.loadData(),this.data[s]=t,this.writeData(),true):this.data&&this.data[s]}msg(t,s="",e=""){this.isMute||(this.isSurge()||this.isLoon()?$notification.post(t,s,e):this.isQuanX()&&$notify(t,s,e))}log(...t){t.length>0&&(this.logs=[...this.logs,...t]),console.log(t.join(this.logSeparator))}logErr(t,s){!this.isSurge()&&!this.isQuanX()&&!this.isLoon()||this.log("", "❗️" + this.name + ", 错误!", t)}done(t={}){const s=new Date().getTime(),e=(s-this.startTime)/1000;this.log(`🔍 ${this.name} 结束，耗时 ${e} 秒`)}};
+}
