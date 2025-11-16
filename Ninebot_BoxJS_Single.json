@@ -1,41 +1,45 @@
 {
+  "title": "九号智能电动车自动签到脚本",
+  "desc": "",
   "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到脚本",
+  "icon": "",
   "author": "QinyRui",
   "version": "1.0",
+  "repo": "",
+  "homepage": "",
   "settings": [
     {
-      "id": "ninebot.authorization",
+      "key": "authorization",
       "name": "Authorization",
-      "val": ""
+      "value": ""
     },
     {
-      "id": "ninebot.deviceId",
+      "key": "deviceId",
       "name": "DeviceId",
-      "val": ""
+      "value": ""
     },
     {
-      "id": "ninebot.debug",
+      "key": "debug",
       "name": "调试日志开关",
       "type": "boolean",
-      "val": true
+      "value": true
     },
     {
-      "id": "ninebot.notify",
+      "key": "notify",
       "name": "通知开关",
       "type": "boolean",
-      "val": true
+      "value": true
     },
     {
-      "id": "ninebot.autoOpenBox",
+      "key": "autoOpenBox",
       "name": "自动开启盲盒",
       "type": "boolean",
-      "val": true
+      "value": true
     },
     {
-      "id": "ninebot.titlePrefix",
+      "key": "titlePrefix",
       "name": "自定义通知标题",
-      "val": "九号签到"
+      "value": "九号签到"
     }
   ]
 }
