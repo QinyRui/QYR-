@@ -1,0 +1,13 @@
+#!name = 九号电动车·单号自动签到（v2.2）
+#!desc = 自动签到 / 自动盲盒任务 / Token 捕获 / 修正经验与盲盒字段
+#!author = ❥﹒﹏非我不可
+#!version = 2.2
+#!icon = https://www.pngfind.com/mpng/hhJxbJh_segway-ninebot-segway-ninebot-logo-hd-png-download/
+#!platform = iOS / Loon / Surge / Quantumult X / Stash / Shadowrocket
+#!telegram = https://t.me/JiuHaoAPP
+#!system = iOS / Android
+
+[Script]
+http-request ^https:\/\/account\.ninebot\.cn\/v3\/users\/(.*?)\/info script-path=Ninebot_Sign_Share_v2.2_Single_Auto.js, tag=九号自动签到Token捕获
+
+cron "10 0 * * *" script-path=Ninebot_Sign_Share_v2.2_Single_Auto.js, tag=九号自动签到
