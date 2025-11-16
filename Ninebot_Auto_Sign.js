@@ -1,9 +1,9 @@
 /*
 📱 九号智能电动车自动签到脚本（单账号版）
 =========================================
-👤 作者：@juihao
+👤 作者：@jiuhao
 📆 更新时间：2025/11/16
-💬 支持：盲盒任务 · 日志开关 · 自定义名称 · BoxJS
+📦 仓库：https://github.com/QinyRui/QYR-
 */
 
 const $ = new Env("九号智能电动车自动签到");
@@ -23,6 +23,7 @@ let config = {
   showLog: $.getdata("ninebot.log") === "true"
 };
 
+/*** 抓包：自动写入 BoxJS */
 if (typeof $request !== "undefined") {
   const auth = $request.headers["authorization"] || "";
   const did = $request.headers["deviceid"] || "";
@@ -36,52 +37,56 @@ if (typeof $request !== "undefined") {
   $.done();
 }
 
+/*** 主执行 */
 !(async () => {
-  if (!config.authorization) return $.msg("九号签到", "未找到授权信息，请先抓包获取！");
+  if (!config.authorization) return $.msg("九号签到", "未找到授权信息，请先抓包！");
 
   let log = (msg) => config.showLog && console.log(msg);
 
-  log("开始签到…");
+  log("开始签到……");
 
-  let sign = await request("sign");
-  let status = await request("status");
-  let balance = await request("balance");
-  let blind = await request("blind");
+  const sign = await request("sign");
+  const status = await request("status");
+  const balance = await request("balance");
+  const blind = await request("blind");
+
+  let boxText = "无盲盒任务";
+  if (blind?.data?.length) {
+    boxText = blind.data
+      .map((i) => `- ${i.boxDay}天盲盒，还需 ${i.restDay} 天`)
+      .join("\n");
+  }
 
   let text = `
-🔹 ${config.name}
-签到结果：${sign?.message || "未知"}
-连续签到：${status?.data?.signContinuousDays || 0} 天
-当前N币：${balance?.data?.balance || 0}
+📌 ${config.name}
+📅 今日签到：${sign?.message || "未知"}
+📈 连续签到：${status?.data?.signContinuousDays || 0} 天
+💰 当前N币：${balance?.data?.balance || 0}
 
-📦 盲盒任务：
-${blind?.data?.map(i => `- ${i.boxDay}天盲盒，还需 ${i.restDay} 天`).join("\n")}
+🎁 盲盒任务：
+${boxText}
 `;
 
-  $.msg("九号智能电动车自动签到", "", text);
+  $.msg("九号智能电动车自动签到脚本", "", text.trim());
 })().finally(() => $.done());
 
 
+/*** 请求封装 */
 function request(type) {
-  const url = API[type];
   return new Promise((resolve) => {
     $.http.post(
       {
-        url,
+        url: API[type],
         headers: {
           Authorization: config.authorization,
           deviceId: config.deviceId,
           "User-Agent": config.userAgent
         },
       },
-      (err, resp, data) => {
-        if (data) resolve(JSON.parse(data));
-        else resolve({});
-      }
+      (err, resp, data) => resolve(data ? JSON.parse(data) : {})
     );
   });
 }
 
-
-// Env（保留）
-function Env(t,e){class s{...}
+/*** Env（保留你的版本，可继续补全） */
+function Env(t, e) { /* ……保留原版 Env …… */ }
