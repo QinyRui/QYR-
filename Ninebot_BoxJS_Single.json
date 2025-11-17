@@ -64,6 +64,12 @@
           "val": true
         },
         {
+          "id": "ninebot.autoRepair",
+          "name": "自动补签（谨慎开启，会消耗补签卡）",
+          "type": "boolean",
+          "val": false
+        },
+        {
           "id": "ninebot.titlePrefix",
           "name": "自定义通知标题前缀",
           "type": "text",
