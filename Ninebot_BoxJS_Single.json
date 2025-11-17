@@ -1,14 +1,12 @@
 {
-  "id": "ninebot.auto.sign.single",
-  "name": "九号智能电动车自动签到（单账号）",
+  "id": "ninebot.auto.sign",
+  "name": "九号智能电动车 · 全功能（单号）",
   "author": "QinyRui",
-  "version": "1.2",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon_ninebot.png",
-  "repo": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.plugin",
+  "version": "2.0",
   "apps": [
     {
       "id": "Ninebot_Auto_Sign",
-      "name": "九号签到（单账号）",
+      "name": "九号签到（单号）",
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
@@ -16,25 +14,67 @@
         "ninebot.debug",
         "ninebot.notify",
         "ninebot.autoOpenBox",
+        "ninebot.autoRepair",
         "ninebot.titlePrefix"
       ],
       "descs_html": [
-        "<h3>📱 九号智能电动车自动签到（单账号）</h3>",
-        "🪪 抓包自动写入 Authorization / DeviceId / User-Agent",
-        "🔧 自动检测变量是否齐全，如缺失会自动提示",
-        "📦 支持自动开启盲盒",
-        "⚙️ 支持：调试日志开关、通知开关、自定义标题",
-        "🔍 脚本内置更新检查",
-        "✈️ Telegram 群：https://t.me/JiuHaoAPP"
+        "📱 自动签到九号智能电动车账户（单号）",
+        "🪪 抓包获取 Authorization 与 DeviceId（抓包一次即可写入）",
+        "⚙️ 支持自动补签、自动盲盒、自动领取盲盒奖励",
+        "📅 建议每天早上 8:00 定时签到"
       ],
       "settings": [
-        {"id":"ninebot.authorization","name":"Authorization","val":"","type":"text","placeholder":"抓包自动写入"},
-        {"id":"ninebot.deviceId","name":"DeviceId","val":"","type":"text","placeholder":"抓包自动写入"},
-        {"id":"ninebot.userAgent","name":"User-Agent","val":"","type":"text","placeholder":"抓包自动写入"},
-        {"id":"ninebot.debug","name":"调试日志开关","type":"boolean","val":false},
-        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
-        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
-        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"}
+        {
+          "id": "ninebot.authorization",
+          "name": "Authorization",
+          "val": "",
+          "type": "text",
+          "placeholder": "抓包任意请求头获取 Authorization"
+        },
+        {
+          "id": "ninebot.deviceId",
+          "name": "DeviceId",
+          "val": "",
+          "type": "text",
+          "placeholder": "来自九号 App"
+        },
+        {
+          "id": "ninebot.userAgent",
+          "name": "User-Agent（抓包自动写入）",
+          "val": "",
+          "type": "text",
+          "placeholder": "自动记录，无需手动填写"
+        },
+        {
+          "id": "ninebot.debug",
+          "name": "调试日志开关",
+          "type": "boolean",
+          "val": false
+        },
+        {
+          "id": "ninebot.notify",
+          "name": "通知开关",
+          "type": "boolean",
+          "val": true
+        },
+        {
+          "id": "ninebot.autoOpenBox",
+          "name": "自动开启盲盒",
+          "type": "boolean",
+          "val": true
+        },
+        {
+          "id": "ninebot.autoRepair",
+          "name": "自动补签（谨慎开启，会消耗补签卡）",
+          "type": "boolean",
+          "val": false
+        },
+        {
+          "id": "ninebot.titlePrefix",
+          "name": "自定义通知标题",
+          "type": "text",
+          "val": "九号智能电动车"
+        }
       ]
     }
   ]
