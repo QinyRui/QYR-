@@ -15,14 +15,13 @@
         "ninebot.debug",
         "ninebot.notify",
         "ninebot.autoOpenBox",
-        "ninebot.autoRepair",
         "ninebot.titlePrefix"
       ],
       "descs_html": [
         "📱 自动签到九号智能电动车账户",
         "🪪 抓包自动写入 Authorization / DeviceId / User-Agent",
         "⚙️ BoxJS 可启用调试日志、通知开关、自定义标题",
-        "📅 建议定时：每天 08:00 自动运行"
+        "📅 默认建议定时：每天 08:00 自动运行"
       ],
       "settings": [
         {
@@ -44,7 +43,7 @@
           "name": "User-Agent",
           "val": "",
           "type": "text",
-          "placeholder": "自动写入，无需填"
+          "placeholder": "自动写入，无需填写"
         },
         {
           "id": "ninebot.debug",
@@ -60,7 +59,7 @@
         },
         {
           "id": "ninebot.autoOpenBox",
-          "name": "自动开启盲盒奖励",
+          "name": "自动开启盲盒",
           "type": "boolean",
           "val": true
         },
