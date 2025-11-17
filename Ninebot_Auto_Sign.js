@@ -1,10 +1,10 @@
 /*
 📱 九号智能电动车自动签到脚本（单账号版）
 =========================================
-• 👤 拥有者：QinyRui
-• 📦 版本：v1.1
-• 📆 更新：2025/11/16
-• 📱 适配：iOS 系统
+👤 作者：QinyRui
+📆 更新时间：2025/11/16
+📦 版本：v1.1
+📱 适配：iOS 系统
 ✈️ 群 telegram = https://t.me/JiuHaoAPP
 */
 
@@ -17,6 +17,7 @@ const noti = (title, subtitle, body) => { if (typeof $notification !== "undefine
 let config = {
   Authorization: persistentRead("ninebot.authorization"),
   DeviceId: persistentRead("ninebot.deviceId"),
+  userAgent: persistentRead("ninebot.userAgent"),
   debug: persistentRead("ninebot.debug") === "true",
   notify: persistentRead("ninebot.notify") === "true",
   autoOpenBox: persistentRead("ninebot.autoOpenBox") === "true",
@@ -28,10 +29,12 @@ if (isReq) {
   const auth = $request.headers["Authorization"] || $request.headers["authorization"];
   const devId = $request.headers["deviceId"] || $request.headers["device_id"];
   const ua = $request.headers["User-Agent"] || "";
+
   if (auth) persistentWrite(auth, "ninebot.authorization");
   if (devId) persistentWrite(devId, "ninebot.deviceId");
   if (ua) persistentWrite(ua, "ninebot.userAgent");
-  noti("九号 Token 捕获成功", "", "Authorization 与 DeviceId 已保存（仅需抓包一次）");
+
+  noti("九号 Token 捕获成功", "", "Authorization / DeviceId / UA 已写入 BoxJS");
   $done({});
 }
 
@@ -54,7 +57,7 @@ function httpGet(req) {
     "Authorization": config.Authorization,
     "Content-Type": "application/json",
     "device_id": config.DeviceId,
-    "User-Agent": persistentRead("ninebot.userAgent") || "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6"
+    "User-Agent": config.userAgent || "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6"
   };
 
   let notifyBody = "";
