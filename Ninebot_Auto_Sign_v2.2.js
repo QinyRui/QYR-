@@ -53,8 +53,8 @@ const cfg = {
   Authorization: read(KEY_AUTH) || "",
   DeviceId: read(KEY_DEV) || "",
   userAgent: read(KEY_UA) || "",
-  debug: true,  // 强制开启日志
-  notify: true, // 强制开启通知
+  debug: true,
+  notify: true,
   autoOpenBox: read(KEY_AUTOBOX) === "true",
   autoRepair: read(KEY_AUTOREPAIR) === "true",
   titlePrefix: read(KEY_TITLE) || "九号智能电动车"
@@ -107,7 +107,7 @@ const END = {
   balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606"
 };
 
-// ---------- 辅助函数 ----------
+// ---------- 辅助 ----------
 function log(...args){ console.log("[Ninebot]", ...args); }
 function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); } }
 
@@ -116,7 +116,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
   let notifyBody = "";
 
   try {
-    // 1) 签到
+    // 签到
     log("开始签到请求");
     const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({deviceId: cfg.DeviceId}) });
     log("签到返回：", sign);
@@ -124,23 +124,21 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
     else if (sign && sign.code === 540004) notifyBody += `⚠️ 今日已签到`;
     else notifyBody += `❌ 签到失败：${(sign && (sign.msg || safeStr(sign))) || "未知"}`;
 
-    // 2) 状态
+    // 状态
     const st = await httpGet({ url: END.status, headers });
     log("状态返回：", st);
     if (st && st.code === 0) {
       const data = st.data || {};
-      const days = data.consecutiveDays || data.continuousDays || 0;
-      const cards = data.signCardsNum || data.remedyCard || 0;
-      notifyBody += `\n🗓 连续签到：${days} 天\n🎫 补签卡：${cards} 张`;
-    } else notifyBody += `\n🗓 状态获取失败`;
+      notifyBody += `\n🗓 连续签到：${data.consecutiveDays || data.continuousDays || 0} 天`;
+      notifyBody += `\n🎫 补签卡：${data.signCardsNum || data.remedyCard || 0} 张`;
+    }
 
-    // 3) 余额
+    // 余额
     const bal = await httpGet({ url: END.balance, headers });
     log("余额返回：", bal);
     if (bal && bal.code === 0) notifyBody += `\n💰 N币余额：${bal.data?.balance || 0}`;
-    else notifyBody += `\n💰 N币获取失败`;
 
-    // 4) 盲盒
+    // 盲盒
     const box = await httpGet({ url: END.blindBoxList, headers });
     log("盲盒返回：", box);
     const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
@@ -166,9 +164,9 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
           }
         }
       }
-    } else notifyBody += `\n📦 无盲盒任务`;
+    }
 
-    // 5) 自动补签
+    // 自动补签
     if (cfg.autoRepair) {
       try {
         if (st && st.code === 0) {
@@ -185,7 +183,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
       } catch (e) { log("自动补签异常：", e); }
     }
 
-    // ✅ 最终通知
+    // 最终通知
     notify(cfg.titlePrefix,"签到结果",notifyBody);
 
   } catch (e) {
