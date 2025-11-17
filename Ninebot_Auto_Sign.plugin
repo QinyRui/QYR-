@@ -1,11 +1,12 @@
+[General]
+skip-proxy = 192.168.0.0/16, 10.0.0.0/8
+
 [Script]
-name = 九号智能电动车自动签到
-desc = 自动签到九号智能电动车账户，支持抓包自动写入 Authorization/DeviceId
-icon = 
-type = http-request
-pattern = ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-info
-script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js
-tag = 九号自动签到-获取授权
+# ✨ 抓包写入 Authorization / DeviceId / User-Agent
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-info$ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, timeout=10, tag=🔑 九号自动签到 - 获取授权
+
+# ✨ 主签到执行（Loon 自动任务）
+cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, timeout=20, tag=🚀 九号自动签到
 
 [MITM]
 hostname = cn-cbu-gateway.ninebot.com
