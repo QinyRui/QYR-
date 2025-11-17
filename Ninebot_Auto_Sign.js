@@ -2,8 +2,8 @@
 📱 九号智能电动车自动签到脚本（单账号版）
 =========================================
 👤 作者：QinyRui
-📆 更新时间：2025/11/16
-📦 版本：v1.1
+📆 更新时间：2025/11/17
+📦 版本：v1.2
 📱 适配：iOS 系统
 ✈️ 群 telegram = https://t.me/JiuHaoAPP
 */
@@ -26,15 +26,19 @@ let config = {
 
 // ---------- 抓包捕获 Token ----------
 if (isReq) {
-  const auth = $request.headers["Authorization"] || $request.headers["authorization"];
-  const devId = $request.headers["deviceId"] || $request.headers["device_id"];
-  const ua = $request.headers["User-Agent"] || "";
+  try {
+    const auth = $request.headers["Authorization"] || $request.headers["authorization"];
+    const devId = $request.headers["deviceId"] || $request.headers["device_id"];
+    const ua = $request.headers["User-Agent"] || "";
+    let changed = false;
+    if (auth) { persistentWrite(auth, "ninebot.authorization"); changed = true; }
+    if (devId) { persistentWrite(devId, "ninebot.deviceId"); changed = true; }
+    if (ua) { persistentWrite(ua, "ninebot.userAgent"); changed = true; }
 
-  if (auth) persistentWrite(auth, "ninebot.authorization");
-  if (devId) persistentWrite(devId, "ninebot.deviceId");
-  if (ua) persistentWrite(ua, "ninebot.userAgent");
-
-  noti("九号 Token 捕获成功", "", "Authorization / DeviceId / UA 已写入 BoxJS");
+    if (changed) noti("九号 Token 捕获成功", "", "Authorization 与 DeviceId 已保存（仅需抓包一次）");
+  } catch (e) {
+    console.log("Token 捕获异常：", e);
+  }
   $done({});
 }
 
@@ -57,7 +61,9 @@ function httpGet(req) {
     "Authorization": config.Authorization,
     "Content-Type": "application/json",
     "device_id": config.DeviceId,
-    "User-Agent": config.userAgent || "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6"
+    "User-Agent": config.userAgent || "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6",
+    "platform": "h5",
+    "Origin": "https://h5-bj.ninebot.com"
   };
 
   let notifyBody = "";
@@ -67,7 +73,7 @@ function httpGet(req) {
     const signRes = await httpPost({
       url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
       headers,
-      body: JSON.stringify({ deviceId: config.DeviceId })
+      body: "{}" // 空 body 避免 Params error
     });
     if (signRes.code === 0) notifyBody += `🎉 签到成功\n🎁 +${signRes.data.nCoin || 0} N币`;
     else if (signRes.code === 540004) notifyBody += "⚠️ 今日已签到";
