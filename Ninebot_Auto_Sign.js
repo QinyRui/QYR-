@@ -1,128 +1,127 @@
 /*
-📱 九号智能电动车自动签到脚本（单账号版）
+📱 九号智能电动车自动签到脚本（单账号）
 =========================================
 👤 作者：QinyRui
 📆 更新时间：2025/11/17
 📦 版本：v1.2
-📱 适配：iOS 系统
-✈️ 群 telegram = https://t.me/JiuHaoAPP
 */
 
 const isReq = typeof $request !== "undefined" && $request.headers;
-const persistentRead = key => typeof $persistentStore !== "undefined" ? $persistentStore.read(key) : null;
-const persistentWrite = (v, k) => typeof $persistentStore !== "undefined" ? $persistentStore.write(v, k) : null;
-const noti = (title, subtitle, body) => { if (typeof $notification !== "undefined") $notification.post(title, subtitle, body); };
 
-// ---------- BoxJS 配置读取 ----------
-let config = {
-  Authorization: persistentRead("ninebot.authorization"),
-  DeviceId: persistentRead("ninebot.deviceId"),
-  userAgent: persistentRead("ninebot.userAgent"),
-  debug: persistentRead("ninebot.debug") === "true",
-  notify: persistentRead("ninebot.notify") === "true",
-  autoOpenBox: persistentRead("ninebot.autoOpenBox") === "true",
-  titlePrefix: persistentRead("ninebot.titlePrefix") || "九号签到"
-};
+// BoxJS 读取/写入
+const read = k => $persistentStore.read(k);
+const write = (v, k) => $persistentStore.write(v, k);
 
-// ---------- 抓包捕获 Token ----------
+// 抓包写入 Token
 if (isReq) {
-  try {
-    const auth = $request.headers["Authorization"] || $request.headers["authorization"];
-    const devId = $request.headers["deviceId"] || $request.headers["device_id"];
-    const ua = $request.headers["User-Agent"] || "";
-    let changed = false;
-    if (auth) { persistentWrite(auth, "ninebot.authorization"); changed = true; }
-    if (devId) { persistentWrite(devId, "ninebot.deviceId"); changed = true; }
-    if (ua) { persistentWrite(ua, "ninebot.userAgent"); changed = true; }
+  const auth = $request.headers["Authorization"] || $request.headers["authorization"];
+  const devId = $request.headers["deviceId"] || $request.headers["device_id"];
+  const ua = $request.headers["User-Agent"] || "";
 
-    if (changed) noti("九号 Token 捕获成功", "", "Authorization 与 DeviceId 已保存（仅需抓包一次）");
-  } catch (e) {
-    console.log("Token 捕获异常：", e);
-  }
+  if (auth) write(auth, "ninebot.authorization");
+  if (devId) write(devId, "ninebot.deviceId");
+  if (ua) write(ua, "ninebot.userAgent");
+
+  $notification.post("九号 Token 捕获成功", "", "Authorization / DeviceId 已写入 BoxJS");
   $done({});
 }
 
-// ---------- HTTP 封装 ----------
-function httpPost(req) {
-  return new Promise((resolve, reject) => $httpClient.post(req, (err, resp, data) => err ? reject(err) : resolve(JSON.parse(data || "{}"))));
+// 读取 BoxJS
+const Authorization = read("ninebot.authorization");
+const DeviceId = read("ninebot.deviceId");
+const userAgent = read("ninebot.userAgent") || "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6";
+const debug = read("ninebot.debug") === "true";
+const notify = read("ninebot.notify") === "true";
+const autoOpenBox = read("ninebot.autoOpenBox") === "true";
+const titlePrefix = read("ninebot.titlePrefix") || "九号签到";
+
+// HTTP 封装
+function post(req) {
+  return new Promise((resolve, reject) =>
+    $httpClient.post(req, (err, resp, data) =>
+      err ? reject(err) : resolve(JSON.parse(data || "{}"))
+    )
+  );
 }
-function httpGet(req) {
-  return new Promise((resolve, reject) => $httpClient.get(req, (err, resp, data) => err ? reject(err) : resolve(JSON.parse(data || "{}"))));
+function get(req) {
+  return new Promise((resolve, reject) =>
+    $httpClient.get(req, (err, resp, data) =>
+      err ? reject(err) : resolve(JSON.parse(data || "{}"))
+    )
+  );
 }
 
-// ---------- 主流程 ----------
+// 主流程
 !(async () => {
-  if (!config.Authorization || !config.DeviceId) {
-    if (config.notify) noti(config.titlePrefix, "未配置 Token", "请先抓包获取 Authorization 与 DeviceId");
+  if (!Authorization || !DeviceId) {
+    if (notify) $notification.post(titlePrefix, "未配置 Token", "请先抓包一次自动写入 BoxJS");
     return $done();
   }
 
   const headers = {
-    "Authorization": config.Authorization,
+    "Authorization": Authorization,
     "Content-Type": "application/json",
-    "device_id": config.DeviceId,
-    "User-Agent": config.userAgent || "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6",
-    "platform": "h5",
-    "Origin": "https://h5-bj.ninebot.com"
+    "device_id": DeviceId,
+    "User-Agent": userAgent
   };
 
-  let notifyBody = "";
+  let text = "";
 
   try {
-    // ===== 签到 =====
-    const signRes = await httpPost({
+    // 签到
+    const sign = await post({
       url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
       headers,
-      body: "{}" // 空 body 避免 Params error
+      body: JSON.stringify({ deviceId: DeviceId })
     });
-    if (signRes.code === 0) notifyBody += `🎉 签到成功\n🎁 +${signRes.data.nCoin || 0} N币`;
-    else if (signRes.code === 540004) notifyBody += "⚠️ 今日已签到";
-    else notifyBody += `❌ 签到失败：${signRes.msg || JSON.stringify(signRes)}`;
 
-    // ===== 状态 =====
-    const statusRes = await httpGet({ url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status", headers });
-    notifyBody += `\n🗓 连续签到：${statusRes.data?.consecutiveDays || 0} 天\n🎫 补签卡：${statusRes.data?.signCardsNum || 0} 张`;
+    if (sign.code === 0)
+      text += `🎉 签到成功：+${sign.data?.nCoin || 0} N币`;
+    else if (sign.code === 540004)
+      text += `📌 今日已签到`;
+    else
+      text += `❌ 签到失败：${sign.msg || JSON.stringify(sign)}`;
 
-    // ===== N币余额 =====
-    const balRes = await httpGet({ url: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606", headers });
-    notifyBody += `\n💰 N币余额：${balRes.data?.balance || 0}`;
+    // 状态
+    const st = await get({ url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status", headers });
+    text += `\n🗓 连续签到：${st.data?.consecutiveDays || 0} 天`;
+    text += `\n🎫 补签卡：${st.data?.signCardsNum || 0} 张`;
 
-    // ===== 盲盒列表 =====
-    const boxRes = await httpGet({ url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list", headers });
-    const boxes = boxRes.data?.notOpenedBoxes || [];
-    if (boxes.length > 0) {
-      notifyBody += `\n\n📦 盲盒任务：`;
-      for (const b of boxes) {
-        notifyBody += `\n- ${b.awardDays}天盲盒，还需 ${b.leftDaysToOpen} 天`;
-      }
+    // N币余额
+    const bal = await get({ url: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606", headers });
+    text += `\n💰 N币余额：${bal.data?.balance || 0}`;
 
-      // ===== 自动开启盲盒 =====
-      if (config.autoOpenBox) {
-        const ready = boxes.filter(b => b.leftDaysToOpen === 0 && b.rewardStatus === 2);
+    // 盲盒
+    const box = await get({ url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list", headers });
+    const list = box.data?.notOpenedBoxes || [];
+
+    if (list.length === 0) {
+      text += "\n📦 无盲盒任务";
+    } else {
+      text += "\n📦 盲盒：";
+      for (const b of list)
+        text += `\n- ${b.awardDays}天盲盒，还需 ${b.leftDaysToOpen} 天`;
+
+      if (autoOpenBox) {
+        const ready = list.filter(b => b.leftDaysToOpen === 0 && b.rewardStatus === 2);
         if (ready.length > 0) {
-          notifyBody += `\n\n🎉 自动开启盲盒：`;
+          text += "\n\n🎉 自动开启盲盒：";
           for (const b of ready) {
-            const rewardRes = await httpPost({
+            const r = await post({
               url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive",
               headers,
               body: "{}"
             });
-            const rewardText = rewardRes.code === 0
-              ? `${rewardRes.data?.rewardValue || rewardRes.data?.score || "未知奖励"}`
-              : rewardRes.msg || "领取失败";
-            notifyBody += `\n🎁 ${b.awardDays}天盲盒获得：${rewardText}`;
+            text += `\n🎁 ${b.awardDays}天盲盒奖励：${r.data?.score || r.data?.rewardValue || "未知"}`;
           }
         }
       }
-    } else {
-      notifyBody += "\n📦 无盲盒任务";
     }
 
-    // ===== 发送通知 =====
-    if (config.notify) noti(config.titlePrefix, "签到结果", notifyBody);
+    if (notify) $notification.post(titlePrefix, "签到结果", text);
 
-  } catch (err) {
-    if (config.notify) noti(config.titlePrefix, "脚本异常", String(err));
+  } catch (e) {
+    if (notify) $notification.post(titlePrefix, "脚本异常", String(e));
   }
 
   $done();
