@@ -106,4 +106,15 @@ function httpGet(req) {
         }
       }
     } else {
-      notifyBody += "\n📦 无盲盒
+      notifyBody += "\n📦 无盲盒任务";
+    }
+
+    // ===== 发送通知 =====
+    if (config.notify) noti(config.titlePrefix, "签到结果", notifyBody);
+
+  } catch (err) {
+    if (config.notify) noti(config.titlePrefix, "脚本异常", String(err));
+  }
+
+  $done();
+})();
