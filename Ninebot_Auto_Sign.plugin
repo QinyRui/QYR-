@@ -1,16 +1,22 @@
 #!name=九号智能电动车 · 全功能签到（单号版）
-#!desc=自动抓包写入 Authorization/DeviceId/UA，自动签到/状态/余额/盲盒（自动开启），支持 BoxJS 配置与日志
+#!desc=自动抓包写入 Authorization/DeviceId/U-A，自动签到、状态、余额、盲盒、自动补签，支持 BoxJS 配置与调试日志
 #!author=QinyRui
-#!version=2.1
+#!version=2.0
 #!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon.png
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/jiuhao/icon.png
 
 [Script]
-# 抓包写入 Authorization / DeviceId / UA
-http-request ^https?:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign_v2.1.js, tag=九号智能电动车-抓包写入, timeout=10, requires-body=false
+# ======================================================
+# ✨ 抓包写入 Authorization / DeviceId / User-Agent
+# 通配 portal API，保证九号接口更新后也能自动抓到
+# ======================================================
+http-request ^https?:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/jiuhao/Ninebot_Auto_Sign.js, tag=九号智能电动车-抓包写入, timeout=10
 
-# 每日定时签到
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign_v2.1.js, tag=九号智能电动车-每日签到, timeout=60
+# ======================================================
+# ✨ 主签到逻辑（支持手动运行 / 定时任务）
+# 如需修改时间，可在 Loon 内手动改 cron
+# ======================================================
+cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/jiuhao/Ninebot_Auto_Sign.js, tag=九号智能电动车-每日签到, timeout=30
 
 [MITM]
 hostname = cn-cbu-gateway.ninebot.com
