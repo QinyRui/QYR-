@@ -1,18 +1,15 @@
 #!name=九号智能电动车 · 全功能签到（单号版）
-#!desc=自动抓包写入 Authorization/DeviceId/UA，自动签到/状态/余额/盲盒/自动补签并支持 BoxJS 配置与日志
+#!desc=自动抓包写入 Authorization/DeviceId/UA，自动签到/盲盒/自动补签；含变量丢失检测与在线更新检查
 #!author=QinyRui
-#!version=2.0
+#!version=2.1
 #!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon.png
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon_128.png
 
 [Script]
-# -------------------------
-# ✨ 抓包写入 Authorization / DeviceId / User-Agent（通配接口，确保必触发）
-# 匹配 portal 下所有 API，确保无论接口变动都能触发抓包写入
+# ✨ 抓包自动写入 Authorization / DeviceId / User-Agent（通配接口，确保必触发）
 http-request ^https?:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号智能电动车-抓包写入, timeout=10, requires-body=false
 
-# -------------------------
-# ✨ 主签到脚本（可在 Loon 内启用定时任务或使用下方 cron）
+# ✨ 主签到脚本（支持定时）
 cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号智能电动车-每日签到, timeout=30
 
 [MITM]
