@@ -1,20 +1,15 @@
-# ==========================
-# 九号智能电动车自动签到（单账号）
+# 九号智能电动车自动签到（单账号版）
 # 作者：QinyRui
-# 版本：v1.2
 # 更新：2025/11/16
-# 适配：iOS 系统
-# Telegram 群：https://t.me/JiuHaoAPP
-# 图标：https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon_ninebot.png
-# ==========================
+# 适配：Loon
+# Telegram: https://t.me/JiuHaoAPP
 
 [Script]
-# ✨ 抓包写入 Authorization / DeviceId / User-Agent
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-info script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号自动签到-获取授权
+# ✨ 自动获取 Token（Authorization/DeviceId/User-Agent）
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-info script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号自动签到 - 获取授权
 
-[Task]
-# 每天自动执行签到
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号自动签到
+# ✨ 自动签到任务（每天早上 8:00）
+cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号自动签到 - 主任务
 
 [MITM]
 hostname = cn-cbu-gateway.ninebot.com
