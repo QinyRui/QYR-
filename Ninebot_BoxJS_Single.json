@@ -10,11 +10,11 @@
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
+        "ninebot.userAgent",
         "ninebot.debug",
         "ninebot.notify",
         "ninebot.autoOpenBox",
-        "ninebot.titlePrefix",
-        "ninebot.userAgent"
+        "ninebot.titlePrefix"
       ],
       "descs_html": [
         "📱 自动签到九号智能电动车账户",
@@ -36,6 +36,13 @@
           "val": "",
           "type": "text",
           "placeholder": "来自九号 App"
+        },
+        {
+          "id": "ninebot.userAgent",
+          "name": "User-Agent（抓包自动写入）",
+          "val": "",
+          "type": "text",
+          "placeholder": "自动记录，无需手动填写"
         },
         {
           "id": "ninebot.debug",
@@ -60,13 +67,6 @@
           "name": "自定义通知标题",
           "type": "text",
           "val": "九号签到"
-        },
-        {
-          "id": "ninebot.userAgent",
-          "name": "User-Agent（抓包自动写入）",
-          "type": "text",
-          "val": "",
-          "placeholder": "自动记录，无需手动填写"
         }
       ]
     }
