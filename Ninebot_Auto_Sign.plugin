@@ -1,16 +1,20 @@
-#!name=九号智能电动车 · 全功能签到（单号版）
-#!desc=自动抓包写入 Authorization/DeviceId/UA，自动签到/盲盒/自动补签；含变量丢失检测与在线更新检查
-#!author=QinyRui
-#!version=2.1
-#!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon_128.png
+# ==========================
+# 九号智能电动车自动签到（单账号）
+# 作者：QinyRui
+# 版本：v1.2
+# 更新：2025/11/16
+# 适配：iOS 系统
+# Telegram 群：https://t.me/JiuHaoAPP
+# 图标：https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon_ninebot.png
+# ==========================
 
 [Script]
-# ✨ 抓包自动写入 Authorization / DeviceId / User-Agent（通配接口，确保必触发）
-http-request ^https?:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号智能电动车-抓包写入, timeout=10, requires-body=false
+# ✨ 抓包写入 Authorization / DeviceId / User-Agent
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-info script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号自动签到-获取授权
 
-# ✨ 主签到脚本（支持定时）
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号智能电动车-每日签到, timeout=30
+[Task]
+# 每天自动执行签到
+cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号自动签到
 
 [MITM]
 hostname = cn-cbu-gateway.ninebot.com
