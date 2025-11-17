@@ -2,7 +2,7 @@
   "id": "ninebot.auto.sign",
   "name": "九号智能电动车自动签到（单号版）",
   "author": "QinyRui",
-  "version": "2.1",
+  "version": "2.2",
   "repo": "https://github.com/QinyRui/QYR-",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon.png",
   "apps": [
@@ -20,51 +20,14 @@
         "ninebot.titlePrefix"
       ],
       "settings": [
-        {
-          "id": "ninebot.authorization",
-          "name": "Authorization",
-          "placeholder": "自动抓包写入"
-        },
-        {
-          "id": "ninebot.deviceId",
-          "name": "DeviceId",
-          "placeholder": "自动抓包写入"
-        },
-        {
-          "id": "ninebot.userAgent",
-          "name": "User-Agent",
-          "placeholder": "自动写入"
-        },
-        {
-          "id": "ninebot.debug",
-          "name": "调试日志",
-          "type": "boolean",
-          "val": false
-        },
-        {
-          "id": "ninebot.notify",
-          "name": "通知开关（仍会强制通知结果）",
-          "type": "boolean",
-          "val": true
-        },
-        {
-          "id": "ninebot.autoOpenBox",
-          "name": "自动开启盲盒",
-          "type": "boolean",
-          "val": true
-        },
-        {
-          "id": "ninebot.autoRepair",
-          "name": "自动补签（会消耗补签卡）",
-          "type": "boolean",
-          "val": false
-        },
-        {
-          "id": "ninebot.titlePrefix",
-          "name": "自定义通知标题",
-          "type": "text",
-          "val": "九号签到"
-        }
+        {"id":"ninebot.authorization","name":"Authorization","placeholder":"自动抓包写入"},
+        {"id":"ninebot.deviceId","name":"DeviceId","placeholder":"自动抓包写入"},
+        {"id":"ninebot.userAgent","name":"User-Agent","placeholder":"自动写入"},
+        {"id":"ninebot.debug","name":"调试日志","type":"boolean","val":false},
+        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
+        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
+        {"id":"ninebot.autoRepair","name":"自动补签（会消耗补签卡）","type":"boolean","val":false},
+        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"}
       ]
     }
   ]
