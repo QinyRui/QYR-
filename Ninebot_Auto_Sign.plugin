@@ -1,16 +1,12 @@
-#!name=九号智能电动车自动签到（单号版）
-#!desc=支持自动抓包写入 Authorization / DeviceId / User-Agent，支持 MZ Max 新协议，自动签到+盲盒+连续天数+N币显示。作者：QinyRui
-#!author=QinyRui
-#!version=1.0.0
-#!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/icon/ninebot.png
+#!name=九号智能电动车·单号自动签到
+#!desc=自动签到 + 抓包自动写入 BoxJS
+#!author=❥﹒﹏非我不可
+#!version=1.0
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon.png
 
 [Script]
-# ✨ 抓包写入 Authorization / DeviceId / User-Agent（无需手动填写）
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-info script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/JiuHao_AutoSign.js, tag=九号智能电动车-抓包写入
+# ✨ 抓包写入 Authorization / DeviceId / User-Agent
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-info$ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号签到-获取授权
 
-# ✨ 主签到（定时每日自动运行）
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/JiuHao_AutoSign.js, tag=九号智能电动车-每日自动签到
-
-[MITM]
-hostname = cn-cbu-gateway.ninebot.com
+# ✨ 主签到脚本
+cron "10 6 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Auto_Sign.js, tag=九号智能电动车自动签到
