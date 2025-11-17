@@ -2,7 +2,7 @@
   "id": "ninebot.auto.sign",
   "name": "九号智能电动车自动签到脚本",
   "author": "QinyRui",
-  "version": "1.3",
+  "version": "1.1",
   "apps": [
     {
       "id": "Ninebot_Auto_Sign",
@@ -10,36 +10,32 @@
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
-        "ninebot.userAgent",
         "ninebot.debug",
         "ninebot.notify",
         "ninebot.autoOpenBox",
-        "ninebot.titlePrefix"
+        "ninebot.titlePrefix",
+        "ninebot.userAgent"
       ],
       "descs_html": [
         "📱 自动签到九号智能电动车账户",
-        "🪪 抓包获取 Authorization / DeviceId / User-Agent",
-        "⚙️ 支持自动开盲盒、自定义通知标题",
-        "📅 建议每天 8:00 自动运行"
+        "🪪 抓包获取 Authorization 与 DeviceId",
+        "⚙️ BoxJS 填写后即可使用",
+        "📅 建议每天上午 8:00 自动运行"
       ],
       "settings": [
         {
           "id": "ninebot.authorization",
           "name": "Authorization",
           "val": "",
-          "type": "text"
+          "type": "text",
+          "placeholder": "抓包任意请求头获取 Authorization"
         },
         {
           "id": "ninebot.deviceId",
           "name": "DeviceId",
           "val": "",
-          "type": "text"
-        },
-        {
-          "id": "ninebot.userAgent",
-          "name": "User-Agent（自动写入）",
-          "val": "",
-          "type": "text"
+          "type": "text",
+          "placeholder": "来自九号 App"
         },
         {
           "id": "ninebot.debug",
@@ -64,6 +60,13 @@
           "name": "自定义通知标题",
           "type": "text",
           "val": "九号签到"
+        },
+        {
+          "id": "ninebot.userAgent",
+          "name": "User-Agent（抓包自动写入）",
+          "type": "text",
+          "val": "",
+          "placeholder": "自动记录，无需手动填写"
         }
       ]
     }
