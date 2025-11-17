@@ -1,12 +1,13 @@
 {
   "id": "ninebot.auto.sign",
-  "name": "九号智能电动车 · 全功能（单号）",
+  "name": "九号智能电动车自动签到（单号版）",
   "author": "QinyRui",
-  "version": "2.0",
+  "version": "1.3",
+  "repo": "https://github.com/QinyRui/QYR-",
   "apps": [
     {
       "id": "Ninebot_Auto_Sign",
-      "name": "九号签到（单号）",
+      "name": "九号签到（单账号）",
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
@@ -14,14 +15,13 @@
         "ninebot.debug",
         "ninebot.notify",
         "ninebot.autoOpenBox",
-        "ninebot.autoRepair",
         "ninebot.titlePrefix"
       ],
       "descs_html": [
-        "📱 自动签到九号智能电动车账户（单号）",
-        "🪪 抓包获取 Authorization 与 DeviceId（抓包一次即可写入）",
-        "⚙️ 支持自动补签、自动盲盒、自动领取盲盒奖励",
-        "📅 建议每天早上 8:00 定时签到"
+        "📱 自动签到九号智能电动车账户",
+        "🪪 抓包自动写入 Authorization / DeviceId / User-Agent",
+        "⚙️ BoxJS 可启用调试日志、通知开关、自定义标题",
+        "📅 默认建议定时：每天 08:00 自动运行"
       ],
       "settings": [
         {
@@ -29,21 +29,21 @@
           "name": "Authorization",
           "val": "",
           "type": "text",
-          "placeholder": "抓包任意请求头获取 Authorization"
+          "placeholder": "自动写入（抓包时自动记录）"
         },
         {
           "id": "ninebot.deviceId",
           "name": "DeviceId",
           "val": "",
           "type": "text",
-          "placeholder": "来自九号 App"
+          "placeholder": "自动写入（抓包时自动记录）"
         },
         {
           "id": "ninebot.userAgent",
-          "name": "User-Agent（抓包自动写入）",
+          "name": "User-Agent",
           "val": "",
           "type": "text",
-          "placeholder": "自动记录，无需手动填写"
+          "placeholder": "自动写入，无需填写"
         },
         {
           "id": "ninebot.debug",
@@ -64,16 +64,10 @@
           "val": true
         },
         {
-          "id": "ninebot.autoRepair",
-          "name": "自动补签（谨慎开启，会消耗补签卡）",
-          "type": "boolean",
-          "val": false
-        },
-        {
           "id": "ninebot.titlePrefix",
-          "name": "自定义通知标题",
+          "name": "自定义通知标题前缀",
           "type": "text",
-          "val": "九号智能电动车"
+          "val": "九号签到"
         }
       ]
     }
