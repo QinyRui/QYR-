@@ -21,7 +21,7 @@
         {"id":"ninebot.titlePrefix","name":"自定义通知标题前缀","type":"text","val":"九号签到"},
         {"id":"ninebot.schema","name":"已识别的 schema（缓存）","type":"text","val":"","placeholder":"由脚本自动识别并写入，无需手动修改"}
       ],
-      "icons":{"default":"https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon.png"}
+      "icons":{"default":"https://raw.githubusercontent.com/QinyRui/QYR-/main/jiuhao/icon.png"}
     }
   ]
 }
