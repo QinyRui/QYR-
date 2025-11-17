@@ -38,6 +38,7 @@ if (isReq) {
     if (dev && read(KEY_DEV) !== dev) { write(dev, KEY_DEV); changed = true; }
     if (ua && read(KEY_UA) !== ua) { write(ua, KEY_UA); changed = true; }
 
+    console.log("[Ninebot] 抓包 headers:", JSON.stringify(h));
     if (changed) {
       notify("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入 BoxJS");
       console.log("[Ninebot] 抓包写入成功:", {auth, dev, ua});
@@ -53,8 +54,8 @@ const cfg = {
   Authorization: read(KEY_AUTH) || "",
   DeviceId: read(KEY_DEV) || "",
   userAgent: read(KEY_UA) || "",
-  debug: true,
-  notify: true,
+  debug: true,  // 强制开启日志
+  notify: true, // 强制开启通知
   autoOpenBox: read(KEY_AUTOBOX) === "true",
   autoRepair: read(KEY_AUTOREPAIR) === "true",
   titlePrefix: read(KEY_TITLE) || "九号智能电动车"
@@ -62,6 +63,7 @@ const cfg = {
 
 if (!cfg.Authorization || !cfg.DeviceId) {
   notify(cfg.titlePrefix, "未配置 Token", "请先开启抓包并在九号 App 里操作以写入 Authorization 与 DeviceId");
+  console.log("[Ninebot] 未配置 Authorization 或 DeviceId");
   $done();
 }
 
@@ -69,8 +71,10 @@ if (!cfg.Authorization || !cfg.DeviceId) {
 function httpPost({ url, headers, body = "{}" }) {
   return new Promise((resolve, reject) => {
     $httpClient.post({ url, headers, body }, (err, resp, data) => {
-      if (err) reject(err);
-      else {
+      if (err) {
+        console.log("[Ninebot] HTTP POST 异常：", err);
+        reject(err);
+      } else {
         try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
       }
     });
@@ -79,8 +83,10 @@ function httpPost({ url, headers, body = "{}" }) {
 function httpGet({ url, headers }) {
   return new Promise((resolve, reject) => {
     $httpClient.get({ url, headers }, (err, resp, data) => {
-      if (err) reject(err);
-      else {
+      if (err) {
+        console.log("[Ninebot] HTTP GET 异常：", err);
+        reject(err);
+      } else {
         try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
       }
     });
@@ -107,8 +113,8 @@ const END = {
   balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606"
 };
 
-// ---------- 辅助 ----------
-function log(...args){ console.log("[Ninebot]", ...args); }
+// ---------- 日志辅助 ----------
+function log(...args){ if(cfg.debug) console.log("[Ninebot]", ...args); }
 function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); } }
 
 // ---------- 主流程 ----------
@@ -116,77 +122,88 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
   let notifyBody = "";
 
   try {
-    // 签到
-    log("开始签到请求");
-    const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({deviceId: cfg.DeviceId}) });
-    log("签到返回：", sign);
-    if (sign && sign.code === 0) notifyBody += `🎉 签到成功\n🎁 +${sign.data?.nCoin || sign.data?.score || 0} N币`;
-    else if (sign && sign.code === 540004) notifyBody += `⚠️ 今日已签到`;
-    else notifyBody += `❌ 签到失败：${(sign && (sign.msg || safeStr(sign))) || "未知"}`;
+    // 1) 签到
+    try {
+      log("开始签到请求");
+      const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({deviceId: cfg.DeviceId}) });
+      log("签到返回：", sign);
+      if (sign && sign.code === 0) notifyBody += `🎉 签到成功\n🎁 +${sign.data?.nCoin || sign.data?.score || 0} N币`;
+      else if (sign && sign.code === 540004) notifyBody += `⚠️ 今日已签到`;
+      else notifyBody += `❌ 签到失败：${(sign && (sign.msg || safeStr(sign))) || "未知"}`;
+    } catch(e){ log("签到异常：", e); notifyBody += `❌ 签到请求异常`; }
 
-    // 状态
-    const st = await httpGet({ url: END.status, headers });
-    log("状态返回：", st);
-    if (st && st.code === 0) {
-      const data = st.data || {};
-      notifyBody += `\n🗓 连续签到：${data.consecutiveDays || data.continuousDays || 0} 天`;
-      notifyBody += `\n🎫 补签卡：${data.signCardsNum || data.remedyCard || 0} 张`;
-    }
+    // 2) 状态
+    try {
+      const st = await httpGet({ url: END.status, headers });
+      log("状态返回：", st);
+      if(st && st.code === 0){
+        const data = st.data || {};
+        const days = data.consecutiveDays || data.continuousDays || 0;
+        const cards = data.signCardsNum || data.remedyCard || 0;
+        notifyBody += `\n🗓 连续签到：${days} 天\n🎫 补签卡：${cards} 张`;
+      } else notifyBody += `\n🗓 状态获取失败`;
+    } catch(e){ log("状态异常：", e); notifyBody += `\n🗓 状态请求异常`; }
 
-    // 余额
-    const bal = await httpGet({ url: END.balance, headers });
-    log("余额返回：", bal);
-    if (bal && bal.code === 0) notifyBody += `\n💰 N币余额：${bal.data?.balance || 0}`;
+    // 3) 余额
+    try {
+      const bal = await httpGet({ url: END.balance, headers });
+      log("余额返回：", bal);
+      if(bal && bal.code===0) notifyBody += `\n💰 N币余额：${bal.data?.balance || 0}`;
+      else notifyBody += `\n💰 N币获取失败`;
+    } catch(e){ log("余额异常：", e); notifyBody += `\n💰 余额请求异常`; }
 
-    // 盲盒
-    const box = await httpGet({ url: END.blindBoxList, headers });
-    log("盲盒返回：", box);
-    const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
-    if (Array.isArray(notOpened) && notOpened.length > 0) {
-      notifyBody += `\n\n📦 盲盒任务：`;
-      notOpened.forEach(b => {
-        const days = b.awardDays || b.boxDays || b.days || "?";
-        const left = b.leftDaysToOpen || b.diffDays || "?";
-        notifyBody += `\n- ${days}天盲盒，还需 ${left} 天`;
-      });
+    // 4) 盲盒
+    try {
+      const box = await httpGet({ url: END.blindBoxList, headers });
+      log("盲盒返回：", box);
+      const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
+      if(Array.isArray(notOpened) && notOpened.length>0){
+        notifyBody += `\n\n📦 盲盒任务：`;
+        notOpened.forEach(b=>{
+          const days = b.awardDays||b.boxDays||b.days||"?";
+          const left = b.leftDaysToOpen||b.diffDays||"?";
+          notifyBody += `\n- ${days}天盲盒，还需 ${left} 天`;
+        });
 
-      if (cfg.autoOpenBox) {
-        const ready = notOpened.filter(b => (b.leftDaysToOpen === 0 || b.diffDays === 0) && (b.rewardStatus === 2 || b.status === 2));
-        if (ready.length > 0) {
-          notifyBody += `\n\n🎉 自动开启盲盒：`;
-          for (const b of ready) {
-            try {
-              const r = await httpPost({ url: END.blindBoxReceive, headers, body: "{}" });
-              log("盲盒领取返回：", r);
-              if (r && r.code === 0) notifyBody += `\n🎁 ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || r.data?.score || "未知"}`;
-              else notifyBody += `\n❌ ${b.awardDays || b.boxDays}天盲盒领取失败`;
-            } catch (e) { log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
+        if(cfg.autoOpenBox){
+          const ready = notOpened.filter(b => (b.leftDaysToOpen===0||b.diffDays===0) && (b.rewardStatus===2||b.status===2));
+          if(ready.length>0){
+            notifyBody += `\n\n🎉 自动开启盲盒：`;
+            for(const b of ready){
+              try{
+                const r = await httpPost({ url: END.blindBoxReceive, headers, body:"{}" });
+                log("盲盒领取返回：", r);
+                if(r && r.code===0) notifyBody += `\n🎁 ${b.awardDays||b.boxDays}天盲盒获得：${r.data?.rewardValue||r.data?.score||"未知"}`;
+                else notifyBody += `\n❌ ${b.awardDays||b.boxDays}天盲盒领取失败`;
+              } catch(e){ log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
+            }
           }
+        }
+      } else notifyBody += `\n📦 无盲盒任务`;
+    } catch(e){ log("盲盒异常：", e); notifyBody += `\n📦 盲盒请求异常`; }
+
+    // 5) 自动补签
+    try {
+      if(cfg.autoRepair){
+        const st = await httpGet({ url: END.status, headers });
+        const cards = st.data?.signCardsNum||st.data?.remedyCard||0;
+        const days = st.data?.consecutiveDays||st.data?.continuousDays||0;
+        if(cards>0 && days===0){
+          log("触发自动补签");
+          const rep = await httpPost({ url: END.repair, headers, body:"{}" });
+          log("补签返回：", rep);
+          if(rep && rep.code===0) notifyBody += `\n🔧 自动补签成功`;
+          else notifyBody += `\n🔧 自动补签失败：${rep && rep.msg?"未知":rep.msg}`;
         }
       }
-    }
+    } catch(e){ log("补签异常：", e); notifyBody += `\n🔧 自动补签请求异常`; }
 
-    // 自动补签
-    if (cfg.autoRepair) {
-      try {
-        if (st && st.code === 0) {
-          const cards = st.data?.signCardsNum || st.data?.remedyCard || 0;
-          const days = st.data?.consecutiveDays || st.data?.continuousDays || 0;
-          if (cards > 0 && days === 0) {
-            log("触发自动补签");
-            const rep = await httpPost({ url: END.repair, headers, body: "{}" });
-            log("补签返回：", rep);
-            if (rep && rep.code === 0) notifyBody += `\n🔧 自动补签成功`;
-            else notifyBody += `\n🔧 自动补签失败：${rep && rep.msg ? rep.msg : "未知"}`;
-          }
-        }
-      } catch (e) { log("自动补签异常：", e); }
-    }
-
-    // 最终通知
+    // ✅ 强制发送通知
+    if(!notifyBody) notifyBody = "脚本执行完成，但无返回数据，请检查抓包";
     notify(cfg.titlePrefix,"签到结果",notifyBody);
+    log("最终通知内容：", notifyBody);
 
-  } catch (e) {
+  } catch(e){
     log("主流程异常：", e);
     notify(cfg.titlePrefix,"脚本异常",String(e));
   }
