@@ -140,7 +140,7 @@ const END: { [key: string]: string } = {
   sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
   status: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
   blindBoxList: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
-  blindBoxReceive: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive",
+  blindBoxReceive: "https://cn-cbu-gateway.com/portal/api/user-sign/v2/blind-box/receive",
   repair: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair",
   balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606"
 }
