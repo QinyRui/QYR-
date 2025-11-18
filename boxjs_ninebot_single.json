@@ -1,0 +1,30 @@
+{
+  "id": "ninebot.sign.single",
+  "name": "九号智能电动车 · 自动签到（单账号）",
+  "author": "❥﹒﹏非我不可 & QinyRui",
+  "icon": "icons/ninebot_128.png",
+  "repo": "https://github.com/QinyRui/QYR-/jiuhao",
+  "apps": [
+    {
+      "id": "ninebot.single",
+      "name": "九号智能电动车（单号）",
+      "keys": [
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent",
+        "ninebot.debug",
+        "ninebot.notify",
+        "ninebot.autoOpenBox",
+        "ninebot.autoRepair",
+        "ninebot.titlePrefix"
+      ],
+      "settings": [
+        {"id":"ninebot.titlePrefix","name":"通知标题（自定义）","val":"九号智能电动车"},
+        {"id":"ninebot.debug","name":"日志输出（控制台）","type":"boolean","val":true},
+        {"id":"ninebot.notify","name":"开启通知","type":"boolean","val":true},
+        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":false},
+        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":false}
+      ]
+    }
+  ]
+}
