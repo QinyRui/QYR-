@@ -1,19 +1,19 @@
 #!name=九号智能电动车（单号）
 #!desc=自动签到 + 盲盒 + 补签 + 内测申请 + 自定义签到时间
 #!author=QinyRui
-#!version=2.5 (2025/11/19 09:30:00)
+#!version=2.5 (2025/11/19 10:00:00)
 #!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
 #!homepage=https://t.me/JiuHaoAPP
 #!platform=iOS,iPadOS,macOS
 #!min-system-version=15
 
 [Script]
-# 默认签到时间，可在 BoxJS/插件里修改，覆盖此 cron
+# 默认签到时间，可在插件界面修改
 cron "{{ninebot.cronTime || '10 8 * * *'}}" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120
 http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=0
 
-[BoxJS]
-# 调试日志
+[Config]
+# 调试日志开关
 ninebot.debug = true
 # 通知开关
 ninebot.notify = true
@@ -25,9 +25,7 @@ ninebot.autoRepair = true
 ninebot.autoApplyBeta = true
 # 自定义通知标题
 ninebot.titlePrefix = 九号签到
-# 是否通知失败
-ninebot.notifyFail = true
-# 自定义签到 cron 表达式，例如每天 07:30 -> "30 7 * * *"
+# 自定义签到时间 cron 表达式，例如每天 07:30 -> "30 7 * * *"
 ninebot.cronTime = 10 8 * * *
 
 [Subscription]
