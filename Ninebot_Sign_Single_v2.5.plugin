@@ -1,32 +1,28 @@
 #!name=九号智能电动车（单号）
 #!desc=自动签到 + 盲盒 + 补签 + 内测申请 + 自定义签到时间
 #!author=❥﹒﹏非我不可 & QinyRui
-#!version=2.5 (2025/11/19 10:30:00)
+#!version=2.5 (2025/11/19 12:00:00)
 #!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
 #!homepage=https://t.me/JiuHaoAPP
 #!platform=iOS,iPadOS,macOS
 #!min-system-version=15
 #!update=2025/11/19
 
-[Script]
-# 默认签到时间，可在插件界面修改
-cron 10 8 * * * script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=0
-
 [Config]
-# 开关控件（布尔值）
-DEBUG = true
-NOTIFY = true
-AUTO_OPEN_BOX = true
-AUTO_REPAIR = true
-AUTO_APPLY_BETA = true
-AUTO_WRITE_AUTH = true
-AUTO_WRITE_DEVICEID = true
-AUTO_WRITE_UA = true
+开启调试日志_DEBUG = true
+是否发送通知_NOTIFY = true
+自动开启盲盒_AUTO_OPEN_BOX = true
+自动补签_AUTO_REPAIR = true
+自动申请内测资格_AUTO_APPLY_BETA = true
+自动写入Authorization_AUTO_WRITE_AUTH = true
+自动写入DeviceId_AUTO_WRITE_DEVICEID = true
+自动写入User-Agent_AUTO_WRITE_UA = true
+通知标题_TITLE_PREFIX = 九号签到
+签到时间_CRON_TIME = 10 8 * * *
 
-# 文本控件（文本框）
-TITLE_PREFIX = 九号签到
-SIGN_CRON_TIME = 10 8 * * *
+[Script]
+cron ${SIGN_CRON_TIME} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=0
 
 [Subscription]
 url=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.plugin
