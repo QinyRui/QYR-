@@ -9,24 +9,20 @@
 #!update=2025/11/19
 
 [Script]
-# 默认签到时间，可在插件界面修改
+# 自动签到脚本，默认每天 08:10，可在插件前端修改
 cron 10 8 * * * script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120
 http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=0
 
 [Config]
-# 调试日志开关
+# 布尔值 → 开关
 ninebot.debug = true
-# 通知开关
 ninebot.notify = true
-# 自动开启盲盒
 ninebot.autoOpenBox = true
-# 自动补签
 ninebot.autoRepair = true
-# 自动申请内测资格
 ninebot.autoApplyBeta = true
-# 自定义通知标题
+
+# 文本值 → 文本框
 ninebot.titlePrefix = 九号签到
-# 自定义签到时间 cron 表达式，例如每天 07:30 -> "30 7 * * *"
 ninebot.cronTime = 10 8 * * *
 
 [Subscription]
