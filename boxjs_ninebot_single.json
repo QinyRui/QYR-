@@ -15,11 +15,12 @@
     {
       "id": "ninebot.titlePrefix",
       "name": "通知标题（自定义名称）",
+      "type": "text",
       "val": "九号智能电动车"
     },
     {
       "id": "ninebot.debug",
-      "name": "调试日志（开关）",
+      "name": "调试日志开关",
       "type": "boolean",
       "val": true
     },
