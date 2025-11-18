@@ -1,139 +1,120 @@
 /*
-📱 九号智能电动车签到（单账号）v2.4
-👤 作者：❥﹒﹏非我不可 & QinyRui
-📆 更新：2025/11/20
-🔧 功能：签到 · 补签 · 盲盒 · 余额查询 · 内测资格检测（含预留自动申请）
+📱 九号智能电动车自动签到（单账号）
+📝 Version: v2.4
+👤 Author: ❥﹒﹏非我不可 & QinyRui
+✈️ Telegram: https://t.me/JiuHaoAPP
 */
 
-const ENV_IS_REQUEST = typeof $request !== "undefined";
-const STORAGE_KEY = "NINEBOT_ACCOUNT_SINGLE";
+const $ = API("Ninebot_Auto_Sign");
 
-/* ====================== 工具封装 ====================== */
+const CONFIG = {
+  auth: $.read("ninebot.authorization"),
+  deviceId: $.read("ninebot.deviceId"),
+  userAgent: $.read("ninebot.userAgent"),
+  debug: $.read("ninebot.debug") ?? true,
+  notify: $.read("ninebot.notify") ?? true,
+  autoOpenBox: $.read("ninebot.autoOpenBox") ?? true,
+  autoApplyBeta: $.read("ninebot.autoApplyBeta") ?? false,
+  titlePrefix: $.read("ninebot.titlePrefix") || "九号签到"
+};
 
-function read(key) { return $persistentStore.read(key) || ""; }
-function write(key, val) { return $persistentStore.write(val, key); }
-
-function notify(title, sub, body) {
-  const enable = read("ninebot.notify");
-  if (enable === "false") return;
-  $notification.post(title, sub, body);
+// -------------------- 工具函数 --------------------
+function log(...msg) { if (CONFIG.debug) console.log(...msg); }
+function notify(title, subtitle, body) {
+  if (CONFIG.notify) $.notify(title, subtitle, body);
 }
 
-function log(...msg) {
-  if (read("ninebot.debug") === "false") return;
-  console.log("[Ninebot] ", ...msg);
-}
-
-function httpGet(opts) {
-  return new Promise(res => {
-    $httpClient.get(opts, (err, resp, data) => {
-      if (err) res({ error: err });
-      else res(JSON.parse(data || "{}"));
+function httpGet(opt) {
+  return new Promise(resolve => {
+    $.get(opt, (err, resp, data) => {
+      try { resolve(JSON.parse(data)); }
+      catch { resolve({}); }
     });
   });
 }
 
-function httpPost(opts) {
-  return new Promise(res => {
-    $httpClient.post(opts, (err, resp, data) => {
-      if (err) res({ error: err });
-      else res(JSON.parse(data || "{}"));
+function httpPost(opt) {
+  return new Promise(resolve => {
+    $.post(opt, (err, resp, data) => {
+      try { resolve(JSON.parse(data)); }
+      catch { resolve({}); }
     });
   });
 }
 
-/* =============== 抓包写入阶段 =============== */
-
-if (ENV_IS_REQUEST) {
-  const auth = $request.headers["Authorization"] || "";
-  const ua = $request.headers["User-Agent"] || "";
-  const deviceId = $request.headers["deviceid"] || "";
-
-  if (auth) write("ninebot.authorization", auth);
-  if (ua) write("ninebot.userAgent", ua);
-  if (deviceId) write("ninebot.deviceId", deviceId);
-
-  notify("九号签到", "账号数据已写入", "Authorization / User-Agent / DeviceId 已保存");
-
-  $done({});
-  return;
-}
-
-/* =============== 主流程 =============== */
-
-!(async () => {
-  const authorization = read("ninebot.authorization");
-  const deviceId = read("ninebot.deviceId");
-  const userAgent = read("ninebot.userAgent");
-  const titlePrefix = read("ninebot.titlePrefix") || "九号签到";
-  const autoBox = read("ninebot.autoOpenBox") !== "false";
+// -------------------- 主流程 --------------------
+(async () => {
+  if (!CONFIG.auth || !CONFIG.deviceId) {
+    notify(CONFIG.titlePrefix, "错误", "未写入 Authorization / DeviceId");
+    return $.done();
+  }
 
   const headers = {
-    Authorization: authorization,
-    deviceId,
-    "User-Agent": userAgent
+    Authorization: CONFIG.auth,
+    "Device-Id": CONFIG.deviceId,
+    "User-Agent": CONFIG.userAgent || "Ninebot",
   };
 
-  /* ==== ① 签到 ==== */
-  const sign = await httpPost({
+  // ----------- 1. /sign 正常签到 -----------
+  const signRes = await httpPost({
     url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
     headers
   });
-  log("签到返回：", sign);
+  log("签到返回：", signRes);
 
-  /* ==== ② 状态 ==== */
+  // ----------- 2. 查询签到状态 -----------
   const status = await httpGet({
     url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
     headers
   });
-  log("签到状态：", status);
 
-  /* ==== ③ 余额 ==== */
+  // ----------- 3. 余额 -----------
   const balance = await httpGet({
-    url: "https://cn-cbu-gateway.ninebot.com/portal/api/balance/v2/detail",
+    url: "https://cn-cbu-gateway.ninebot.com/portal/api/nb-coin/v1/balance",
     headers
   });
 
-  /* ==== ④ 盲盒 ==== */
+  // ----------- 4. 盲盒 -----------
   const boxList = await httpGet({
-    url: "https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list",
+    url: "https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/v1/list",
     headers
   });
 
-  if (autoBox && boxList?.data) {
-    for (let b of boxList.data) {
-      if (b.leftDays === 0) {
-        await httpPost({
-          url: "https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/open",
-          headers,
-          body: JSON.stringify({ id: b.id })
-        });
+  // ----------- 5. 内测资格检测 -----------
+  let betaMsg = "";
+  try {
+    const beta = await httpGet({
+      url: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status",
+      headers
+    });
+    log("内测资格状态：", beta);
+
+    if (beta?.data?.qualified) {
+      betaMsg = "🎉 已具有内测资格";
+    } else {
+      betaMsg = "⚠️ 未获得内测资格";
+
+      // --------- 自动申请内测（预留） ---------
+      if (CONFIG.autoApplyBeta) {
+        betaMsg += "（尝试自动申请 ➜ 未实现，等待抓包 POST 接口）";
+        // await applyBeta();
       }
     }
+  } catch (e) {
+    log("内测检测异常：", e);
   }
 
-  /* ==== ⑤ 内测资格检测 ==== */
-  const betaStatus = await httpGet({
-    url: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status",
-    headers
-  });
-
-  let betaMsg = "";
-  if (betaStatus?.data?.qualified) {
-    betaMsg = "🎉 已获得内测资格";
-  } else {
-    betaMsg = "⚠️ 尚未获得内测资格（目前尚无申请接口）";
-  }
-
-  /* ==== 通知 ==== */
+  // ----------- 通知 -----------
   notify(
-    `${titlePrefix}`,
-    `签到：${sign?.msg || "完成"}`,
-    `连续签到：${status?.data?.continuousDays || 0} 天
-余额：${balance?.data?.nb || 0} N币
-盲盒：${boxList?.data?.length || 0} 个任务
-内测状态：${betaMsg}`
+    CONFIG.titlePrefix,
+    "签到完成",
+    `签到结果：${signRes?.msg || "未知"}\n连续：${status?.data?.continuityDays || "?"} 天\nN币：${balance?.data?.balance || "?"}\n盲盒数：${boxList?.data?.length || 0}\n内测：${betaMsg}`
   );
 
-  $done({});
+  $.done();
 })();
+
+// -------------------- applyBeta 预留 --------------------
+async function applyBeta() {
+  // 等你抓到 POST 申请内测接口后，我帮你完整实现
+}
