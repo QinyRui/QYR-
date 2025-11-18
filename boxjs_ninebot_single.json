@@ -17,13 +17,6 @@
         "ninebot.autoOpenBox",
         "ninebot.autoRepair",
         "ninebot.titlePrefix"
-      ],
-      "settings": [
-        {"id":"ninebot.titlePrefix","name":"通知标题（自定义）","val":"九号智能电动车"},
-        {"id":"ninebot.debug","name":"日志输出（控制台）","type":"boolean","val":true},
-        {"id":"ninebot.notify","name":"开启通知","type":"boolean","val":true},
-        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":false},
-        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":false}
       ]
     }
   ]
