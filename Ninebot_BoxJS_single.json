@@ -1,0 +1,73 @@
+{
+  "id": "ninebot.auto.sign",
+  "name": "九号智能电动车自动签到（单账号）",
+  "author": "QinyRui",
+  "version": "2.4",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon_ninebot.png",
+  "apps": [
+    {
+      "id": "Ninebot_Auto_Sign",
+      "name": "九号自动签到",
+      "keys": [
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent",
+        "ninebot.debug",
+        "ninebot.notify",
+        "ninebot.autoOpenBox",
+        "ninebot.autoApplyBeta",
+        "ninebot.titlePrefix"
+      ],
+      "settings": [
+        {
+          "id": "ninebot.authorization",
+          "name": "Authorization",
+          "type": "text",
+          "val": ""
+        },
+        {
+          "id": "ninebot.deviceId",
+          "name": "DeviceId",
+          "type": "text",
+          "val": ""
+        },
+        {
+          "id": "ninebot.userAgent",
+          "name": "User-Agent（自动写入）",
+          "type": "text",
+          "val": ""
+        },
+        {
+          "id": "ninebot.debug",
+          "name": "调试日志",
+          "type": "boolean",
+          "val": true
+        },
+        {
+          "id": "ninebot.notify",
+          "name": "通知开关",
+          "type": "boolean",
+          "val": true
+        },
+        {
+          "id": "ninebot.autoOpenBox",
+          "name": "自动开启盲盒",
+          "type": "boolean",
+          "val": true
+        },
+        {
+          "id": "ninebot.autoApplyBeta",
+          "name": "自动申请内测（预留）",
+          "type": "boolean",
+          "val": false
+        },
+        {
+          "id": "ninebot.titlePrefix",
+          "name": "自定义通知标题",
+          "type": "text",
+          "val": "九号签到"
+        }
+      ]
+    }
+  ]
+}
