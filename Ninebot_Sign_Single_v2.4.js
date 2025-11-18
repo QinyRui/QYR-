@@ -1,162 +1,180 @@
-/************************************************************************
-📱 九号智能电动车 · 单账号自动签到（v2.4）
-👤 作者：QinyRui & ❥﹒﹏非我不可
-📆 更新时间：2025/11/18
-📌 功能：签到、补签、盲盒、余额、连续天数、自动开盲盒、内测资格检测
-************************************************************************/
+/*
+📱 九号智能电动车 — 单账号签到脚本（v2.4）
+作者：❥﹒﹏非我不可 & QinyRui
+更新：2025/02
+功能：签到、补签、盲盒、余额、连续签到、内测资格检测
+*/
 
-// -------------------- 环境封装 --------------------
-const isQuanX = typeof $task !== "undefined";
-const isLoon = typeof $loon !== "undefined";
-const isSurge = typeof $httpClient !== "undefined";
+const $ = new Env("九号签到（单号）");
 
-function notify(title, subtitle, message) {
-  if (isQuanX) $notify(title, subtitle, message);
-  else if (isLoon || isSurge) $notification.post(title, subtitle, message);
+// ====================== 读取配置 ======================
+const AUTH = $.getdata("ninebot.authorization") || "";
+const DEVICE_ID = $.getdata("ninebot.deviceId") || "";
+const UA = $.getdata("ninebot.userAgent") || "NiuBot/6.9.10";
+
+const DEBUG = $.getdata("ninebot.debug") === "true";
+const NOTIFY = $.getdata("ninebot.notify") !== "false";
+const AUTO_BOX = $.getdata("ninebot.autoOpenBox") === "true";
+const AUTO_BETA = $.getdata("ninebot.autoApplyBeta") === "true";
+const TITLE = $.getdata("ninebot.titlePrefix") || "九号签到";
+
+if (!AUTH || !DEVICE_ID) {
+  $.msg(TITLE, "❌ 未填写 Authorization 或 DeviceId", "");
+  $.done();
 }
 
-function get(key) {
-  if (isQuanX) return $prefs.valueForKey(key);
-  if (isLoon || isSurge) return $persistentStore.read(key);
-}
-
-function set(key, val) {
-  if (isQuanX) return $prefs.setValueForKey(val, key);
-  if (isLoon || isSurge) return $persistentStore.write(val, key);
-}
-
-function httpGet(opts) {
-  return new Promise((resolve, reject) => {
-    if (isQuanX) {
-      opts.method = "GET";
-      $task.fetch(opts).then(resp => resolve(JSON.parse(resp.body)), reject);
-    } else if (isLoon) {
-      $httpClient.get(opts, (err, resp, data) => {
-        if (err) return reject(err);
-        resolve(JSON.parse(data));
-      });
-    } else if (isSurge) {
-      $httpClient.get(opts, (err, resp, data) => {
-        if (err) return reject(err);
-        resolve(JSON.parse(data));
-      });
-    }
-  });
-}
-
-function httpPost(opts) {
-  return new Promise((resolve, reject) => {
-    if (isQuanX) {
-      opts.method = "POST";
-      $task.fetch(opts).then(resp => resolve(JSON.parse(resp.body)), reject);
-    } else {
-      $httpClient.post(opts, (err, resp, data) => {
-        if (err) return reject(err);
-        resolve(JSON.parse(data));
-      });
-    }
-  });
-}
-
-function done(value = {}) {
-  if (isQuanX) $done(value);
-  else $done();
-}
-
-// -------------------- 读取变量 --------------------
-const authorization = get("ninebot.authorization") || "";
-const deviceId = get("ninebot.deviceId") || "";
-const userAgent = get("ninebot.userAgent") || "";
-const debug = get("ninebot.debug") === "true";
-const notifyOn = get("ninebot.notify") !== "false";
-const autoOpenBox = get("ninebot.autoOpenBox") !== "false";
-const autoApplyBeta = get("ninebot.autoApplyBeta") === "true";
-const titlePrefix = get("ninebot.titlePrefix") || "九号签到";
-
-// -------------------- 公共头部 --------------------
+// 公共请求头
 const headers = {
-  "Authorization": authorization,
-  "DeviceId": deviceId,
-  "User-Agent": userAgent,
+  "Authorization": AUTH,
+  "Device-ID": DEVICE_ID,
+  "User-Agent": UA,
   "Content-Type": "application/json"
 };
 
-function log(...msg) {
-  if (debug) console.log(...msg);
+// Http GET
+function httpGet(opt) {
+  return new Promise((resolve) => {
+    $.get(opt, (err, resp, data) => {
+      if (err) resolve(null);
+      else resolve(JSON.parse(data || "{}"));
+    });
+  });
 }
 
-// -------------------- 主流程 --------------------
+// Http POST
+function httpPost(opt) {
+  return new Promise((resolve) => {
+    $.post(opt, (err, resp, data) => {
+      if (err) resolve(null);
+      else resolve(JSON.parse(data || "{}"));
+    });
+  });
+}
+
+// ====================== 主程序执行 ======================
 !(async () => {
-  if (!authorization || !deviceId) {
-    notify(titlePrefix, "⚠️ 缺少必要参数", "请抓取 Authorization / DeviceId 写入 BoxJS");
-    return done();
-  }
 
-  log("开始执行九号签到流程…");
+  $.log(`🔹 开始执行九号签到脚本...`);
 
-  // 签到
-  const signRes = await httpPost({
+  await sign();
+  await getStatus();
+  await getBalance();
+  await getBlindBox();
+  if (AUTO_BOX) await openBlindBox();
+
+  await checkBetaStatus();
+
+})()
+  .catch(e => $.log(JSON.stringify(e)))
+  .finally(() => $.done());
+
+// ====================== 功能函数 ======================
+
+// 1️⃣ 签到
+async function sign() {
+  const res = await httpPost({
     url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
-    headers
+    headers,
+    body: "{}"
   });
 
-  log("签到结果：", signRes);
+  $.log("签到接口返回：", JSON.stringify(res));
 
-  // 签到状态
-  const statusRes = await httpGet({
+  if (res?.data?.calendarInfo?.signedToday) {
+    notify("🎉 今日已签到", "");
+  } else {
+    notify("✔ 签到成功", "");
+  }
+}
+
+// 2️⃣ 签到状态
+async function getStatus() {
+  const res = await httpGet({
     url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
     headers
   });
 
-  log("状态：", statusRes);
+  $.log("签到状态：", JSON.stringify(res));
+}
 
-  // 余额
-  const balRes = await httpGet({
-    url: "https://cn-cbu-gateway.ninebot.com/portal/api/ncoin/balance",
+// 3️⃣ 余额
+async function getBalance() {
+  const res = await httpGet({
+    url: "https://cn-cbu-gateway.ninebot.com/portal/api/wallet/balance",
     headers
   });
 
-  log("余额：", balRes);
+  $.log("余额：", JSON.stringify(res));
+}
 
-  // 盲盒
-  const boxRes = await httpGet({
+// 4️⃣ 盲盒可领取列表
+async function getBlindBox() {
+  const res = await httpGet({
     url: "https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list",
     headers
   });
 
-  log("盲盒：", boxRes);
+  $.log("盲盒列表：", JSON.stringify(res));
+}
 
-  // 内测资格检测
-  try {
-    const beta = await httpGet({
-      url: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status",
-      headers
-    });
-    log("内测资格：", beta);
+// 5️⃣ 自动开盲盒
+async function openBlindBox() {
+  $.log("尝试自动开启盲盒...（暂不实现，预留）");
+}
 
-    if (beta?.data?.qualified) {
-      notify(titlePrefix, "内测资格", "🎉 已获得内测资格");
-    } else {
-      notify(titlePrefix, "内测资格", "⚠️ 未获得资格（可在 App 手动申请）");
+// 6️⃣ 内测资格状态查询
+async function checkBetaStatus() {
+  const res = await httpGet({
+    url: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status",
+    headers
+  });
 
-      // 预留自动申请接口位置
-      if (autoApplyBeta) {
-        log("预留：自动申请内测（等待抓 POST /apply 接口）");
-      }
+  $.log("内测资格状态：", JSON.stringify(res));
+
+  if (res?.data?.qualified) {
+    notify("🎉 已获得内测资格", "");
+  } else {
+    notify("⚠ 尚未获得内测资格", "请前往 App 手动申请");
+  }
+}
+
+// ====================== 通知封装 ======================
+function notify(title, subtitle = "", msg = "") {
+  if (NOTIFY) $.msg(`${TITLE} · ${title}`, subtitle, msg);
+}
+
+// ====================== 通用 Env ======================
+function Env(t, e) {
+  class s {
+    constructor(t) {
+      this.env = t;
     }
-  } catch (e) {
-    log("内测资格检查异常：", e);
   }
-
-  // 通知汇总
-  if (notifyOn) {
-    notify(
-      `${titlePrefix} · 签到完成`,
-      `连续：${statusRes?.data?.continuousDays || 0} 天`,
-      `今日：${signRes?.msg || "未知"}\n` +
-      `余额：${balRes?.data?.availableAmount || 0} N币`
-    );
-  }
-
-  done();
-})();
+  return new (class {
+    constructor(t, e) {
+      this.name = t;
+      this.data = null;
+      this.logs = [];
+      this.isQX = typeof $task !== "undefined";
+      this.isLoon = typeof $loon !== "undefined";
+      this.isSurge = typeof $httpClient !== "undefined" && !this.isLoon;
+      this.isNode = typeof module !== "undefined" && !!module.exports;
+      this.msg = this.msg.bind(this);
+      this.get = this.get.bind(this);
+      this.post = this.post.bind(this);
+      this.getdata = this.getdata.bind(this);
+      this.setdata = this.setdata.bind(this);
+    }
+    log(...t) { this.logs.push(...t); console.log(...t); }
+    msg(t, e = "", s = "") {
+      if (this.isQX) $notify(t, e, s);
+      if (this.isSurge) $notification.post(t, e, s);
+      if (this.isLoon) $notification.post(t, e, s);
+    }
+    get(t, e) { this.isSurge || this.isLoon ? $httpClient.get(t, e) : $task.fetch(t).then(t => e(null, t, t.body)); }
+    post(t, e) { this.isSurge || this.isLoon ? $httpClient.post(t, e) : $task.fetch(t).then(t => e(null, t, t.body)); }
+    getdata(t) { return $prefs?.valueForKey(t) ?? $persistentStore?.read(t); }
+    setdata(t, e) { return $prefs?.setValueForKey(t, e) ?? $persistentStore?.write(t, e); }
+    done(t = {}) { return t; }
+  })(t);
+}
