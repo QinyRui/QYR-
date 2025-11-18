@@ -15,7 +15,7 @@ const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.re
 const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
 const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
-// ---------- BoxJS keys ----------
+// BoxJS keys
 const KEY_AUTH = "ninebot.authorization";
 const KEY_DEV = "ninebot.deviceId";
 const KEY_UA = "ninebot.userAgent";
@@ -25,7 +25,7 @@ const KEY_AUTOBOX = "ninebot.autoOpenBox";
 const KEY_AUTOREPAIR = "ninebot.autoRepair";
 const KEY_TITLE = "ninebot.titlePrefix";
 
-// ---------- 抓包写入 ----------
+// 抓包写入
 if (isReq) {
   try {
     const h = $request.headers || {};
@@ -48,13 +48,13 @@ if (isReq) {
   $done({});
 }
 
-// ---------- 读取配置 ----------
+// 读取配置
 const cfg = {
   Authorization: read(KEY_AUTH) || "",
   DeviceId: read(KEY_DEV) || "",
   userAgent: read(KEY_UA) || "",
-  debug: true,  // 强制开启日志
-  notify: true, // 强制开启通知
+  debug: true,
+  notify: true,
   autoOpenBox: read(KEY_AUTOBOX) === "true",
   autoRepair: read(KEY_AUTOREPAIR) === "true",
   titlePrefix: read(KEY_TITLE) || "九号智能电动车"
@@ -65,7 +65,7 @@ if (!cfg.Authorization || !cfg.DeviceId) {
   $done();
 }
 
-// ---------- HTTP helpers ----------
+// HTTP helpers
 function httpPost({ url, headers, body = "{}" }) {
   return new Promise((resolve, reject) => {
     $httpClient.post({ url, headers, body }, (err, resp, data) => {
@@ -87,7 +87,7 @@ function httpGet({ url, headers }) {
   });
 }
 
-// ---------- Endpoints ----------
+// Endpoints
 const headers = {
   "Authorization": cfg.Authorization,
   "Content-Type": "application/json",
@@ -107,24 +107,21 @@ const END = {
   balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606"
 };
 
-// ---------- 辅助函数 ----------
+// 辅助函数
 function log(...args){ console.log("[Ninebot]", ...args); }
 function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); } }
 
-// ---------- 主流程 ----------
+// 主流程
 !(async () => {
   let notifyBody = "";
 
   try {
-    // 1) 签到
-    log("开始签到请求");
     const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({deviceId: cfg.DeviceId}) });
     log("签到返回：", sign);
     if (sign && sign.code === 0) notifyBody += `🎉 签到成功\n🎁 +${sign.data?.nCoin || sign.data?.score || 0} N币`;
     else if (sign && sign.code === 540004) notifyBody += `⚠️ 今日已签到`;
     else notifyBody += `❌ 签到失败：${(sign && (sign.msg || safeStr(sign))) || "未知"}`;
 
-    // 2) 状态
     const st = await httpGet({ url: END.status, headers });
     log("状态返回：", st);
     if (st && st.code === 0) {
@@ -134,13 +131,11 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
       notifyBody += `\n🗓 连续签到：${days} 天\n🎫 补签卡：${cards} 张`;
     } else notifyBody += `\n🗓 状态获取失败`;
 
-    // 3) 余额
     const bal = await httpGet({ url: END.balance, headers });
     log("余额返回：", bal);
     if (bal && bal.code === 0) notifyBody += `\n💰 N币余额：${bal.data?.balance || 0}`;
     else notifyBody += `\n💰 N币获取失败`;
 
-    // 4) 盲盒
     const box = await httpGet({ url: END.blindBoxList, headers });
     log("盲盒返回：", box);
     const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
@@ -168,24 +163,18 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
       }
     } else notifyBody += `\n📦 无盲盒任务`;
 
-    // 5) 自动补签
-    if (cfg.autoRepair) {
-      try {
-        if (st && st.code === 0) {
-          const cards = st.data?.signCardsNum || st.data?.remedyCard || 0;
-          const days = st.data?.consecutiveDays || st.data?.continuousDays || 0;
-          if (cards > 0 && days === 0) {
-            log("触发自动补签");
-            const rep = await httpPost({ url: END.repair, headers, body: "{}" });
-            log("补签返回：", rep);
-            if (rep && rep.code === 0) notifyBody += `\n🔧 自动补签成功`;
-            else notifyBody += `\n🔧 自动补签失败：${rep && rep.msg ? rep.msg : "未知"}`;
-          }
-        }
-      } catch (e) { log("自动补签异常：", e); }
+    if (cfg.autoRepair && st && st.code === 0) {
+      const cards = st.data?.signCardsNum || st.data?.remedyCard || 0;
+      const days = st.data?.consecutiveDays || st.data?.continuousDays || 0;
+      if (cards > 0 && days === 0) {
+        log("触发自动补签");
+        const rep = await httpPost({ url: END.repair, headers, body: "{}" });
+        log("补签返回：", rep);
+        if (rep && rep.code === 0) notifyBody += `\n🔧 自动补签成功`;
+        else notifyBody += `\n🔧 自动补签失败：${rep && rep.msg ? rep.msg : "未知"}`;
+      }
     }
 
-    // ✅ 最终通知
     notify(cfg.titlePrefix,"签到结果",notifyBody);
 
   } catch (e) {
