@@ -1,34 +1,46 @@
 {
-  "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到（单号版）",
-  "author": "QinyRui",
-  "version": "2.2",
-  "repo": "https://github.com/QinyRui/QYR-",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon.png",
-  "apps": [
+  "id": "ninebot.single",
+  "name": "九号智能电动车（单号版）",
+  "keys": [
+    "ninebot.authorization",
+    "ninebot.deviceId",
+    "ninebot.userAgent",
+    "ninebot.debug",
+    "ninebot.notify",
+    "ninebot.autoOpenBox",
+    "ninebot.autoRepair",
+    "ninebot.titlePrefix"
+  ],
+  "settings": [
     {
-      "id": "Ninebot_Auto_Sign",
-      "name": "九号签到（单账号）",
-      "keys": [
-        "ninebot.authorization",
-        "ninebot.deviceId",
-        "ninebot.userAgent",
-        "ninebot.debug",
-        "ninebot.notify",
-        "ninebot.autoOpenBox",
-        "ninebot.autoRepair",
-        "ninebot.titlePrefix"
-      ],
-      "settings": [
-        {"id":"ninebot.authorization","name":"Authorization","placeholder":"自动抓包写入"},
-        {"id":"ninebot.deviceId","name":"DeviceId","placeholder":"自动抓包写入"},
-        {"id":"ninebot.userAgent","name":"User-Agent","placeholder":"自动写入"},
-        {"id":"ninebot.debug","name":"调试日志","type":"boolean","val":false},
-        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
-        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
-        {"id":"ninebot.autoRepair","name":"自动补签（会消耗补签卡）","type":"boolean","val":false},
-        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"}
-      ]
+      "id": "ninebot.titlePrefix",
+      "name": "通知标题（自定义名称）",
+      "type": "text",
+      "val": "九号智能电动车"
+    },
+    {
+      "id": "ninebot.debug",
+      "name": "调试日志开关",
+      "type": "boolean",
+      "val": true
+    },
+    {
+      "id": "ninebot.notify",
+      "name": "通知开关",
+      "type": "boolean",
+      "val": true
+    },
+    {
+      "id": "ninebot.autoOpenBox",
+      "name": "自动开启盲盒",
+      "type": "boolean",
+      "val": false
+    },
+    {
+      "id": "ninebot.autoRepair",
+      "name": "自动补签",
+      "type": "boolean",
+      "val": false
     }
   ]
 }
