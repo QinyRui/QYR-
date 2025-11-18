@@ -8,6 +8,7 @@
   - 自动开启 & 自动领取盲盒奖励（可关闭）
   - 完整日志输出（控制台 + 通知）
   - BoxJS 配置读取写入（keys 对应）
+  - 抓包必写入 + 通知
 */
 
 const isReq = typeof $request !== "undefined" && $request.headers;
@@ -15,7 +16,6 @@ const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.re
 const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
 const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
-// ---------- BoxJS keys ----------
 const KEY_AUTH = "ninebot.authorization";
 const KEY_DEV = "ninebot.deviceId";
 const KEY_UA = "ninebot.userAgent";
@@ -25,7 +25,7 @@ const KEY_AUTOBOX = "ninebot.autoOpenBox";
 const KEY_AUTOREPAIR = "ninebot.autoRepair";
 const KEY_TITLE = "ninebot.titlePrefix";
 
-// ---------- 抓包写入 ----------
+// ---------- 强制抓包写入 + 通知 ----------
 if (isReq) {
   try {
     const h = $request.headers || {};
@@ -33,17 +33,16 @@ if (isReq) {
     const dev = h["DeviceId"] || h["deviceid"] || h["device_id"] || "";
     const ua = h["User-Agent"] || h["user-agent"] || "";
 
-    let changed = false;
-    if (auth && read(KEY_AUTH) !== auth) { write(auth, KEY_AUTH); changed = true; }
-    if (dev && read(KEY_DEV) !== dev) { write(dev, KEY_DEV); changed = true; }
-    if (ua && read(KEY_UA) !== ua) { write(ua, KEY_UA); changed = true; }
-
-    if (changed) {
-      notify("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入 BoxJS");
-      console.log("[Ninebot] 抓包写入成功:", {auth, dev, ua});
+    if (auth && dev) { 
+      write(auth, KEY_AUTH);
+      write(dev, KEY_DEV);
+      write(ua || "", KEY_UA);
+      notify("九号智能电动车", "抓包成功 ✓", `Authorization / DeviceId / User-Agent 已写入 BoxJS\nAuthorization: ${auth}\nDeviceId: ${dev}`);
+      console.log("[Ninebot] 抓包写入成功:", { auth, dev, ua });
     }
   } catch (e) {
     console.log("[Ninebot] 抓包写入异常：", e);
+    notify("九号智能电动车", "抓包异常 ❌", JSON.stringify(e));
   }
   $done({});
 }
@@ -116,6 +115,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
   let notifyBody = "";
 
   try {
+    // 签到
     log("开始签到请求");
     const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({deviceId: cfg.DeviceId}) });
     log("签到返回：", sign);
@@ -123,6 +123,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
     else if (sign && sign.code === 540004) notifyBody += `⚠️ 今日已签到`;
     else notifyBody += `❌ 签到失败：${(sign && (sign.msg || safeStr(sign))) || "未知"}`;
 
+    // 状态
     const st = await httpGet({ url: END.status, headers });
     log("状态返回：", st);
     if (st && st.code === 0) {
@@ -132,11 +133,13 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
       notifyBody += `\n🗓 连续签到：${days} 天\n🎫 补签卡：${cards} 张`;
     } else notifyBody += `\n🗓 状态获取失败`;
 
+    // 余额
     const bal = await httpGet({ url: END.balance, headers });
     log("余额返回：", bal);
     if (bal && bal.code === 0) notifyBody += `\n💰 N币余额：${bal.data?.balance || 0}`;
     else notifyBody += `\n💰 N币获取失败`;
 
+    // 盲盒
     const box = await httpGet({ url: END.blindBoxList, headers });
     log("盲盒返回：", box);
     const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
@@ -164,6 +167,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
       }
     } else notifyBody += `\n📦 无盲盒任务`;
 
+    // 自动补签
     if (cfg.autoRepair) {
       try {
         if (st && st.code === 0) {
@@ -180,11 +184,12 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
       } catch (e) { log("自动补签异常：", e); }
     }
 
+    // ✅ 最终通知
     notify(cfg.titlePrefix,"签到结果",notifyBody);
 
   } catch (e) {
     log("主流程异常：", e);
-    notify(cfg.titlePrefix,"脚本异常",String(e));
+    notify(cfg.titlePrefix,"脚本异常",safeStr(e));
   }
 
   $done();
