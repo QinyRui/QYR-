@@ -14,7 +14,7 @@
   "settings": [
     {
       "id": "ninebot.titlePrefix",
-      "name": "通知标题（自定义名称）",
+      "name": "通知标题",
       "type": "text",
       "val": "九号智能电动车"
     },
