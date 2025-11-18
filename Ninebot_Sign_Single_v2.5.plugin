@@ -1,15 +1,16 @@
 #!name=九号智能电动车（单号）
 #!desc=自动签到 + 盲盒 + 补签 + 内测申请 + 自定义签到时间
-#!author=QinyRui
-#!version=2.5 (2025/11/19 10:00:00)
+#!author=❥﹒﹏非我不可 & QinyRui
+#!version=2.5 (2025/11/19 10:30:00)
 #!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
 #!homepage=https://t.me/JiuHaoAPP
 #!platform=iOS,iPadOS,macOS
 #!min-system-version=15
+#!update=2025/11/19
 
 [Script]
 # 默认签到时间，可在插件界面修改
-cron "{{ninebot.cronTime || '10 8 * * *'}}" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120
+cron 10 8 * * * script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120
 http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=0
 
 [Config]
