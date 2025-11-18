@@ -3,7 +3,7 @@
 👤 作者：QinyRui（改版 by ChatGPT）
 🧰 功能：
   - 自动签到 + 补签 + 盲盒
-  - 内测资格检测（自动提醒）
+  - 内测资格检测（未申请 → 通知提醒）
   - 控制台 + 通知日志
   - BoxJS 配置读取
 */
@@ -40,9 +40,9 @@ if(isReq){
 
     if(changed){
       notify("九号智能电动车","抓包成功 ✓","Authorization / DeviceId / User-Agent 已写入 BoxJS");
-      console.log("[Ninebot] 抓包写入成功:",{auth,dev,ua});
+      console.log("[Ninebot] 抓包写入成功:", {auth, dev, ua});
     }
-  }catch(e){console.log("[Ninebot] 抓包写入异常：",e);}
+  }catch(e){console.log("[Ninebot] 抓包写入异常：", e);}
   $done({});
 }
 
@@ -75,7 +75,7 @@ function httpPost({url,headers,body="{}"}){
       });
     }else if(typeof $task!=="undefined"){
       $task.fetch({url,method:"POST",headers,body:body}).then(r=>{
-        resolve(r.data?JSON.parse(r.data):{raw:r.data});
+        resolve(r.data ? JSON.parse(r.data) : {raw:r.data});
       }).catch(e=>reject(e));
     }else reject("No HTTPClient");
   });
@@ -89,7 +89,7 @@ function httpGet({url,headers}){
       });
     }else if(typeof $task!=="undefined"){
       $task.fetch({url,method:"GET",headers}).then(r=>{
-        resolve(r.data?JSON.parse(r.data):{raw:r.data});
+        resolve(r.data ? JSON.parse(r.data) : {raw:r.data});
       }).catch(e=>reject(e));
     }else reject("No HTTPClient");
   });
@@ -116,7 +116,12 @@ const END={
 };
 
 // ---------- 辅助 ----------
-function log(...args){if(cfg.debug) console.log("[Ninebot]",...args);}
+function log(...args){
+    if(cfg.debug){
+        const msgs = args.map(v => typeof v === "object" ? JSON.stringify(v,null,2) : v);
+        console.log("[Ninebot]", ...msgs);
+    }
+}
 function safeStr(v){try{return JSON.stringify(v);}catch{return String(v);}}
 
 // ---------- 主流程 ----------
@@ -127,28 +132,28 @@ function safeStr(v){try{return JSON.stringify(v);}catch{return String(v);}}
     log("开始签到流程...");
 
     // 1) 签到
-    const sign=await httpPost({url:END.sign,headers,body:JSON.stringify({deviceId:cfg.DeviceId})});
-    log("签到返回：",sign);
+    const sign = await httpPost({url:END.sign,headers,body:JSON.stringify({deviceId:cfg.DeviceId})});
+    log("签到返回：", sign);
     if(sign?.code===0) notifyBody+=`🎉 签到成功 +${sign.data?.nCoin||0} N币`;
     else notifyBody+=`❌ 签到失败：${sign.msg||safeStr(sign)}`;
 
     // 2) 状态
-    const st=await httpGet({url:END.status,headers});
-    log("状态返回：",st);
+    const st = await httpGet({url:END.status,headers});
+    log("状态返回：", st);
     if(st?.code===0){
       const data=st.data||{};
       notifyBody+=`\n🗓 连续签到：${data.consecutiveDays||0} 天\n🎫 补签卡：${data.signCardsNum||0} 张`;
     }
 
     // 3) 余额
-    const bal=await httpGet({url:END.balance,headers});
-    log("余额返回：",bal);
+    const bal = await httpGet({url:END.balance,headers});
+    log("余额返回：", bal);
     if(bal?.code===0) notifyBody+=`\n💰 N币余额：${bal.data?.balance||0}`;
 
     // 4) 盲盒
-    const box=await httpGet({url:END.blindBoxList,headers});
-    log("盲盒返回：",box);
-    const notOpened=box?.data?.notOpenedBoxes||[];
+    const box = await httpGet({url:END.blindBoxList,headers});
+    log("盲盒返回：", box);
+    const notOpened = box?.data?.notOpenedBoxes||[];
     if(notOpened.length>0){
       notifyBody+="\n📦 盲盒任务：";
       for(const b of notOpened){
@@ -162,11 +167,11 @@ function safeStr(v){try{return JSON.stringify(v);}catch{return String(v);}}
           notifyBody+="\n🎉 自动开启盲盒：";
           for(const b of ready){
             try{
-              const r=await httpPost({url:END.blindBoxReceive,headers,body:"{}"});
-              log("盲盒领取返回：",r);
+              const r = await httpPost({url:END.blindBoxReceive,headers,body:"{}"});
+              log("盲盒领取返回：", r);
               if(r?.code===0) notifyBody+=`\n🎁 ${b.awardDays||b.boxDays}天盲盒获得：${r.data?.rewardValue||r.data?.score||"未知"}`;
               else notifyBody+=`\n❌ ${b.awardDays||b.boxDays}天盲盒领取失败`;
-            }catch(e){log("盲盒领取异常：",e);}
+            }catch(e){log("盲盒领取异常：", e);}
           }
         }
       }
@@ -179,17 +184,17 @@ function safeStr(v){try{return JSON.stringify(v);}catch{return String(v);}}
         const days=st?.data?.consecutiveDays||0;
         if(cards>0 && days===0){
           log("触发自动补签");
-          const rep=await httpPost({url:END.repair,headers,body:"{}"});
-          log("补签返回：",rep);
+          const rep = await httpPost({url:END.repair,headers,body:"{}"});
+          log("补签返回：", rep);
           if(rep?.code===0) notifyBody+="\n🔧 自动补签成功";
         }
-      }catch(e){log("自动补签异常：",e);}
+      }catch(e){log("自动补签异常：", e);}
     }
 
     // 6) 内测资格检测
     try{
-      const beta=await httpGet({url:END.betaStatus,headers});
-      log("内测状态：",beta);
+      const beta = await httpGet({url:END.betaStatus,headers});
+      log("内测状态：", beta);
       if(beta?.data?.qualified){
         notifyBody+="\n🚀 已获得内测资格";
       }else{
@@ -197,12 +202,12 @@ function safeStr(v){try{return JSON.stringify(v);}catch{return String(v);}}
         // 预留自动申请接口
         // if(cfg.autoApplyBeta){ await applyBeta(); }
       }
-    }catch(e){log("内测检测异常：",e);}
+    }catch(e){log("内测检测异常：", e);}
 
     // ✅ 发送通知（失败通知可开关）
     if(cfg.notify && (cfg.notifyFail || sign?.code===0)) notify(cfg.titlePrefix,"签到结果",notifyBody);
 
-  }catch(e){log("主流程异常：",e); if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));}
+  }catch(e){log("主流程异常：", e); if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));}
 
   $done();
 })();
