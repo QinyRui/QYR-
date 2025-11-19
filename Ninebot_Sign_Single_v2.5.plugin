@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单号自动签到
-#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent
+#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；抓包自动写入 Authorization、DeviceId、User-Agent
 #!author=❥﹒﹏非我不可
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
@@ -16,29 +16,30 @@
 #############################
 
 [General]
-# 插件安装后自动启动脚本定时任务
+# 定时任务
 cron "@daily" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120, tag=九号-定时签到
 
 [Script]
-# HTTP 抓包触发自动写入
+# 抓包触发自动写入
 http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=false, tag=九号-自动写入
 
-# 手动执行签到脚本
+# 手动执行签到
 script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120, tag=九号-执行签到
 
 ####################################
 #            UI 面板定义
 ####################################
 [Argument]
+
 enable_debug = switch,true,false,tag=调试日志开关
 enable_notify = switch,true,true,tag=通知开关
 enable_openbox = switch,true,true,tag=自动开启盲盒开关
 enable_supplement = switch,true,true,tag=自动补签开关
 enable_internal_test = switch,true,false,tag=内测申请开关
 
-notify_title = text,default=九号签到助手,tag=通知标题文本框
-cron_time = text,default=0 8 * * *,tag=签到时间 CRON 文本框
+notify_title = text,九号签到助手,tag=通知标题文本框
+cron_time = text,0 8 * * *,tag=签到时间 CRON 文本框
 
-auth_token = text,default=,tag=Authorization
-device_id = text,default=,tag=DeviceId
-user_agent = text,default=,tag=User-Agent
+auth_token = text,,tag=Authorization
+device_id = text,,tag=DeviceId
+user_agent = text,,tag=User-Agent
