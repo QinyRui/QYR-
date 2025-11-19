@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持手动签到、调试日志、通知、盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent；支持自定义 CRON。
+#!desc=支持调试日志、通知、盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent；支持自定义 CRON。
 #!author=❥﹒﹏非我不可 & QinyRui
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
@@ -16,9 +16,7 @@ enable_notify = switch, "true", "false", tag = 通知开关
 enable_openbox = switch, "true", "false", tag = 自动盲盒开关
 enable_supplement = switch, "true", "false", tag = 自动补签开关
 enable_internal_test = switch, "false", "true", tag = 内测申请开关
-
-enable_manual_sign = switch, "false", "true", tag = 手动签到开关
-enable_capture = switch, "true", "false", tag = 抓包写入开关
+enable_capture = switch, "false", "true", tag = 自动抓包写入开关
 
 notify_title = input, "九号签到助手", tag = 自定义通知标题
 cron_time = input, "10 8 * * *", tag = 签到时间CRON（修改此项改变执行时间）
@@ -30,11 +28,13 @@ UserAgent = input, "", tag = User-Agent（可手动输入或自动写入）
 ####################################
 #            Script
 ####################################
-# ① 抓包写入
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10, enable={enable_capture}
+[Script]
 
-# ② 手动签到（点击立即执行）
-script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, timeout = 120, enable={enable_manual_sign}
+# 自动抓包写入（由 enable_capture 开关控制）
+http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10, enable = {enable_capture}
 
-# ③ 定时签到（由用户 CRON 控制）
-cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120
+# 定时/手动执行签到
+cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120, enable = {enable_notify}
+
+# 手动签到可点击执行
+manual-script https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, enable = {enable_notify}
