@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent。
+#!desc=支持调试日志开关、通知开关、自动盲盒、自动补签、内测申请开关；自动抓包写入 Authorization / DeviceId / User-Agent
 #!author=❥﹒﹏非我不可 & QinyRui
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
@@ -15,7 +15,7 @@
 #############################
 
 [General]
-# 远程订阅路径示例
+# 插件安装后自动启动脚本定时任务
 cron "九号签到" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js cronexpr=0 8 * * * timeout=120
 
 [Script]
@@ -26,11 +26,11 @@ http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercon
 script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js timeout=120 tag=九号-执行签到
 
 ####################################
-#            UI 面板定义（中文方括号保证显示文字）
+#            UI 面板定义
 ####################################
 [Argument]
 
-［调试］开关 = switch, default=false
+［调试］日志开关 = switch, default=false
 ［通知］开关 = switch, default=true
 ［盲盒］自动开启开关 = switch, default=true
 ［补签］自动补签开关 = switch, default=true
