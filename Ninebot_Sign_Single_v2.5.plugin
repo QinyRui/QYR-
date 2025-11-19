@@ -1,28 +1,42 @@
-#!name=九号智能电动车（单号 v2.6）
-#!desc=自动签到 + 补签 + 盲盒 + 内测检测，支持 UI 开关与自定义 CRON
+#!name=九号智能电动车 · 单账号自动签到
+#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；手动签到 + CRON 控制。
 #!author=❥﹒﹏非我不可 & QinyRui
+#!version=2.5
+#!homepage=https://t.me/JiuHaoAPP
 #!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
+#!system=ios
+#!icon-color=#0A84FF
 
+####################################
+#             UI 设置
+####################################
+[Argument]
+enable_debug = switch, "false", "true", tag = 调试日志开关
+enable_notify = switch, "true", "false", tag = 通知开关
+enable_openbox = switch, "true", "false", tag = 自动盲盒开关
+enable_supplement = switch, "true", "false", tag = 自动补签开关
+enable_internal_test = switch, "false", "true", tag = 内测申请开关
+
+notify_title = input, "九号签到助手", tag = 自定义通知标题
+cron_time = input, "10 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
+
+Authorization = input, "", tag = Authorization（手动或抓包）
+DeviceId = input, "", tag = DeviceId（手动或抓包）
+UserAgent = input, "", tag = User-Agent（手动或抓包）
+
+enable_manual_sign = switch, "false", "true", tag = 手动签到开关
+enable_capture = switch, "false", "true", tag = 抓包写入开关
+
+####################################
+#            Script
+####################################
 [Script]
-# 读取 CRON 时间设置，默认每天08:10
-cron "{{ninebot.cronTime}}" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, timeout=120
 
-# 九号 API 拦截抓包写入
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, requires-body=0
+# ① 抓包写入（可选）
+http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10, enable = {enable_capture}
 
-[UI]
-# ---------- 开关 ----------
-boolean "ninebot.debug" true "调试日志开关"
-boolean "ninebot.notify" true "通知开关"
-boolean "ninebot.autoOpenBox" true "自动盲盒开关"
-boolean "ninebot.autoRepair" true "自动补签开关"
-boolean "ninebot.autoApplyBeta" true "内测申请开关"
+# ② 自动签到（由用户 CRON 控制）
+cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120
 
-# ---------- 文本框 ----------
-text "ninebot.titlePrefix" "九号签到" "自定义通知标题"
-text "ninebot.cronTime" "10 8 * * *" "修改签到时间 CRON（示例：10 8 * * *）"
-
-# ---------- BoxJS Keys ----------
-text "ninebot.authorization" "" "Authorization（抓包自动写入）"
-text "ninebot.deviceId" "" "DeviceId（抓包自动写入）"
-text "ninebot.userAgent" "" "User-Agent（抓包自动写入）"
+# ③ 手动签到（开关控制）
+cron 0 0 * * * script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, enable = {enable_manual_sign}, timeout = 120
