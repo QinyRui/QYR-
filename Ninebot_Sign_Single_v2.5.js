@@ -21,13 +21,15 @@ const KEY_SUPPLEMENT = "ninebot.autoRepair";
 const KEY_BETA = "ninebot.autoApplyBeta";
 const KEY_NOTIFYFAIL = "ninebot.notifyFail";
 const KEY_TITLE = "ninebot.titlePrefix";
+const KEY_MANUAL_SIGN = "ninebot.manualSign";
+const KEY_CAPTURE = "ninebot.capture";
 
 // ---------- 抓包写入 ----------
 if (isReq) {
     try {
         const h = $request.headers || {};
         const auth = h["Authorization"] || h["authorization"] || "";
-        const dev = h["DeviceId"] || h["deviceid"] || h["device_id"] || "";
+        const dev = h["DeviceId"] || h["deviceid"] || "";
         const ua = h["User-Agent"] || h["user-agent"] || "";
 
         let changed = false;
@@ -54,7 +56,9 @@ const cfg = {
     autoRepair: read(KEY_SUPPLEMENT) === "true",
     autoApplyBeta: read(KEY_BETA) === "true",
     notifyFail: read(KEY_NOTIFYFAIL) === "false" ? false : true,
-    titlePrefix: read(KEY_TITLE) || "九号签到"
+    titlePrefix: read(KEY_TITLE) || "九号签到",
+    manualSign: read(KEY_MANUAL_SIGN) === "true",
+    capture: read(KEY_CAPTURE) === "true"
 };
 
 if (!cfg.Authorization || !cfg.DeviceId) {
@@ -156,42 +160,34 @@ const END = {
                         const r = await httpPost({ url: END.blindBoxReceive, headers, body: "{}" });
                         log("盲盒领取返回：", r);
                         if (r && r.code === 0) notifyBody += `\n🎁 ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || 0}`;
-                        else notifyBody += `\n❌ ${b.awardDays || b.boxDays}天盲盒领取失败`;
                     } catch (e) { log("盲盒领取异常：", e); }
                 }
             }
         }
 
-        // 5) 自动补签
+        // 5) 补签
         if (cfg.autoRepair) {
-            try {
-                if (st && st.code === 0) {
-                    const cards = st.data?.signCardsNum || 0;
-                    const days = st.data?.consecutiveDays || 0;
-                    if (cards > 0 && days === 0) {
-                        log("触发自动补签");
-                        const rep = await httpPost({ url: END.repair, headers, body: "{}" });
-                        log("补签返回：", rep);
-                        if (rep && rep.code === 0) notifyBody += `\n🔧 自动补签成功`;
-                        else notifyBody += `\n🔧 自动补签失败：${rep?.msg || "未知"}`;
-                    }
-                }
-            } catch (e) { log("自动补签异常：", e); }
+            const repair = await httpPost({ url: END.repair, headers, body: "{}" });
+            log("补签返回：", repair);
+            if (repair && repair.code === 0) notifyBody += `\n🔧 补签成功`;
         }
 
-        // 6) 内测资格检测 & 自动申请
-        try {
+        // 6) 内测申请
+        if (cfg.autoApplyBeta) {
             const beta = await httpGet({ url: END.betaStatus, headers });
-            log("内测状态：", beta);
-            if (beta?.data?.qualified) notifyBody += `\n🚀 已获得内测资格`;
-            else if (cfg.autoApplyBeta) notifyBody += `\n⚠️ 未获得内测资格 → 自动申请失败`;
-        } catch (e) { log("内测检测异常：", e); }
+            log("内测返回：", beta);
+            if (beta && beta.code === 0 && beta.data?.status !== 2) {
+                notifyBody += `\n🎮 内测申请已提交`;
+            }
+        }
 
-        if (cfg.notify) notify(cfg.titlePrefix,"签到结果",notifyBody);
-
+        // 最终通知
+        if (cfg.notify && notifyBody) {
+            notify(cfg.titlePrefix, "签到完成", notifyBody);
+        }
     } catch (e) {
-        log("主流程异常：", e);
-        if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
+        log("主流程错误：", e);
+        if (cfg.notifyFail) notify(cfg.titlePrefix, "签到失败", "发生异常，请检查日志");
     }
 
     $done();
