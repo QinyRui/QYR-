@@ -1,164 +1,42 @@
-/*
-脚本作者：QinyRui
-更新时间：2024-10-13 17:59:33
-功能：
-  - 自动签到
-  - 自动补签
-  - 自动开启盲盒
-  - 手动执行签到
-*/
+#!name=九号智能电动车 · 单账号自动签到
+#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；手动签到 + CRON 控制。
+#!author=❥﹒﹏非我不可 & QinyRui
+#!version=2.5
+#!homepage=https://t.me/JiuHaoAPP
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
+#!system=ios
+#!icon-color=#0A84FF
 
-const $ = new ToolClient();
+####################################
+#             UI 设置
+####################################
+[Argument]
+enable_debug = switch, "false", "true", tag = 调试日志开关
+enable_notify = switch, "true", "false", tag = 通知开关
+enable_openbox = switch, "true", "false", tag = 自动盲盒开关
+enable_supplement = switch, "true", "false", tag = 自动补签开关
+enable_internal_test = switch, "false", "true", tag = 内测申请开关
 
-// ---------- 配置读取与写入 ----------
-// BoxJS 配置
-const KEY_AUTH = "ninebot.authorization";
-const KEY_DEV = "ninebot.deviceId";
-const KEY_UA = "ninebot.userAgent";
-const KEY_DEBUG = "ninebot.debug";
-const KEY_NOTIFY = "ninebot.notify";
-const KEY_AUTOBOX = "ninebot.autoOpenBox";
-const KEY_AUTOREPAIR = "ninebot.autoRepair";
-const KEY_AUTOAPPLYBETA = "ninebot.autoApplyBeta";
-const KEY_NOTIFYFAIL = "ninebot.notifyFail";
-const KEY_TITLE = "ninebot.titlePrefix";
+notify_title = input, "九号签到助手", tag = 自定义通知标题
+cron_time = input, "10 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
 
-// 配置文件路径
-const read = (k) => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
+Authorization = input, "", tag = Authorization（手动或抓包）
+DeviceId = input, "", tag = DeviceId（手动或抓包）
+UserAgent = input, "", tag = User-Agent（手动或抓包）
 
-// 读取配置
-const cfg = {
-  Authorization: read(KEY_AUTH) || "",
-  DeviceId: read(KEY_DEV) || "",
-  userAgent: read(KEY_UA) || "",
-  debug: read(KEY_DEBUG) === "false" ? false : true,
-  notify: read(KEY_NOTIFY) === "false" ? false : true,
-  autoOpenBox: read(KEY_AUTOBOX) === "true",
-  autoRepair: read(KEY_AUTOREPAIR) === "true",
-  autoApplyBeta: read(KEY_AUTOAPPLYBETA) === "true",
-  notifyFail: read(KEY_NOTIFYFAIL) === "false" ? false : true,
-  titlePrefix: read(KEY_TITLE) || "九号签到"
-};
+enable_manual_sign = switch, "false", "true", tag = 手动签到开关
+enable_capture = switch, "false", "true", tag = 抓包写入开关
 
-// ---------- 抓包写入 ----------
-// 自动抓包写入配置
-const captureRequest = () => {
-  const parse = (delimiter) => (str) =>
-    Object.fromEntries(str.split(delimiter).map((v) => v.split("=")));
+####################################
+#            Script
+####################################
+[Script]
 
-  const { wps_sids } = parse(/;\s+?/g)($request.headers?.cookie ?? "");
+# ① 抓包写入（可选）
+http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10, enable = {enable_capture}
 
-  if (wps_sids) {
-    write(wps_sids, "WPS_info");
-    $.msg("WPS每日签到", "成功捕获并保存Cookie");
-  } else {
-    $.msg("WPS每日签到", "未成功捕获Cookie");
-  }
-};
+# ② 自动签到（由用户 CRON 控制）
+cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120
 
-// ---------- HTTP 请求工具 ----------
-function httpPost({ url, headers, body = "{}" }) {
-  return new Promise((resolve, reject) => {
-    $httpClient.post({ url, headers, body }, (err, resp, data) => {
-      if (err) reject(err);
-      else {
-        try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
-      }
-    });
-  });
-}
-
-function httpGet({ url, headers }) {
-  return new Promise((resolve, reject) => {
-    $httpClient.get({ url, headers }, (err, resp, data) => {
-      if (err) reject(err);
-      else {
-        try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
-      }
-    });
-  });
-}
-
-// ---------- 主逻辑 ----------
-
-// 执行签到的主函数
-!(async () => {
-  let notifyBody = "";
-
-  try {
-    // 1) 检查配置是否完备
-    if (!cfg.Authorization || !cfg.DeviceId) {
-      $.notify(cfg.titlePrefix, "未配置 Token", "请先开启抓包并在九号 App 里操作以写入 Authorization 与 DeviceId");
-      $done();
-      return;
-    }
-
-    // 2) 签到请求
-    const sign = await httpPost({
-      url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
-      headers: {
-        "Authorization": cfg.Authorization,
-        "Content-Type": "application/json",
-        "device_id": cfg.DeviceId,
-        "User-Agent": cfg.userAgent || "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6",
-        "platform": "h5",
-        "Origin": "https://h5-bj.ninebot.com",
-        "language": "zh"
-      },
-      body: JSON.stringify({ deviceId: cfg.DeviceId })
-    });
-
-    if (sign && sign.code === 0) {
-      notifyBody += `🎉 签到成功\n🎁 +${sign.data?.nCoin || sign.data?.score || 0} N币`;
-    } else if (sign && sign.code === 540004) {
-      notifyBody += `⚠️ 今日已签到`;
-    } else {
-      notifyBody += `❌ 签到失败：${sign && (sign.msg || safeStr(sign)) || "未知"}`;
-      if (!cfg.notifyFail) notifyBody = "";
-    }
-
-    // 3) 状态检查
-    const st = await httpGet({ url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status", headers });
-    if (st && st.code === 0) {
-      const data = st.data || {};
-      const days = data.consecutiveDays || data.continuousDays || 0;
-      const cards = data.signCardsNum || data.remedyCard || 0;
-      notifyBody += `\n🗓 连续签到：${days} 天\n🎫 补签卡：${cards} 张`;
-    }
-
-    // 4) 余额信息
-    const bal = await httpGet({ url: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606", headers });
-    if (bal && bal.code === 0) notifyBody += `\n💰 N币余额：${bal.data?.balance || 0}`;
-
-    // 5) 自动开启盲盒
-    if (cfg.autoOpenBox) {
-      const box = await httpGet({ url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list", headers });
-      if (box && box.data?.notOpenedBoxes?.length > 0) {
-        notifyBody += `\n📦 盲盒任务：`;
-        for (const b of box.data.notOpenedBoxes) {
-          const left = b.leftDaysToOpen || b.diffDays || "?";
-          notifyBody += `\n- ${b.awardDays || b.boxDays}天盲盒，还需 ${left} 天`;
-        }
-      }
-    }
-
-    // 6) 自动补签
-    if (cfg.autoRepair) {
-      const repair = await httpPost({
-        url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair",
-        headers,
-        body: "{}"
-      });
-      if (repair && repair.code === 0) notifyBody += `\n🔧 自动补签成功`;
-      else notifyBody += `\n🔧 自动补签失败：${repair && repair.msg || "未知"}`;
-    }
-
-    // 7) 最终通知
-    if (cfg.notify) $.notify(cfg.titlePrefix, "签到结果", notifyBody);
-  } catch (e) {
-    if (cfg.notify) $.notify(cfg.titlePrefix, "脚本异常", String(e));
-  }
-
-  $done();
-})();
+# ③ 手动签到（开关控制）
+cron 0 0 * * * script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, enable = {enable_manual_sign}, timeout = 120
