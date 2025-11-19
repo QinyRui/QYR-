@@ -24,6 +24,8 @@ cron_time = input, "10 8 * * *", tag = 签到时间（CRON）
 #########################################
 
 [Script]
+# 手动执行签到
+script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 手动执行签到
 
 # 抓包写入（立即触发）
 http-request ^https:\/\/.+ninebot\.com\/.+ script-name=九号-写入账号
