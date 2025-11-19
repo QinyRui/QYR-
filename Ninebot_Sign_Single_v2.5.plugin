@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持调试日志、通知、盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent；支持自定义 CRON；新增手动执行签到开关。
+#!desc=支持调试日志、通知、盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent；支持自定义 CRON 和手动执行签到。
 #!author=❥﹒﹏非我不可 & QinyRui
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
@@ -7,9 +7,6 @@
 #!system=ios
 #!icon-color=#0A84FF
 
-####################################
-#             UI 设置
-####################################
 [Argument]
 enable_debug = switch, "false", "true", tag = 调试日志开关
 enable_notify = switch, "true", "false", tag = 通知开关
@@ -24,16 +21,11 @@ Authorization = input, "", tag = Authorization（可手动输入或自动写入�
 DeviceId = input, "", tag = DeviceId（可手动输入或自动写入）
 UserAgent = input, "", tag = User-Agent（可手动输入或自动写入）
 
-enable_manual_sign = switch, "false", "true", tag = 手动执行签到, desc = 点击立即执行签到脚本
+manual_sign = input, "", tag = 手动执行签到, desc = 填入任意字符并保存即可立即执行签到，执行完会自动清空
 
-####################################
-#            Script
-####################################
-# ① 自动抓包写入（始终启用）
+[Script]
 http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10
 
-# ② 定时执行签到（由用户设置的 CRON 控制）
 cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120
 
-# ③ 手动执行签到（立即触发）
-cron 0 0 * * * script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, timeout = 120, enable = {enable_manual_sign}
+cron 0 * * * * script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, timeout = 120, enable = {manual_sign}
