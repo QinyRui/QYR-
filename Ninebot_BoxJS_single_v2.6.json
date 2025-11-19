@@ -6,7 +6,7 @@
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
   "icon-color": "#0A84FF",
   "homepage": "https://t.me/JiuHaoAPP",
-  "description": "自动签到 + 补签 + 盲盒 + 内测检测，支持抓包自动写入 Token",
+  "description": "自动签到 + 补签 + 盲盒 + 内测检测，支持抓包自动写入 Token，无 UI 开关",
   "platform": "iOS",
   "argument": [],
   "script": [
