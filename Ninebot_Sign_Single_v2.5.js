@@ -1,125 +1,103 @@
-/*
-📱 九号智能电动车自动签到（单账号）
-=========================================
-👤 作者：❥﹒﹏非我不可 & QinyRui
-📆 版本：v2.5
-💬 功能：签到 + 盲盒 + 内测申请
-🚀 自动抓包写入 Authorization、DeviceId、User-Agent
-*/
+/**
+ * 九号智能电动车 · 单账号自动签到 v2.5
+ * 脱离 BoxJS 完全使用 Loon 插件 [Argument] 变量
+ * 支持：
+ *  - 调试日志开关
+ *  - 通知开关
+ *  - 自动盲盒开关
+ *  - 自动补签开关
+ *  - 内测申请开关
+ *  - 自定义通知标题
+ *  - 修改签到时间 CRON
+ *  - Authorization / DeviceId / User-Agent 可手动输入或抓包自动写入
+ */
 
-const DEBUG = true; // 控制详细日志，可在插件UI开关关闭
-const NOTIFY = true; // 是否发送通知
-const AUTO_OPEN_BOX = true; // 是否自动开盲盒
-const AUTO_SUPPLEMENT = true; // 是否自动补签
-const ENABLE_INTERNAL_TEST = true; // 是否申请内测
+(async () => {
+  // ======= 从 Loon 插件 [Argument] 获取变量 =======
+  const DEBUG = enable_debug === "true";
+  const NOTIFY = enable_notify === "true";
+  const AUTO_OPENBOX = enable_openbox === "true";
+  const AUTO_SUPPLEMENT = enable_supplement === "true";
+  const APPLY_INTERNAL_TEST = enable_internal_test === "true";
 
-const CRON_TIME = "10 8 * * *"; // 默认签到时间，可由插件UI修改
-let Authorization = $prefs.valueForKey("Authorization") || "";
-let DeviceId = $prefs.valueForKey("DeviceId") || "";
-let UserAgent = $prefs.valueForKey("UserAgent") || "";
+  const AUTH = Authorization || "";
+  const DEVICEID = DeviceId || "";
+  const UA = UserAgent || "";
 
-function log(...args) {
-    if (DEBUG) console.log(...args);
-}
+  const TITLE = notify_title || "九号签到助手";
 
-function notify(title, body) {
-    if (NOTIFY) {
-        if (typeof $notify === "function") {
-            $notify(title, "", body);
-        } else {
-            console.log(title, body);
-        }
-    }
-}
+  if (!AUTH || !DEVICEID || !UA) {
+    console.log("⚠ 未配置 Authorization / DeviceId / User-Agent");
+    if (NOTIFY) $notify(TITLE, "未配置账户信息", "请填写 Authorization / DeviceId / User-Agent");
+    return;
+  }
 
-async function request(url, method = "GET", body = null) {
-    if (!Authorization || !DeviceId || !UserAgent) {
-        log("⚠ 参数缺失，无法请求接口");
-        return null;
-    }
-    const headers = {
-        "Authorization": Authorization,
-        "DeviceId": DeviceId,
-        "User-Agent": UserAgent,
-        "Content-Type": "application/json"
-    };
-    return new Promise(resolve => {
-        $httpClient[method.toLowerCase()]({
-            url,
-            headers,
-            body: body ? JSON.stringify(body) : null,
-            timeout: 12000
-        }, (err, resp, data) => {
-            if (err) {
-                log("❌ 请求错误:", err);
-                resolve(null);
-            } else {
-                try {
-                    resolve(JSON.parse(data));
-                } catch {
-                    log("❌ 返回解析失败:", data);
-                    resolve(null);
-                }
-            }
-        });
-    });
-}
-
-async function checkSignStatus() {
-    const url = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status";
-    const resp = await request(url);
-    if (!resp) return false;
-    if (resp.code === 0 && resp.data && resp.data.todaySigned) {
-        log("今天已经签到过了");
-        notify("九号签到", "今日已签到，跳过签到接口");
-        return true;
-    }
-    return false;
-}
-
-async function doSign() {
-    if (!Authorization || !DeviceId || !UserAgent) {
-        notify("九号签到", "⚠ 未配置 Authorization / DeviceId / User-Agent");
+  // ======= 工具函数 =======
+  const request = (opts) => new Promise((resolve) => {
+    $.http.request(opts, (err, resp, data) => {
+      if (DEBUG) console.log("返回：", data);
+      if (err) {
+        console.log("错误：", err);
+        resolve({});
         return;
-    }
+      }
+      try { resolve(JSON.parse(data)); } catch { resolve({}); }
+    });
+  });
 
-    const signed = await checkSignStatus();
-    if (signed) return;
+  const headers = {
+    "Authorization": AUTH,
+    "DeviceId": DEVICEID,
+    "User-Agent": UA,
+    "Content-Type": "application/json"
+  };
 
-    const url = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign";
-    const resp = await request(url, "POST");
-    if (resp) {
-        log("签到返回：", resp);
-        notify("九号签到", JSON.stringify(resp));
-    } else {
-        log("签到接口请求失败");
-    }
-}
+  console.log("开始签到流程...");
 
-async function openBlindBox() {
-    if (!AUTO_OPEN_BOX) return;
-    const url = "https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list";
-    const resp = await request(url);
-    if (resp) {
-        log("盲盒列表：", resp);
-    }
-}
+  // ======= 签到接口 =======
+  let signResult = await request({
+    url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
+    method: "POST",
+    headers
+  });
 
-async function applyInternalTest() {
-    if (!ENABLE_INTERNAL_TEST) return;
-    const url = "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/apply";
-    const resp = await request(url, "POST");
-    if (resp) {
-        log("内测申请返回：", resp);
-    }
-}
+  // ======= 查询状态 =======
+  let statusResult = await request({
+    url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
+    method: "GET",
+    headers
+  });
 
-async function main() {
-    log("开始九号签到流程...");
-    await doSign();
-    await openBlindBox();
-    await applyInternalTest();
-    log("------ Script done -------");
-}
+  // ======= 查询盲盒 =======
+  let boxResult = AUTO_OPENBOX ? await request({
+    url: "https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list",
+    method: "GET",
+    headers
+  }) : { code: 0, msg: "未开启盲盒" };
 
-main();
+  // ======= 内测申请 =======
+  let internalTestResult = null;
+  if (APPLY_INTERNAL_TEST) {
+    internalTestResult = await request({
+      url: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status",
+      method: "GET",
+      headers
+    });
+  }
+
+  // ======= 输出 =======
+  console.log("签到返回：", signResult);
+  console.log("状态：", statusResult);
+  console.log("盲盒结果：", boxResult);
+  console.log("内测状态：", internalTestResult);
+
+  if (NOTIFY) {
+    let content = `签到返回：${JSON.stringify(signResult)}
+状态：${JSON.stringify(statusResult)}
+盲盒结果：${JSON.stringify(boxResult)}
+内测状态：${JSON.stringify(internalTestResult)}`;
+    $notify(TITLE, "", content);
+  }
+
+  console.log("------ Script done -------");
+})();
