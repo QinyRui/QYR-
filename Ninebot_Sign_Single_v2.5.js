@@ -1,83 +1,125 @@
-/**
- * Ninebot_Sign_Single_v2.5.js
- * 单账号九号智能电动车签到脚本
- * 支持抓包自动写入 Authorization / DeviceId / User-Agent
- * 支持盲盒、补签、内测申请
- * 支持调试日志和通知开关
- */
+/*
+📱 九号智能电动车自动签到（单账号）
+=========================================
+👤 作者：❥﹒﹏非我不可 & QinyRui
+📆 版本：v2.5
+💬 功能：签到 + 盲盒 + 内测申请
+🚀 自动抓包写入 Authorization、DeviceId、User-Agent
+*/
 
-const DEBUG = typeof $argument !== "undefined" ? $argument.enable_debug === "true" : false;
-const ENABLE_NOTIFY = typeof $argument !== "undefined" ? $argument.enable_notify === "true" : true;
-const ENABLE_OPENBOX = typeof $argument !== "undefined" ? $argument.enable_openbox === "true" : true;
-const ENABLE_SUPPLEMENT = typeof $argument !== "undefined" ? $argument.enable_supplement === "true" : true;
-const ENABLE_INTERNAL_TEST = typeof $argument !== "undefined" ? $argument.enable_internal_test === "true" : false;
+const DEBUG = true; // 控制详细日志，可在插件UI开关关闭
+const NOTIFY = true; // 是否发送通知
+const AUTO_OPEN_BOX = true; // 是否自动开盲盒
+const AUTO_SUPPLEMENT = true; // 是否自动补签
+const ENABLE_INTERNAL_TEST = true; // 是否申请内测
 
-const NOTIFY_TITLE = typeof $argument !== "undefined" ? $argument.notify_title || "九号签到助手" : "九号签到助手";
+const CRON_TIME = "10 8 * * *"; // 默认签到时间，可由插件UI修改
+let Authorization = $prefs.valueForKey("Authorization") || "";
+let DeviceId = $prefs.valueForKey("DeviceId") || "";
+let UserAgent = $prefs.valueForKey("UserAgent") || "";
 
-const AUTHORIZATION = typeof $argument !== "undefined" ? $argument.Authorization : "";
-const DEVICEID = typeof $argument !== "undefined" ? $argument.DeviceId : "";
-const USER_AGENT = typeof $argument !== "undefined" ? $argument.UserAgent : "";
+function log(...args) {
+    if (DEBUG) console.log(...args);
+}
 
-// 简单请求封装
-async function request(url, method = "GET", body = null) {
-    return new Promise((resolve) => {
-        const opt = {
-            url: url,
-            headers: {
-                "Authorization": AUTHORIZATION,
-                "DeviceId": DEVICEID,
-                "User-Agent": USER_AGENT
-            },
-            body: body
-        };
-        if (typeof $task !== "undefined") { // Quantumult X / Loon / Surge
-            $task.fetch({ ...opt, method }).then(resp => resolve(resp.body || "")).catch(() => resolve(""));
-        } else if (typeof $httpClient !== "undefined") { // Surge / Loon
-            $httpClient[method.toLowerCase()](opt, (err, resp, data) => resolve(data || ""));
+function notify(title, body) {
+    if (NOTIFY) {
+        if (typeof $notify === "function") {
+            $notify(title, "", body);
         } else {
-            resolve("");
+            console.log(title, body);
         }
+    }
+}
+
+async function request(url, method = "GET", body = null) {
+    if (!Authorization || !DeviceId || !UserAgent) {
+        log("⚠ 参数缺失，无法请求接口");
+        return null;
+    }
+    const headers = {
+        "Authorization": Authorization,
+        "DeviceId": DeviceId,
+        "User-Agent": UserAgent,
+        "Content-Type": "application/json"
+    };
+    return new Promise(resolve => {
+        $httpClient[method.toLowerCase()]({
+            url,
+            headers,
+            body: body ? JSON.stringify(body) : null,
+            timeout: 12000
+        }, (err, resp, data) => {
+            if (err) {
+                log("❌ 请求错误:", err);
+                resolve(null);
+            } else {
+                try {
+                    resolve(JSON.parse(data));
+                } catch {
+                    log("❌ 返回解析失败:", data);
+                    resolve(null);
+                }
+            }
+        });
     });
 }
 
-(async () => {
-    try {
-        if (DEBUG) console.log(`[DEBUG] 开始签到流程...`);
-
-        // 1️⃣ 签到接口
-        const signRes = await request("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign", "POST");
-        if (DEBUG) console.log(`[DEBUG] 签到返回：`, signRes);
-
-        // 2️⃣ 查询签到状态
-        const statusRes = await request("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status");
-        if (DEBUG) console.log(`[DEBUG] 状态：`, statusRes);
-
-        // 3️⃣ 查询盲盒
-        let blindRes = {};
-        if (ENABLE_OPENBOX) {
-            blindRes = await request("https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list");
-            if (DEBUG) console.log(`[DEBUG] 盲盒结果：`, blindRes);
-        }
-
-        // 4️⃣ 内测申请
-        let internalTestRes = {};
-        if (ENABLE_INTERNAL_TEST) {
-            internalTestRes = await request("https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status");
-            if (DEBUG) console.log(`[DEBUG] 内测状态：`, internalTestRes);
-        }
-
-        // 5️⃣ 通知输出
-        if (ENABLE_NOTIFY && typeof $notification !== "undefined") {
-            $notification.post(NOTIFY_TITLE, "", `
-签到返回：${signRes}
-状态：${statusRes}
-盲盒结果：${JSON.stringify(blindRes)}
-内测状态：${JSON.stringify(internalTestRes)}
-            `);
-        }
-
-        if (DEBUG) console.log(`[DEBUG] 九号签到完成`);
-    } catch (e) {
-        if (DEBUG) console.log(`[DEBUG] 脚本异常：`, e);
+async function checkSignStatus() {
+    const url = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status";
+    const resp = await request(url);
+    if (!resp) return false;
+    if (resp.code === 0 && resp.data && resp.data.todaySigned) {
+        log("今天已经签到过了");
+        notify("九号签到", "今日已签到，跳过签到接口");
+        return true;
     }
-})();
+    return false;
+}
+
+async function doSign() {
+    if (!Authorization || !DeviceId || !UserAgent) {
+        notify("九号签到", "⚠ 未配置 Authorization / DeviceId / User-Agent");
+        return;
+    }
+
+    const signed = await checkSignStatus();
+    if (signed) return;
+
+    const url = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign";
+    const resp = await request(url, "POST");
+    if (resp) {
+        log("签到返回：", resp);
+        notify("九号签到", JSON.stringify(resp));
+    } else {
+        log("签到接口请求失败");
+    }
+}
+
+async function openBlindBox() {
+    if (!AUTO_OPEN_BOX) return;
+    const url = "https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list";
+    const resp = await request(url);
+    if (resp) {
+        log("盲盒列表：", resp);
+    }
+}
+
+async function applyInternalTest() {
+    if (!ENABLE_INTERNAL_TEST) return;
+    const url = "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/apply";
+    const resp = await request(url, "POST");
+    if (resp) {
+        log("内测申请返回：", resp);
+    }
+}
+
+async function main() {
+    log("开始九号签到流程...");
+    await doSign();
+    await openBlindBox();
+    await applyInternalTest();
+    log("------ Script done -------");
+}
+
+main();
