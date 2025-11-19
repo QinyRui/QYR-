@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持调试日志、通知开关、自动盲盒、补签、内测开关；自动抓包写入 Authorization/DeviceId/User-Agent
+#!desc=支持调试日志、通知开关、自动盲盒、补签、内测申请；自动抓包写入 Authorization / DeviceId / User-Agent
 #!author=❥﹒﹏非我不可
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
@@ -8,7 +8,7 @@
 #!icon-color=#0A84FF
 
 [General]
-# 安装后自动启动签到任务
+# 插件安装后自动创建签到定时任务
 cron "九号签到" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js cronexpr=@daily timeout=30
 
 [Script]
@@ -27,3 +27,7 @@ enable_internal_test = switch,true,false,tag=内测申请开关
 
 notify_title = text,default=九号签到助手,tag=通知标题文本框
 cron_time = text,default=0 8 * * *,tag=签到时间 CRON 文本框
+
+authorization = text,default=,tag=Authorization
+device_id = text,default=,tag=DeviceId
+user_agent = text,default=,tag=User-Agent
