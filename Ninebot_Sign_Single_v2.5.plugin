@@ -1,42 +1,20 @@
-#!name=九号智能电动车签到（单账号）
-#!desc=自动签到 / 自动盲盒 / 自动补签 / 自动写入抓包
-#!author=❥﹒﹏非我不可
-#!version=2.5
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot.png
+#!name=九号智能电动车（单号）
+#!desc=自动签到 + 盲盒 + 补签 + 内测申请 + UI开关
+#!author=❥﹒﹏非我不可 & QinyRui
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
 #!homepage=https://t.me/JiuHaoAPP
+#!version=2.5
+#!min-system=15
 
 [Script]
-# ===============================
-# 🟦 自动签到任务（可由 UI 控制启用）
-# ===============================
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js tag=九号签到 自动开启=notify debug blindbox补签 内测 autoWrite
+cron "10 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=0
 
-# =====================================
-# 🟩 自动抓包写入（Authorization / DeviceId）
-# =====================================
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/ portal/api/user
-script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js
-tag=九号抓包写入
-
-[MITM]
-hostname = cn-cbu-gateway.ninebot.com
-
-[Plugin]
-# ======================================================
-# 🟦 Setting UI（所有开关 + 文本框）Loon 规范写法
-# ======================================================
-
-# —— 开关类（switch） ——
-switch=notify, title=通知开关, default=true
-switch=debug, title=调试日志开关, default=false
-switch=blindbox, title=自动开启盲盒, default=true
-switch=补签, title=自动补签开关, default=true
-switch=内测, title=自动申请内测, default=false
-switch=autoWrite, title=抓包自动写入, default=true
-
-# —— 文本框（text） ——
-text=title, title=通知标题, placeholder=如：九号智能电动车·主号
-text=cron, title=签到时间 Cron 表达式, placeholder=默认：0 8 * * *
-
-# —— 注释分隔（section） ——
-section=提示：安装后自动抓包写入，无需手动配置
+[Settings]
+ninebot.debug = boolean, true, 调试日志开关
+ninebot.notify = boolean, true, 通知开关
+ninebot.autoOpenBox = boolean, true, 自动开启盲盒开关
+ninebot.autoRepair = boolean, true, 自动补签开关
+ninebot.autoBeta = boolean, false, 内测申请开关
+ninebot.titlePrefix = text, 九号智能电动车, 通知标题
+ninebot.cron = text, 10 8 * * *, 签到时间 Cron 表达式
