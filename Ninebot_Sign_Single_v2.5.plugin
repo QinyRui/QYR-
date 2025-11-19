@@ -1,57 +1,29 @@
-#!name=九号智能电动车签到（单账号）
-#!desc=自动签到 + 自动盲盒 + 自动补签 + 自动抓包写入（无需 BoxJS）
-#!author=❥﹒﹏非我不可
+#!name=九号智能电动车（单号）
+#!desc=自动签到 + 盲盒 + 补签 + 内测申请
+#!author=❥﹒﹏非我不可 & QinyRui
+#!homepage=https://t.me/JiuHaoAPP
 #!version=2.5
-#!updated=2025-11-20
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/Assets/Ninebot_128.png
-#!homepage=https://github.com/QinyRui/QYR-
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
+#!supported_systems=iOS,iPadOS,macOS
+#!min_system_version=15
 
 [Script]
-# 主签到脚本（带日志）
-cron "0 9 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot/Ninebot_Sign_Single_v2.5.js, timeout=20, tag=九号每日自动签到
+# 自动签到脚本
+cron "10 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=0
 
-# 抓包自动写入账号 (authorization/deviceId)
-http-request ^https:\/\/account\.ninebot\.cn\/v5\/login script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot/Ninebot_Sign_Single_AutoWrite.js, tag=九号账号自动写入
-
-
-[MITM]
-hostname = account.ninebot.cn, cn-cbu-gateway.ninebot.com
-
-
-[Plugin Script]
-# ======================================================
-# 九号智能电动车签到（v2.5）
-# 作者：❥﹒﹏非我不可
-# 更新时间：2025/11/20
-# 远程直接订阅，无需 BoxJS
-# 支持：自动抓包写入、自动盲盒、自动补签
-# ======================================================
-
-# ⚙️ 插件设置 UI
-# ------------------------------------------------------
-
-# 日志开关
-setting.logSwitch = switch("调试日志输出", false)
-
+[Setting]
+# 调试日志开关
+bool debug true
 # 通知开关
-setting.notifySwitch = switch("签到消息通知", true)
-
-# 自动盲盒
-setting.autoBlindBox = switch("自动开启盲盒", true)
-
-# 自动补签
-setting.autoReSign = switch("自动补签", false)
-
-# 内测申请
-setting.betaApply = switch("自动参与官方内测", false)
-
-# 自定义通知标题
-setting.customTitle = text("通知标题（可留空）", "九号自动签到")
-
-# Cron 设置
-setting.cronSet = text("签到执行时间（cron）", "0 9 * * *")
-
-# ======================================================
-# 主体功能脚本（完整独立，不依赖 BoxJS）
-# 放路径：https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot/Ninebot_Sign_Single_v2.5.js
-# ======================================================
+bool notify true
+# 自动开启盲盒开关
+bool autoOpenBox true
+# 自动补签开关
+bool autoRepair true
+# 内测申请开关
+bool autoBeta false
+# 通知标题文本框
+text titlePrefix 九号智能电动车
+# 签到时间 Cron 文本框
+text cronTime 10 8 * * *
