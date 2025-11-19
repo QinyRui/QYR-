@@ -1,40 +1,40 @@
-#!name=Ninebot Sign
-#!desc=九号电动车自动签到（含开关UI）
-#!author=QinyRui
-#!version=1.0.0
-#!homepage=https://github.com/QinyRui/QYR-
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/ninebot_logo.png
+#!name=九号智能电动车 · 单账号自动签到
+#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId。
+#!author=❥﹒﹏非我不可
+#!version=2.5
+#!homepage=https://t.me/JiuHaoAPP
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/logo/ninebot_128.png
+#!system=ios
+#!icon-color=#0A84FF
 
-[Plugin]
-# 主体脚本（你的签到 JS 放这里）
-script=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Core.js
-# 请求头捕获（自动写入 Authorization + DeviceId）
-http-request=https://cn-cbu-gateway.ninebot.com/ portal/api/*, tag=Ninebot-Capture, script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Capture.js
+#############################
+# 九号电动车 单账号自动签到 v2.5
+# 支持 Loon UI 开关控制
+# 自动抓包写入 Authorization / DeviceId
+# 作者：❥﹒﹏非我不可
+#############################
 
-[Rule]
-DOMAIN,cn-cbu-gateway.ninebot.com,REJECT
+[General]
+# 插件安装后自动启动脚本定时任务
+cron "九号签到" script-path=Ninebot_Sign_Single_v2.5.js cronexpr=@daily timeout=30
 
+[Script]
+# ======== 处理抓包写入 ========
+http-request ^https:\/\/.+ninebot\.com\/.+ script-path=Ninebot_Sign_Single_v2.5.js requires-body=false tag=九号-自动写入
+
+# ======== 主体签到脚本 ========
+script-path=Ninebot_Sign_Single_v2.5.js timeout=30 tag=九号-执行签到
+
+####################################
+#            UI 面板定义
+####################################
 [Argument]
-# === 开关 ===
-debug = false
-debug.desc = 调试日志开关
 
-notify = true
-notify.desc = 通知开关
+enable_debug = switch, default=false, name=调试日志开关
+enable_notify = switch, default=true, name=通知开关
+enable_openbox = switch, default=true, name=自动开启盲盒开关
+enable_supplement = switch, default=true, name=自动补签开关
+enable_internal_test = switch, default=false, name=内测申请开关
 
-autoBox = true
-autoBox.desc = 自动开启盲盒开关
-
-autoMakeup = false
-autoMakeup.desc = 自动补签开关
-
-betaApply = false
-betaApply.desc = 内测申请开关
-
-# === 文本输入 ===
-notifyTitle = 九号签到通知
-notifyTitle.desc = 通知标题文本框
-
-cronExp = 0 9 * * *
-cronExp.desc = 签到执行时间 CRON 表达式（默认 09:00）
-cronExp.type = text
+notify_title = text, default=九号签到助手, name=通知标题文本框
+cron_time = text, default=0 8 * * *, name=签到时间 CRON 文本框
