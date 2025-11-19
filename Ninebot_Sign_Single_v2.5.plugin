@@ -1,9 +1,9 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent
-#!author=❥﹒﹏非我不可 & QinyRui
+#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent。
+#!author=❥﹒﹏非我不可
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/logo/ninebot_128.png
 #!system=ios
 #!icon-color=#0A84FF
 
@@ -11,8 +11,7 @@
 # 九号电动车 单账号自动签到 v2.5
 # 支持 Loon UI 开关控制
 # 自动抓包写入 Authorization / DeviceId / User-Agent
-# 自动签到、盲盒、补签、内测申请
-# 作者：❥﹒﹏非我不可 & QinyRui
+# 作者：❥﹒﹏非我不可
 #############################
 
 [General]
@@ -20,7 +19,7 @@
 cron "九号签到" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js cronexpr=@daily timeout=30
 
 [Script]
-# ======== 处理抓包写入 ========
+# ======== 抓包自动写入 ========
 http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js requires-body=false tag=九号-自动写入
 
 # ======== 主体签到脚本 ========
@@ -30,13 +29,11 @@ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_S
 #            UI 面板定义
 ####################################
 [Argument]
+enable_debug = switch,true,false,tag=调试日志开关
+enable_notify = switch,true,true,tag=通知开关
+enable_openbox = switch,true,true,tag=自动开启盲盒开关
+enable_supplement = switch,true,true,tag=自动补签开关
+enable_internal_test = switch,true,false,tag=内测申请开关
 
-Debug_enable = switch,true,false,tag=调试日志开关
-Notify_enable = switch,true,true,tag=通知开关
-AutoBox_enable = switch,true,true,tag=自动开启盲盒开关
-AutoRepair_enable = switch,true,true,tag=自动补签开关
-InternalTest_enable = switch,true,false,tag=内测申请开关
-AutoWrite_enable = switch,true,true,tag=抓包自动写入开关
-
-NotifyTitle_text = text,default=九号签到助手,tag=通知标题文本框
-CronTime_text = text,default=0 8 * * *,tag=签到时间 CRON 文本框
+notify_title = text,default=九号签到助手,tag=通知标题文本框
+cron_time = text,default=0 8 * * *,tag=签到时间 CRON 文本框
