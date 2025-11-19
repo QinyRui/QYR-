@@ -1,103 +1,62 @@
-/**
- * 九号智能电动车 · 单账号自动签到 v2.5
- * 完全兼容 Loon 插件 v2.5
- */
+/*
+📱 九号智能电动车自动签到脚本 v2.5
+作者：❥﹒﹏非我不可 & QinyRui
+支持：Loon / iOS
+*/
 
 (async () => {
-  const DEBUG = enable_debug === "true";
-  const NOTIFY = enable_notify === "true";
-  const AUTO_OPENBOX = enable_openbox === "true";
-  const AUTO_SUPPLEMENT = enable_supplement === "true";
-  const APPLY_INTERNAL_TEST = enable_internal_test === "true";
+  const DEBUG = true; // 控制控制台日志
+  const ENABLE_NOTIFY = true; // 控制通知
 
-  const AUTH = Authorization || "";
-  const DEVICEID = DeviceId || "";
-  const UA = UserAgent || "";
+  // 这里从插件 UI 或抓包写入读取
+  const AUTHORIZATION = typeof $argument !== "undefined" ? $argument.Authorization || "" : "";
+  const DEVICEID = typeof $argument !== "undefined" ? $argument.DeviceId || "" : "";
+  const USER_AGENT = typeof $argument !== "undefined" ? $argument.UserAgent || "Ninebot/3606 CFNetwork/3860.200.71" : "";
 
-  const TITLE = notify_title || "九号签到助手";
-
-  const log = (...args) => {
-    if (DEBUG) console.log(...args);
-  };
-
-  const notify = (title, subtitle, message) => {
-    if (!NOTIFY) return;
-    // Loon 插件最新方法
-    if (typeof $notification !== "undefined") {
-      $notification.post(title, subtitle, message);
-    } else if (typeof $notify !== "undefined") {
-      $notify(title, subtitle, message);
-    } else {
-      console.log("通知:", title, subtitle, message);
-    }
-  };
-
-  if (!AUTH || !DEVICEID || !UA) {
-    log("⚠ 未配置 Authorization / DeviceId / User-Agent");
-    notify(TITLE, "未配置账户信息", "请填写 Authorization / DeviceId / User-Agent");
+  if (!AUTHORIZATION || !DEVICEID) {
+    if (ENABLE_NOTIFY) $notify("九号签到助手", "缺少 Authorization 或 DeviceId", "请先填写或抓包写入");
+    if (DEBUG) console.log("缺少 Authorization 或 DeviceId");
     return;
   }
 
-  const request = (opts) => new Promise((resolve) => {
-    if (typeof $httpClient !== "undefined") {
-      $httpClient[opts.method.toLowerCase()]({
-        url: opts.url,
-        headers: opts.headers,
-        body: opts.body
-      }, (err, resp, data) => {
-        if (DEBUG) log("返回：", data);
-        if (err) { log("错误：", err); resolve({}); return; }
-        try { resolve(JSON.parse(data)); } catch { resolve({}); }
-      });
-    } else {
-      log("⚠ $httpClient 不存在");
-      resolve({});
-    }
+  const $http = typeof $httpClient !== "undefined" ? $httpClient : $task; // Loon 兼容
+  const request = (options) => new Promise((resolve) => {
+    $http.fetch(options, (err, resp) => {
+      if (DEBUG) console.log("请求返回：", resp?.status, err);
+      resolve({err, resp, data: resp ? resp.body : null});
+    });
   });
 
-  log("开始签到流程...");
-
+  // 示例签到接口
+  const signUrl = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign";
   const headers = {
-    "Authorization": AUTH,
+    "Authorization": AUTHORIZATION,
     "DeviceId": DEVICEID,
-    "User-Agent": UA,
+    "User-Agent": USER_AGENT,
     "Content-Type": "application/json"
   };
 
-  let signResult = await request({
-    url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
+  const signResult = await request({
+    url: signUrl,
     method: "POST",
-    headers
+    headers,
+    body: "{}"
   });
 
-  let statusResult = await request({
-    url: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
-    method: "GET",
-    headers
-  });
-
-  let boxResult = AUTO_OPENBOX ? await request({
-    url: "https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list",
-    method: "GET",
-    headers
-  }) : { code: 0, msg: "未开启盲盒" };
-
-  let internalTestResult = null;
-  if (APPLY_INTERNAL_TEST) {
-    internalTestResult = await request({
-      url: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status",
-      method: "GET",
-      headers
-    });
+  let message = "";
+  try {
+    const json = JSON.parse(signResult.data || "{}");
+    if (json.code === 0) {
+      message = `签到成功 🎉\n连续签到：${json.data?.continuous || 0}天\nN币余额：${json.data?.balance || 0}`;
+    } else if (json.code === 2) {
+      message = `签到失败：已签到或参数错误\n${JSON.stringify(json)}`;
+    } else {
+      message = `签到返回：${JSON.stringify(json)}`;
+    }
+  } catch(e) {
+    message = "签到解析失败：" + e.message;
   }
 
-  const content = `签到返回：${JSON.stringify(signResult)}
-状态：${JSON.stringify(statusResult)}
-盲盒结果：${JSON.stringify(boxResult)}
-内测状态：${JSON.stringify(internalTestResult)}`;
-
-  log(content);
-  notify(TITLE, "", content);
-
-  log("------ Script done -------");
+  if (ENABLE_NOTIFY) $notify("九号签到助手", "签到结果", message);
+  if (DEBUG) console.log("签到结果：", message);
 })();
