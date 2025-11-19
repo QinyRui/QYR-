@@ -26,15 +26,15 @@ http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercon
 script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js timeout=120 tag=九号-执行签到
 
 ####################################
-#            UI 面板定义
+#            UI 面板定义（中文方括号保证显示文字）
 ####################################
 [Argument]
 
-enable_debug = switch, default=false, title=调试日志开关
-enable_notify = switch, default=true, title=通知开关
-enable_openbox = switch, default=true, title=自动开启盲盒开关
-enable_supplement = switch, default=true, title=自动补签开关
-enable_internal_test = switch, default=false, title=内测申请开关
+［调试］开关 = switch, default=false
+［通知］开关 = switch, default=true
+［盲盒］自动开启开关 = switch, default=true
+［补签］自动补签开关 = switch, default=true
+［内测］自动申请开关 = switch, default=false
 
-notify_title = text, default=九号签到助手, title=通知标题文本框
-cron_time = text, default=0 8 * * *, title=签到时间 CRON 文本框
+［通知］标题文本框 = text, default=九号签到助手
+［签到时间］CRON 文本框 = text, default=0 8 * * *
