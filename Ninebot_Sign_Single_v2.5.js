@@ -14,23 +14,22 @@ const $ = {
   notify: (title, sub, body) => $notification?.post(title, sub, body),
   log: (...args) => console.log("[Ninebot]", ...args),
   debug: (...args) => {
-    if ($argument.enable_debug === "true") console.log("[Ninebot][DEBUG]", ...args);
+    if (cfg.enable_debug === "true") console.log("[Ninebot][DEBUG]", ...args);
   }
 };
 
-// ---------- Loon UI 参数 ----------
-const cfg = {
-  Authorization: $argument.Authorization || $.read("ninebot.Authorization") || "",
-  DeviceId: $argument.DeviceId || $.read("ninebot.DeviceId") || "",
-  UserAgent: $argument.UserAgent || $.read("ninebot.UserAgent") || "",
-  notify_title: $argument.notify_title || "九号签到助手",
-  enable_notify: $argument.enable_notify === "true",
-  enable_debug: $argument.enable_debug === "true",
-  enable_openbox: $argument.enable_openbox === "true",
-  enable_supplement: $argument.enable_supplement === "true",
-  enable_internal_test: $argument.enable_internal_test === "true",
-  enable_capture: $argument.enable_capture === "true"
-};
+// ---------- 获取 Loon UI 配置参数 ----------
+const cfg = $.getArguments();
+cfg.Authorization = cfg.Authorization || $.read("ninebot.Authorization") || "";
+cfg.DeviceId = cfg.DeviceId || $.read("ninebot.DeviceId") || "";
+cfg.UserAgent = cfg.UserAgent || $.read("ninebot.UserAgent") || "";
+cfg.notify_title = cfg.notify_title || "九号签到助手";
+cfg.enable_notify = cfg.enable_notify === "true";
+cfg.enable_debug = cfg.enable_debug === "true";
+cfg.enable_openbox = cfg.enable_openbox === "true";
+cfg.enable_supplement = cfg.enable_supplement === "true";
+cfg.enable_internal_test = cfg.enable_internal_test === "true";
+cfg.enable_capture = cfg.enable_capture === "true";
 
 // ---------- 抓包写入 ----------
 if (typeof $request !== "undefined" && cfg.enable_capture) {
