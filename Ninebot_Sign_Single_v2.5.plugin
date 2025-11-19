@@ -1,9 +1,9 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId。
-#!author=❥﹒﹏非我不可
+#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent。
+#!author=❥﹒﹏非我不可 & QinyRui
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo/ninebot_128.png
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
 #!system=ios
 #!icon-color=#0A84FF
 
@@ -11,19 +11,19 @@
 # 九号电动车 单账号自动签到 v2.5
 # 支持 Loon UI 开关控制
 # 自动抓包写入 Authorization / DeviceId / User-Agent
-# 作者：❥﹒﹏非我不可
+# 作者：❥﹒﹏非我不可 & QinyRui
 #############################
 
 [General]
-# 插件安装后自动启动脚本定时任务
-cron "九号签到" script-path=Ninebot_Sign_Single_v2.5.js cronexpr=@daily timeout=30
+# 远程订阅路径示例
+cron "九号签到" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js cronexpr=0 8 * * * timeout=120
 
 [Script]
 # ======== 处理抓包写入 ========
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path=Ninebot_Sign_Single_v2.5.js requires-body=false tag=九号-自动写入
+http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js requires-body=false tag=九号-自动写入
 
 # ======== 主体签到脚本 ========
-script-path=Ninebot_Sign_Single_v2.5.js timeout=30 tag=九号-执行签到
+script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js timeout=120 tag=九号-执行签到
 
 ####################################
 #            UI 面板定义
