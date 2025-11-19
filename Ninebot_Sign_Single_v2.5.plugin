@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；手动签到 + CRON 控制。
+#!desc=支持抓包或手动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；手动签到 + CRON 控制
 #!author=❥﹒﹏非我不可 & QinyRui
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
