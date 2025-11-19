@@ -38,5 +38,5 @@ http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubuserc
 # ② 自动签到（由用户 CRON 控制）
 cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120
 
-# ③ 手动签到（开关控制）
-cron 0 0 * * * script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, enable = {enable_manual_sign}, timeout = 120
+# ③ 手动签到（开关控制，手动点击执行）
+script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, enable = {enable_manual_sign}, timeout = 120, manual = true
