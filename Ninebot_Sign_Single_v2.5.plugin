@@ -30,11 +30,11 @@ UserAgent = input, "", tag = User-Agent（可手动输入或自动写入）
 ####################################
 [Script]
 
-# ① 自动抓包写入（开关控制）
+# 自动抓包写入（由 enable_capture 开关控制）
 http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10, enable = {enable_capture}
 
-# ② 定时执行签到（由用户设置的 CRON 控制）
-cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120
+# 定时/手动执行签到
+cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120, enable = {enable_notify}
 
-# ③ 手动执行签到（点击即可）
-manual script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, timeout = 120
+# 手动签到可点击执行
+manual-script https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, enable = {enable_notify}
