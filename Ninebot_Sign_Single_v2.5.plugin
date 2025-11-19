@@ -11,25 +11,23 @@
 #             UI 设置
 ####################################
 [Argument]
-enable_debug = switch, "false", "true", tag = 调试日志开关, desc = 是否打印控制台日志
-enable_notify = switch, "true", "false", tag = 通知开关, desc = 是否发送签到通知
-enable_openbox = switch, "true", "false", tag = 自动盲盒开关, desc = 是否自动开启盲盒
-enable_supplement = switch, "true", "false", tag = 自动补签开关, desc = 是否自动补签
-enable_internal_test = switch, "false", "true", tag = 内测申请开关, desc = 是否自动申请内测资格
+enable_debug = switch, "false", "true", tag = 调试日志开关
+enable_notify = switch, "true", "false", tag = 通知开关
+enable_openbox = switch, "true", "false", tag = 自动盲盒开关
+enable_supplement = switch, "true", "false", tag = 自动补签开关
+enable_internal_test = switch, "false", "true", tag = 内测申请开关
 
-notify_title = input, "九号签到助手", tag = 自定义通知标题, desc = 通知显示的标题
-cron_time = input, "10 8 * * *", tag = 签到时间CRON（修改此项改变执行时间）, desc = 修改定时任务执行时间
+notify_title = input, "九号签到助手", tag = 自定义通知标题
+cron_time = input, "10 8 * * *", tag = 签到时间CRON（修改此项改变执行时间）
 
-Authorization = input, "", tag = Authorization（可手动输入或自动写入）, desc = 九号账号 Authorization
-DeviceId = input, "", tag = DeviceId（可手动输入或自动写入）, desc = 九号设备 DeviceId
-UserAgent = input, "", tag = User-Agent（可手动输入或自动写入）, desc = User-Agent
+Authorization = input, "", tag = Authorization（可手动输入或抓包写入）
+DeviceId = input, "", tag = DeviceId（可手动输入或抓包写入）
+UserAgent = input, "", tag = User-Agent（可手动输入或抓包写入）
 
 ####################################
 #            Script
 ####################################
-[Script]
-
-# ① 自动抓包写入（始终启用）
+# ① 自动抓包写入
 http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10
 
 # ② 定时执行签到（由用户设置的 CRON 控制）
