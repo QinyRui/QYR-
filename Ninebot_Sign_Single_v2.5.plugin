@@ -1,5 +1,5 @@
-#!name=九号智能电动车 · 单账号自动签到
-#!desc=调试日志/通知/自动盲盒/补签/内测开关；可修改签到时间；支持抓包自动写入 Authorization/DeviceId/User-Agent
+#!name=九号智能电动车 · 单号自动签到
+#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent
 #!author=❥﹒﹏非我不可
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
@@ -7,157 +7,38 @@
 #!system=ios
 #!icon-color=#0A84FF
 
+#############################
+# 九号电动车 单账号自动签到 v2.5
+# 支持 Loon UI 开关控制
+# 自动抓包写入 Authorization / DeviceId / User-Agent
+# 可修改签到时间 CRON
+# 作者：❥﹒﹏非我不可
+#############################
+
 [General]
-# 插件安装后自动创建签到定时任务
-cron "九号签到" script-path=Ninebot_Sign_Single_v2.5.plugin cronexpr=@daily timeout=120
+# 插件安装后自动启动脚本定时任务
+cron "@daily" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120, tag=九号-定时签到
 
 [Script]
-# ======== 自动抓包写入 ========
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path=Ninebot_Sign_Single_v2.5.plugin requires-body=false tag=九号-自动写入
+# HTTP 抓包触发自动写入
+http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=false, tag=九号-自动写入
 
-# ======== 主体签到脚本 ========
-script-path=Ninebot_Sign_Single_v2.5.plugin timeout=120 tag=九号-执行签到
+# 手动执行签到脚本
+script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120, tag=九号-执行签到
 
+####################################
+#            UI 面板定义
+####################################
 [Argument]
-# 开关控制
 enable_debug = switch,true,false,tag=调试日志开关
 enable_notify = switch,true,true,tag=通知开关
 enable_openbox = switch,true,true,tag=自动开启盲盒开关
 enable_supplement = switch,true,true,tag=自动补签开关
 enable_internal_test = switch,true,false,tag=内测申请开关
 
-# 文本框
-notify_title = text,default=九号签到助手,tag=通知标题
-cron_time = text,default=0 8 * * *,tag=签到时间 CRON
-authorization = text,default=,tag=Authorization
+notify_title = text,default=九号签到助手,tag=通知标题文本框
+cron_time = text,default=0 8 * * *,tag=签到时间 CRON 文本框
+
+auth_token = text,default=,tag=Authorization
 device_id = text,default=,tag=DeviceId
 user_agent = text,default=,tag=User-Agent
-
-# ======== 脚本逻辑 ========
-script= """
-// ---------- 配置 ----------
-const DEBUG = $.read('enable_debug') === 'true';
-const NOTIFY = $.read('enable_notify') === 'true';
-const AUTO_BOX = $.read('enable_openbox') === 'true';
-const AUTO_REPAIR = $.read('enable_supplement') === 'true';
-const INTERNAL_TEST = $.read('enable_internal_test') === 'true';
-const TITLE = $.read('notify_title') || '九号签到助手';
-const AUTH = $.read('authorization') || '';
-const DEVICE = $.read('device_id') || '';
-const UA = $.read('user_agent') || 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile';
-
-function log(...args){ if(DEBUG) console.log('[Ninebot]', ...args); }
-function notify(title, sub, body){ if(NOTIFY && typeof $notification !== 'undefined') $notification.post(title, sub, body); }
-
-// ---------- HTTP Helper ----------
-function httpPost({url, headers, body}) {
-    return new Promise((resolve, reject)=>{
-        $httpClient.post({url, headers, body}, (err, resp, data)=>{
-            if(err) reject(err);
-            else{
-                try{ resolve(JSON.parse(data)); } catch{ resolve({raw: data}); }
-            }
-        });
-    });
-}
-function httpGet({url, headers}){
-    return new Promise((resolve, reject)=>{
-        $httpClient.get({url, headers}, (err, resp, data)=>{
-            if(err) reject(err);
-            else{
-                try{ resolve(JSON.parse(data)); } catch{ resolve({raw:data}); }
-            }
-        });
-    });
-}
-
-// ---------- Endpoints ----------
-const HEADERS = {
-    "Authorization": AUTH,
-    "device_id": DEVICE,
-    "User-Agent": UA,
-    "Content-Type":"application/json",
-    "platform":"h5",
-    "Origin":"https://h5-bj.ninebot.com",
-    "language":"zh"
-};
-const END = {
-    sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
-    status: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
-    balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-    blindBoxList: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
-    blindBoxReceive: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive",
-    repair: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair",
-    internalTest: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration"
-};
-
-// ---------- 主流程 ----------
-(async ()=>{
-    let notifyBody = '';
-    try{
-        // 1) 签到
-        log('开始签到...');
-        const sign = await httpPost({url: END.sign, headers: HEADERS, body: JSON.stringify({deviceId:DEVICE})});
-        log('签到返回：', sign);
-        if(sign?.code===0) notifyBody += `🎉 签到成功，+${sign.data?.nCoin||0} N币`;
-        else if(sign?.code===540004) notifyBody += `⚠️ 今日已签到`;
-        else notifyBody += `❌ 签到失败：${sign?.msg||'未知'}`;
-
-        // 2) 查询状态
-        const st = await httpGet({url: END.status, headers: HEADERS});
-        log('状态返回：', st);
-        if(st?.code===0){
-            const data = st.data||{};
-            notifyBody += `\n🗓 连续签到：${data.consecutiveDays||0} 天`;
-            notifyBody += `\n🎫 补签卡：${data.signCardsNum||0} 张`;
-        }
-
-        // 3) 查询余额
-        const bal = await httpGet({url: END.balance, headers: HEADERS});
-        log('余额返回：', bal);
-        if(bal?.code===0) notifyBody += `\n💰 N币余额：${bal.data?.balance||0}`;
-
-        // 4) 盲盒
-        const box = await httpGet({url: END.blindBoxList, headers: HEADERS});
-        log('盲盒返回：', box);
-        const notOpened = box?.data?.notOpenedBoxes||[];
-        if(notOpened.length>0){
-            notifyBody += `\n\n📦 盲盒任务：`;
-            for(const b of notOpened){
-                const days = b.boxDays||b.awardDays||'?';
-                const left = b.leftDaysToOpen||b.diffDays||'?';
-                notifyBody += `\n- ${days}天盲盒，还需 ${left} 天`;
-            }
-            if(AUTO_BOX){
-                for(const b of notOpened.filter(b=>b.leftDaysToOpen===0||b.diffDays===0)){
-                    const r = await httpPost({url: END.blindBoxReceive, headers: HEADERS, body:"{}"});
-                    notifyBody += `\n🎁 ${b.boxDays||b.awardDays}天盲盒领取${r?.code===0?'成功':'失败'}`;
-                }
-            }
-        }
-
-        // 5) 自动补签
-        if(AUTO_REPAIR && st?.code===0){
-            const cards = st.data?.signCardsNum||0;
-            const days = st.data?.consecutiveDays||0;
-            if(cards>0 && days===0){
-                const rep = await httpPost({url: END.repair, headers: HEADERS, body:"{}"});
-                notifyBody += `\n🔧 自动补签${rep?.code===0?'成功':'失败'}`;
-            }
-        }
-
-        // 6) 内测申请
-        if(INTERNAL_TEST){
-            const test = await httpPost({url: END.internalTest, headers: HEADERS, body:"{}"});
-            notifyBody += `\n📝 内测状态：${test?.data?.status||'未申请'}`;
-        }
-
-        // 最终通知
-        notify(TITLE,'签到结果',notifyBody);
-
-    }catch(e){
-        log('异常：', e);
-        notify(TITLE,'脚本异常',String(e));
-    }
-})();
-"""
