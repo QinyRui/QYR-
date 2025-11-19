@@ -1,134 +1,135 @@
-/******************************************
-# 九号智能电动车 · 单账号签到主体脚本
-# 支持：Loon Argument UI + 抓包自动写入
-# 作者：❥﹒﹏非我不可 & QinyRui
-# 版本：2.5 主体修正版
-******************************************/
+/**************************************
+📱 九号 单账号自动签到（Loon 专用）
+👤 作者：❥﹒﹏非我不可 & QinyRui
+📆 版本：2.5
+**************************************/
 
-const LOG = $argument.enable_debug === "true";
-const NOTIFY = $argument.enable_notify === "true";
+const isRequest = typeof $request !== "undefined";
+const KEY_AUTH = "LOON_NINEBOT_AUTH";
+const KEY_DID = "LOON_NINEBOT_DID";
+const KEY_UA = "LOON_NINEBOT_UA";
 
-const KEY_AUTH = "Ninebot_Authorization";
-const KEY_DID = "Ninebot_DeviceId";
-const KEY_UA = "Ninebot_UserAgent";
+const KEY_DEBUG = "enable_debug";
+const KEY_NOTIFY = "enable_notify";
+const KEY_OPENBOX = "enable_openbox";
+const KEY_SUP = "enable_supplement";
+const KEY_INTERNAL = "enable_internal_test";
+const KEY_TITLE = "notify_title";
 
-function log(msg) {
-  if (LOG) console.log(msg);
-}
+const notify = (title, msg) => {
+  if ($persistentStore.read(KEY_NOTIFY) !== "false") {
+    $notification.post(title, "", msg);
+  }
+};
 
-function save(key, val) {
-  $persistentStore.write(val, key);
-}
+const log = (...args) => {
+  if ($persistentStore.read(KEY_DEBUG) === "true") console.log(...args);
+};
 
-function read(key) {
-  return $persistentStore.read(key) || "";
-}
+// ===== 抓包写入逻辑 =====
+if (isRequest) {
+  try {
+    const headers = $request.headers || {};
 
-/***********************
- * ① 抓包自动写入模式
- ***********************/
-if (typeof $request !== "undefined") {
-  const headers = $request.headers;
+    const auth = headers["Authorization"] || headers["authorization"];
+    const did =
+      headers["DeviceId"] ||
+      headers["deviceid"] ||
+      headers["X-Device-Id"];
+    const ua = headers["User-Agent"] || headers["user-agent"];
 
-  if (headers) {
-    log("抓包成功，正在自动写入…");
+    let changed = false;
 
-    if (headers["authorization"]) {
-      save(KEY_AUTH, headers["authorization"]);
-      log("写入 Authorization 成功");
+    if (auth) {
+      $persistentStore.write(auth, KEY_AUTH);
+      changed = true;
     }
-    if (headers["deviceid"]) {
-      save(KEY_DID, headers["deviceid"]);
-      log("写入 DeviceId 成功");
+    if (did) {
+      $persistentStore.write(did, KEY_DID);
+      changed = true;
     }
-    if (headers["user-agent"]) {
-      save(KEY_UA, headers["user-agent"]);
-      log("写入 User-Agent 成功");
+    if (ua) {
+      $persistentStore.write(ua, KEY_UA);
+      changed = true;
     }
 
-    if (NOTIFY) $notification.post("九号抓包写入成功", "", "数据已自动保存到插件 UI");
+    if (changed) {
+      notify("九号签到助手", "抓包成功写入账号数据");
+      log("抓包写入成功：", auth, did, ua);
+    }
 
     $done({});
+  } catch (e) {
+    notify("九号签到助手", "抓包写入失败：" + e);
+    $done({});
   }
+  return;
 }
 
+// ===== 签到主体逻辑 =====
+(async () => {
+  const Authorization = $persistentStore.read(KEY_AUTH) || "";
+  const DeviceId = $persistentStore.read(KEY_DID) || "";
+  const UserAgent = $persistentStore.read(KEY_UA) || "";
 
-/***********************
- * ② 读取账号信息（来自插件 UI 或抓包）
- ***********************/
-const Authorization =
-  $argument.Authorization?.trim() ||
-  read(KEY_AUTH);
-
-const DeviceId =
-  $argument.DeviceId?.trim() ||
-  read(KEY_DID);
-
-const UserAgent =
-  $argument.UserAgent?.trim() ||
-  read(KEY_UA);
-
-if (!Authorization || !DeviceId || !UserAgent) {
-  if (NOTIFY)
-    $notification.post(
-      "九号签到助手",
-      "",
-      "请先抓包一次，或到插件 UI 填写 Authorization / DeviceId / User-Agent"
-    );
-  $done({});
-}
-
-
-/***********************
- * ③ 开始签到逻辑
- ***********************/
-async function sign() {
-  log("开始执行签到…");
-
-  const url = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign";
+  if (!Authorization || !DeviceId || !UserAgent) {
+    notify("九号签到助手", "请先抓包或在插件 UI 填写账号信息");
+    return $done();
+  }
 
   const headers = {
     Authorization,
     DeviceId,
     "User-Agent": UserAgent,
+    "Content-Type": "application/json",
   };
 
-  try {
-    const resp = await http("post", url, headers, {});
-    log("签到返回：" + JSON.stringify(resp));
+  const title = $persistentStore.read(KEY_TITLE) || "九号签到助手";
 
-    if (NOTIFY)
-      $notification.post("九号签到助手", "签到结果", JSON.stringify(resp));
-
-  } catch (e) {
-    log("签到异常：" + e);
-    if (NOTIFY)
-      $notification.post("九号签到助手", "执行失败", String(e));
+  async function api(url, method = "GET", body = null) {
+    return new Promise((resolve) => {
+      $httpClient.request(
+        {
+          url,
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : null,
+        },
+        (err, resp, data) => {
+          if (err) return resolve({ error: err });
+          try {
+            resolve(JSON.parse(data));
+          } catch {
+            resolve({ raw: data });
+          }
+        }
+      );
+    });
   }
 
-  $done({});
-}
+  // ——— 签到 ———
+  const sign = await api(
+    "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
+    "POST",
+    {}
+  );
 
+  // ——— 查询状态 ———
+  const status = await api(
+    "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status"
+  );
 
-/***********************
- * HTTP 函数封装
- ***********************/
-function http(method, url, headers, body) {
-  return new Promise((resolve, reject) => {
-    $httpClient[method](
-      {
-        url,
-        headers,
-        body,
-      },
-      (err, resp, data) => {
-        if (err) reject(err);
-        else resolve(JSON.parse(data));
-      }
-    );
-  });
-}
+  // ——— 查询盲盒 ———
+  const box = await api(
+    "https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list"
+  );
 
+  notify(
+    title,
+    `签到结果：${JSON.stringify(sign)}\n状态：${JSON.stringify(
+      status
+    )}\n盲盒：${JSON.stringify(box)}`
+  );
 
-// 执行签到
-sign();
+  $done();
+})();
