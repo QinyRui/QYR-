@@ -15,6 +15,11 @@ const $ = {
   log: (...args) => console.log("[Ninebot]", ...args),
   debug: (...args) => {
     if (cfg.enable_debug === "true") console.log("[Ninebot][DEBUG]", ...args);
+  },
+  // 获取参数
+  getArguments: () => {
+    const args = $argument ? $argument : {};  // 确保在 Loon 中正确获取参数
+    return args;
   }
 };
 
@@ -163,8 +168,8 @@ function safeStr(v){ try { return JSON.stringify(v); } catch { return String(v);
 
     // 自动补签
     if (cfg.enable_supplement && st?.code === 0) {
-      const cards = st.data?.signCardsNum || st.data?.remedyCard || 0;
-      const days = st.data?.consecutiveDays || st.data?.continuousDays || 0;
+      const cards = st.data?.signCardsNum || 0;
+      const days = st.data?.consecutiveDays || 0;
       if (cards > 0 && days === 0) {
         try {
           const rep = await httpPost({ url: END.repair, headers, body: "{}" });
