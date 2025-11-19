@@ -4,10 +4,9 @@
 💬 完全不依赖 BoxJS / $argument
 */
 
-const isReq = typeof $request !== "undefined" && $request.headers;
-
-const read = k => $persistentStore.read(k);
-const write = (v, k) => $persistentStore.write(v, k);
+// ---------- 读取配置 ----------
+const read = key => $persistentStore.read(key);
+const write = (value, key) => $persistentStore.write(value, key);
 const notify = (title, sub, body) => { if ($notification) $notification.post(title, sub, body); };
 const log = (...args) => console.log("[Ninebot]", ...args);
 
@@ -24,28 +23,7 @@ const KEY_TITLE = "ninebot.titlePrefix";
 const KEY_MANUAL_SIGN = "ninebot.manualSign";
 const KEY_CAPTURE = "ninebot.capture";
 
-// ---------- 抓包写入 ----------
-if (isReq) {
-    try {
-        const h = $request.headers || {};
-        const auth = h["Authorization"] || h["authorization"] || "";
-        const dev = h["DeviceId"] || h["deviceid"] || "";
-        const ua = h["User-Agent"] || h["user-agent"] || "";
-
-        let changed = false;
-        if (auth && read(KEY_AUTH) !== auth) { write(auth, KEY_AUTH); changed = true; }
-        if (dev && read(KEY_DEV) !== dev) { write(dev, KEY_DEV); changed = true; }
-        if (ua && read(KEY_UA) !== ua) { write(ua, KEY_UA); changed = true; }
-
-        if (changed) {
-            notify("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入插件存储");
-            log("抓包写入成功:", {auth, dev, ua});
-        }
-    } catch (e) { log("抓包写入异常：", e); }
-    $done({});
-}
-
-// ---------- 读取配置 ----------
+// ---------- 配置读取 ---------- 
 const cfg = {
     Authorization: read(KEY_AUTH) || "",
     DeviceId: read(KEY_DEV) || "",
@@ -64,6 +42,27 @@ const cfg = {
 if (!cfg.Authorization || !cfg.DeviceId) {
     notify(cfg.titlePrefix, "未配置 Token", "请先抓包或在插件 UI 填写 Authorization 与 DeviceId");
     $done();
+}
+
+// ---------- 抓包写入 ---------- 
+if (typeof $request !== "undefined" && $request.headers) {
+    try {
+        const headers = $request.headers || {};
+        const auth = headers["Authorization"] || headers["authorization"] || "";
+        const dev = headers["DeviceId"] || headers["deviceid"] || "";
+        const ua = headers["User-Agent"] || headers["user-agent"] || "";
+
+        let changed = false;
+        if (auth && read(KEY_AUTH) !== auth) { write(auth, KEY_AUTH); changed = true; }
+        if (dev && read(KEY_DEV) !== dev) { write(dev, KEY_DEV); changed = true; }
+        if (ua && read(KEY_UA) !== ua) { write(ua, KEY_UA); changed = true; }
+
+        if (changed) {
+            notify("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入插件存储");
+            log("抓包写入成功:", { auth, dev, ua });
+        }
+    } catch (e) { log("抓包写入异常：", e); }
+    $done({});
 }
 
 // ---------- HTTP Helpers ----------
@@ -117,13 +116,13 @@ const END = {
     try {
         // 1) 签到
         log("开始签到请求");
-        const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({deviceId: cfg.DeviceId}) });
+        const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({ deviceId: cfg.DeviceId }) });
         log("签到返回：", sign);
         if (sign && sign.code === 0) notifyBody += `🎉 签到成功\n🎁 +${sign.data?.nCoin || 0} N币`;
         else if (sign && sign.code === 540004) notifyBody += `⚠️ 今日已签到`;
         else {
             notifyBody += `❌ 签到失败：${(sign && (sign.msg || JSON.stringify(sign))) || "未知"}`;
-            if(!cfg.notifyFail) notifyBody = "";
+            if (!cfg.notifyFail) notifyBody = "";
         }
 
         // 2) 状态
