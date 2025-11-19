@@ -1,25 +1,40 @@
-#!name=九号智能电动车（单号）
-#!desc=自动签到 + 盲盒 + 补签 + 内测申请
-#!author=❥﹒﹏非我不可 & QinyRui
-#!version=2.5 (2025/11/19)
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
-#!homepage=https://t.me/JiuHaoAPP
-#!support=iOS,iPadOS,macOS
-#!min-system-version=15
+#!name=九号智能电动车签到
+#!desc=九号签到脚本（含 UI 开关与配置）
+#!author=❥﹒﹏非我不可
+#!version=1.0.0
+#!homepage=https://github.com/QinyRui/QYR-
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/icon.png
 
+# 脚本入口
 [Script]
-# 定时签到（可自定义）
-cron "10 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120
-# 抓包自动写入
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=0
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/ portal/api/user-sign/v2/status script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share.js timeout=15
+cron "20 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Share.js timeout=20
 
-[Config]
-DEBUG = true      name="调试日志开关"
-NOTIFY = true     name="是否启用通知"
-AUTO_OPEN_BOX = true   name="自动开启盲盒"
-AUTO_REPAIR = true     name="自动补签"
-TITLE_PREFIX = "九号签到"   name="签到标题"
-CRON_TIME = "10 8 * * *"   name="签到时间 CRON"
-AUTO_WRITE_AUTH = true     name="自动写入Authorization"
-AUTO_WRITE_DEVICEID = true name="自动写入DeviceId"
-AUTO_WRITE_UA = true       name="自动写入User-Agent"
+# ------------------------------
+# UI：Loon 设置界面通过此字段生成
+# ------------------------------
+[Argument]
+enable = {
+  title = "启用脚本"
+  type = "boolean"
+  default = true
+}
+
+logLevel = {
+  title = "日志等级"
+  type = "select"
+  default = "WARN"
+  options = ["ERROR", "WARN", "INFO", "DEBUG"]
+}
+
+customName = {
+  title = "自定义设备名称"
+  type = "text"
+  default = "九号智能电动车"
+}
+
+notify = {
+  title = "通知开关"
+  type = "boolean"
+  default = true
+}
