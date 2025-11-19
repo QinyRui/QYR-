@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId、User-Agent；可修改签到时间 CRON。
+#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测申请；支持抓包自动写入 Authorization、DeviceId、User-Agent；可修改签到时间 CRON
 #!author=❥﹒﹏非我不可 & QinyRui
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
@@ -7,41 +7,36 @@
 #!system=ios
 #!icon-color=#0A84FF
 
-########################################
+#############################
 # 九号电动车 单账号自动签到 v2.5
-# Loon 插件完整版本
-# 支持 UI 开关控制、文本框编辑、自动抓包写入
+# 支持 Loon UI 开关控制 + 文本输入
+# 自动抓包写入 Authorization / DeviceId / User-Agent
 # 作者：❥﹒﹏非我不可 & QinyRui
-########################################
+#############################
 
 [General]
-# 自动定时签到，默认每天 08:10
-cron "九号签到" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, cronexpr=10 8 * * *, timeout=120
+# 默认定时任务，可由 cron_time 修改
+cron "九号签到" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, cronexpr=@daily, timeout=120
 
 [Script]
-# ===== 抓包自动写入 Authorization / DeviceId / User-Agent =====
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, requires-body=false, tag=九号-自动写入
+# 自动抓包写入 Authorization / DeviceId / User-Agent
+http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js requires-body=false tag=九号-自动写入
 
-# ===== 主签到脚本 =====
-script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, timeout=120, tag=九号-执行签到
+# 主体签到脚本
+script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js timeout=120 tag=九号-执行签到
 
-########################################
-# UI 面板
-########################################
 [Argument]
 
-enable_debug = switch,true,false,tag=九号-调试日志, name=调试日志开关
-enable_notify = switch,true,false,tag=九号-通知开关, name=通知开关
-enable_openbox = switch,true,false,tag=九号-自动盲盒, name=自动开启盲盒开关
-enable_supplement = switch,true,false,tag=九号-自动补签, name=自动补签开关
-enable_internal_test = switch,true,false,tag=九号-内测申请, name=内测申请开关
+# ===== 开关控制 =====
+enable_debug = switch,true,false,tag=九号-调试日志,name=调试日志开关
+enable_notify = switch,true,false,tag=九号-通知开关,name=通知开关
+enable_openbox = switch,true,false,tag=九号-自动盲盒,name=自动开启盲盒开关
+enable_supplement = switch,true,false,tag=九号-自动补签,name=自动补签开关
+enable_internal_test = switch,true,false,tag=九号-内测申请,name=内测申请开关
 
-# CRON 修改
-enable_cron = switch,true,false,tag=九号-签到时间开关, name=修改签到时间开关
-cron_time = text, default=10 8 * * *, name=签到时间 CRON, depends=enable_cron
-
-# 自动写入/手动填写 Authorization / DeviceId / User-Agent
-enable_autofill = switch,true,false,tag=九号-自动写入开关, name=自动写入数据开关
-auth_token = text, default=, name=Authorization, depends=enable_autofill
-device_id = text, default=, name=DeviceId, depends=enable_autofill
-user_agent = text, default=, name=User-Agent, depends=enable_autofill
+# ===== 文本输入 =====
+notify_title = text,default=九号签到助手,name=自定义通知标题文本框
+cron_time = text,default=10 8 * * *,name=修改签到时间 CRON
+auth_token = text,default=,name=Authorization
+device_id = text,default=,name=DeviceId
+user_agent = text,default=,name=User-Agent
