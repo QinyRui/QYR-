@@ -20,6 +20,8 @@ const $ = {
 
 // ---------- 获取 Loon UI 配置参数 ----------
 const cfg = $.getArguments();
+
+// 处理参数并设置默认值
 cfg.Authorization = cfg.Authorization || $.read("ninebot.Authorization") || "";
 cfg.DeviceId = cfg.DeviceId || $.read("ninebot.DeviceId") || "";
 cfg.UserAgent = cfg.UserAgent || $.read("ninebot.UserAgent") || "";
