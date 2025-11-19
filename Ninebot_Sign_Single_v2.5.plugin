@@ -1,40 +1,26 @@
-#!name=九号智能电动车 · 单账号自动签到
-#!desc=支持调试日志开关、通知开关、自动盲盒、补签、内测开关；支持抓包自动写入 Authorization、DeviceId。
-#!author=❥﹒﹏非我不可
+#!name=九号智能电动车签到（单号版）
+#!desc=自动签到 + 自动抓包写入 + 可设置通知/调试/补签/盲盒等开关
+#!author=QinyRui
 #!version=2.5
-#!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/logo/ninebot_128.png
-#!system=ios
-#!icon-color=#0A84FF
-
-#############################
-# 九号电动车 单账号自动签到 v2.5
-# 支持 Loon UI 开关控制
-# 自动抓包写入 Authorization / DeviceId
-# 作者：❥﹒﹏非我不可
-#############################
-
-[General]
-# 插件安装后自动启动脚本定时任务
-cron "九号签到" script-path=Ninebot_Sign_Single_v2.5.js cronexpr=@daily timeout=30
+#!homepage=https://github.com/QinyRui/QYR-
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/icon/ninebot.png
 
 [Script]
-# ======== 处理抓包写入 ========
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path=Ninebot_Sign_Single_v2.5.js requires-body=false tag=九号-自动写入
+http-request ^https:\/\/.*ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag=九号账号写入
 
-# ======== 主体签到脚本 ========
-script-path=Ninebot_Sign_Single_v2.5.js timeout=30 tag=九号-执行签到
+cron "0 10 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag=九号每日自动签到
 
-####################################
-#            UI 面板定义
-####################################
-[Argument]
+[MITM]
+hostname = *.ninebot.com
 
-enable_debug = switch, default=false, name=调试日志开关
-enable_notify = switch, default=true, name=通知开关
-enable_openbox = switch, default=true, name=自动开启盲盒开关
-enable_supplement = switch, default=true, name=自动补签开关
-enable_internal_test = switch, default=false, name=内测申请开关
+[Setting]
+General = main-ui
 
-notify_title = text, default=九号签到助手, name=通知标题文本框
-cron_time = text, default=0 8 * * *, name=签到时间 CRON 文本框
+[main-ui]
+debug_log = switch, false, 调试日志开关
+notify = switch, true, 通知开关
+auto_open_box = switch, true, 自动开启盲盒开关
+auto_retro = switch, false, 自动补签开关
+beta_apply = switch, false, 内测申请开关
+notify_title = text, 九号智能电动车, 通知标题文本框
+cron_time = text, 0 10 * * *, 签到时间 cron 文本框
