@@ -1,8 +1,16 @@
-#!name=九号智能电动车（单号）
+#!name=九号智能电动车（单号）  # 保留 v2.6 名字
 #!desc=自动签到 + 补签 + 盲盒 + 内测检测
 #!author=❥﹒﹏非我不可 & QinyRui
 #!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
 
 [Script]
-cron "10 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, timeout=120
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, requires-body=0
+# ---------- 定时签到 ----------
+cron "{sign_minute} {sign_hour} * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, timeout=120, tag=Ninebot
+
+# ---------- HTTP 请求匹配 ----------
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, requires-body=0, url-param=enable_capture={enable_capture}
+
+# ---------- Loon 插件 UI ----------
+enable_capture = switch, "false", "true", tag = 抓包写入开关
+sign_hour = number, 8, tag = 签到小时（0-23）
+sign_minute = number, 10, tag = 签到分钟（0-59）
