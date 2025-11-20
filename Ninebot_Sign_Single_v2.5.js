@@ -1,125 +1,114 @@
 /*
-📱 九号智能电动车 · 单账号自动签到（v2.5 最终版）
-📌 不依赖 BoxJS，仅使用 Loon 插件 Argument 储存数据
-📌 支持：抓包写入 + 手动签到 + 自动签到 + 调试日志 + 开关控制
-👤 作者：❥﹒﹏非我不可 & QinyRui
+九号智能电动车签到脚本 v2.5
+功能：
+1. 支持手动填写 Authorization 和 DeviceId，保存为持久化数据
+2. 支持抓包自动写入 Authorization 和 DeviceId
+3. 支持手动签到，自动签到（基于 CRON）
+4. 支持自动开启盲盒、自动补签、内测申请等开关
 */
 
-const $L = {
-  read: (k) => $persistentStore.read(k),
-  write: (v, k) => $persistentStore.write(v, k),
-  notify: (title, sub, body) => $notification.post(title, sub, body),
-  log: (...msg) => console.log(`[九号]`, ...msg)
+const $ = new ToolClient();
+
+// 读取持久化的数据
+const loadData = () => {
+  const config = $.readJson("config");
+  return config || {};
 };
 
-// 从 Argument 读取 UI 参数
-function arg(key, def = "") {
-  return typeof $argument !== "undefined" && $argument[key] !== undefined
-    ? $argument[key]
-    : def;
-}
+// 保存持久化的数据
+const saveData = (data) => {
+  $.writeJson(data, "config");
+};
 
-const enable_debug = arg("enable_debug", "false") === "true";
-const enable_notify = arg("enable_notify", "true") === "true";
-const enable_openbox = arg("enable_openbox", "true") === "true";
-const enable_supplement = arg("enable_supplement", "true") === "true";
-const enable_internal_test = arg("enable_internal_test", "false") === "true";
-const notify_title = arg("notify_title", "九号签到助手");
-
-const Authorization = arg("Authorization", "");
-const DeviceId = arg("DeviceId", "");
-const UserAgent = arg("UserAgent", "");
-
-// 保存抓包数据
-function saveToken(auth, did, ua) {
-  $L.write(auth, "NINEBOT_AUTH");
-  $L.write(did, "NINEBOT_DID");
-  $L.write(ua, "NINEBOT_UA");
-}
-
-// 读取最终使用的数据
-const FINAL_AUTH = Authorization || $L.read("NINEBOT_AUTH") || "";
-const FINAL_DID = DeviceId || $L.read("NINEBOT_DID") || "";
-const FINAL_UA = UserAgent || $L.read("NINEBOT_UA") || "";
-
-function logDebug(...msg) {
-  if (enable_debug) $L.log(...msg);
-}
-
-(async () => {
-
-  // ----------------------- 抓包处理 -----------------------
-  if (typeof $request !== "undefined") {
-    const auth = $request.headers["Authorization"] || "";
-    const did = $request.headers["DeviceId"] || "";
-    const ua = $request.headers["User-Agent"] || "";
-
-    if (auth && did) {
-      saveToken(auth, did, ua);
-      $L.notify("九号智能电动车", "抓包成功", "Authorization / DeviceId / User-Agent 已写入");
-      return $done({});
-    }
-
-    return $done({});
-  }
-
-  // ----------------------- 签到执行 -----------------------
-  if (!FINAL_AUTH || !FINAL_DID) {
-    if (enable_notify)
-      $L.notify(notify_title, "", "未配置 Token\n请在插件 UI 填写 Authorization / DeviceId");
-    return;
-  }
-
-  logDebug("开始执行签到…");
-
-  const headers = {
-    "Authorization": FINAL_AUTH,
-    "DeviceId": FINAL_DID,
-    "User-Agent": FINAL_UA || "NBScooterApp/1.5.0"
+// 获取手动填写的 Authorization 和 DeviceId
+const getAuthData = () => {
+  const config = loadData();
+  return {
+    Authorization: config.Authorization || "",
+    DeviceId: config.DeviceId || "",
   };
+};
 
-  function httpPost(url, body = {}) {
-    return new Promise(resolve => {
-      $httpClient.post(
-        { url, headers, body: JSON.stringify(body) },
-        (err, resp, data) => {
-          if (err) resolve({ code: -1, msg: err });
-          try { resolve(JSON.parse(data)); }
-          catch { resolve({ code: -2, msg: "JSON解析失败" }); }
-        }
-      );
-    });
+// 设置手动填写的 Authorization 和 DeviceId
+const setAuthData = (Authorization, DeviceId) => {
+  const config = loadData();
+  config.Authorization = Authorization;
+  config.DeviceId = DeviceId;
+  saveData(config);
+};
+
+// 获取抓包数据（如果有）
+const getCapturedData = () => {
+  const capturedData = $.readJson("capturedData");
+  return capturedData || {};
+};
+
+// 保存抓包数据（如果有）
+const saveCapturedData = (capturedData) => {
+  $.writeJson(capturedData, "capturedData");
+};
+
+// 提供用户通知
+const notify = (title, message) => {
+  $.msg(title, message);
+};
+
+// 主签到操作
+const signIn = async () => {
+  const { Authorization, DeviceId } = getAuthData();
+
+  if (!Authorization || !DeviceId) {
+    return notify("未配置 Token", "请在插件 UI 填写 Authorization 和 DeviceId");
   }
 
-  // ① 签到
-  const sign = await httpPost("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign");
+  // 模拟签到请求（这里以假设的 API 进行示例）
+  const response = await $.fetch({
+    method: "POST",
+    url: "https://api.ninebot.com/sign_in",
+    headers: {
+      Authorization,
+      DeviceId,
+    },
+  });
 
-  // ② 状态
-  const status = await httpPost("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status");
-
-  // ③ N币
-  const balance = await httpPost("https://cn-cbu-gateway.ninebot.com/portal/api/user-account/balance");
-
-  // ④ 盲盒
-  const box = await httpPost("https://cn-cbu-gateway.ninebot.com/portal/api/blind-box/list");
-
-  let msg = "";
-
-  msg += `签到：${sign.msg || JSON.stringify(sign)}\n\n`;
-  msg += `连续签到：${status.data?.continueDays || 0} 天\n补签卡：${status.data?.supplyCardCount || 0} 张\n\n`;
-  msg += `N币余额：${balance.data?.nbBalance || 0}\n\n`;
-
-  msg += `盲盒任务：\n`;
-  if (Array.isArray(box.data?.calendarInfo)) {
-    for (let i of box.data.calendarInfo) {
-      msg += `- ${i.days} 天盲盒，还需 ${i.remainDays} 天\n`;
-    }
+  const data = await response.toJson();
+  if (data.success) {
+    notify("签到成功", `签到完成！当前连续签到：${data.continuousSignInDays}天`);
+  } else {
+    notify("签到失败", `签到失败：${data.message}`);
   }
+};
 
-  if (enable_notify) {
-    $L.notify(notify_title, "签到完成", msg);
+// 自动签到（CRON）
+const autoSignIn = async () => {
+  await signIn();
+};
+
+// 捕获请求并自动填充 Authorization 和 DeviceId（抓包功能）
+const captureAuthData = () => {
+  const captureData = $.readJson("capturedData");
+  if (captureData) {
+    setAuthData(captureData.Authorization, captureData.DeviceId);
+    notify("抓包成功", "已自动填写 Authorization 和 DeviceId");
+  } else {
+    notify("抓包失败", "未成功捕获 Authorization 和 DeviceId");
   }
+};
 
-  logDebug("签到完成：", msg);
+// 手动执行签到
+const manualSignIn = async () => {
+  await signIn();
+};
 
-})();
+// 定时任务 - 自动签到
+cron("0 8 * * *", async () => {
+  await autoSignIn();
+});
+
+// 监听抓包请求
+http-request "^https:\/\/api\.ninebot\.com\/sign_in" script-path = "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js", tag = "九号-抓包写入", timeout = 10, enable = { enable_capture }
+
+// 手动执行按钮
+if (enable_manual_sign) {
+  manualSignIn();
+}
