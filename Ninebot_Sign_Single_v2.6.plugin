@@ -1,13 +1,10 @@
 #!name=九号智能电动车 · 单号自动签到（v2.6）
 #!desc=版本：v2.6
-更新日期：2025/11/20 16:38:00
- & ❥﹒﹏非我不可
-
-💠 支持系统：iOS / iPadOS / macOS
+📌 Telegram 群：https://t.me/JiuHaoAPP
 🛠 功能：自动签到、盲盒、补签、内测检测与申请、通知控制、调试日志、CRON 自定义、抓包写入开关
 #!author=👤 作者：QinyRui
-#!version=2.6
-#!system=ios,ipadOS,macOS
+#!version=📝2.6 2025/11/20 16:38:00
+#!system=💠 支持系统：iOS / iPadOS / macOS
 
 ####################################
 #             UI 设置（Argument）
