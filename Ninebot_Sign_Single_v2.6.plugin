@@ -1,46 +1,42 @@
 #!name=九号智能电动车 · 单号自动签到（v2.6）
-#!desc=版本：v2.6
-📌 Telegram 群：https://t.me/JiuHaoAPP
-🛠 功能：自动签到、盲盒、补签、内测检测与申请、通知控制、调试日志、CRON 自定义、抓包写入开关
-#!author=👤 作者：QinyRui
-#!version=📝2.6 2025/11/20 16:38:00
-#!system=💠 支持系统：iOS / iPadOS / macOS
+#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；手动签到 + CRON 控制。
+#!author=QinyRui & ❥﹒﹏非我不可
+#!version=2.6
+#!homepage=https://t.me/JiuHaoAPP
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
+#!system=ios
+#!icon-color=#0A84FF
+#!update-time=2025/11/20 16:38:00
+#!compatible=ios,ipadOS,macOS
 
 ####################################
-#             UI 设置（Argument）
+# UI 设置（Argument）
 ####################################
 [Argument]
-# 调试输出（仅影响是否记录更详细日志到 console — 脚本始终会打印关键步骤）
-enable_debug = switch, "true", "false", tag = 调试日志开关
-
-# 通知是否开启（脚本会用此开关决定是否发送 push 通知）
+enable_debug = switch, "false", "true", tag = 调试日志开关
 enable_notify = switch, "true", "false", tag = 通知开关
-
-# 自动盲盒开关（开启后脚本会尝试领取已到期的盲盒）
-enable_blindbox = switch, "true", "false", tag = 自动盲盒开关
-
-# 自动补签开关（开启后脚本会在满足条件时尝试补签）
+enable_openbox = switch, "true", "false", tag = 自动盲盒开关
 enable_supplement = switch, "true", "false", tag = 自动补签开关
+enable_internal_test = switch, "false", "true", tag = 内测申请开关
 
-# 内测自动申请开关
-enable_internal = switch, "false", "true", tag = 内测申请开关
-
-# 自定义通知标题（通知时使用）
 notify_title = input, "九号签到助手", tag = 自定义通知标题
-
-# 抓包写入开关（开启才会在 http-request 时写入 BoxJS）
-enable_capture = switch, "false", "true", tag = 抓包写入开关
-
-# CRON 定时（用户可修改）
 cron_time = input, "10 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
 
+# -----------------------------------
+# 抓包 & 配置项
+# -----------------------------------
+
+enable_capture = switch, "false", "true", tag = 抓包写入开关
+Authorization = input, "", tag = Authorization（手动或抓包）
+DeviceId = input, "", tag = DeviceId（手动或抓包）
+UserAgent = input, "", tag = User-Agent（手动或抓包）
+
 ####################################
-#            Script 区
+# Script 区
 ####################################
 [Script]
-
-# 抓包写入（enabled by enable_capture）
+# ① 抓包写入（可选）
 http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag=九号-抓包写入, timeout=10, enable={enable_capture}
 
-# 自动签到（由 cron_time 控制）
+# ② 自动签到（由用户 CRON 控制）
 cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag=九号-自动签到, timeout=120
