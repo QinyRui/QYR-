@@ -6,7 +6,6 @@
   - 内测资格检测 + 自动申请
   - 控制台日志 + 通知
   - BoxJS 配置读取
-  - 完整日志输出（HTTP 请求原始数据 + 异常）
 */
 
 const isReq = typeof $request !== "undefined" && $request.headers;
@@ -69,18 +68,17 @@ if (!cfg.Authorization || !cfg.DeviceId) {
 }
 
 // ---------- HTTP helpers ----------
-function httpPost({ url, headers, body="{}" }) {
+function httpPost({ url, headers, body = "{}" }) {
   return new Promise((resolve, reject) => {
-    console.log("[Ninebot] POST 请求 url:", url, "body:", body);
     $httpClient.post({ url, headers, body }, (err, resp, data) => {
       if(err){
-        console.log("[Ninebot] POST 错误：", err);
+        console.log("[Ninebot] POST 错误对象：", JSON.stringify(err, null, 2));
         reject(err);
       } else {
         console.log("[Ninebot] POST 返回原始数据：", data);
         try { resolve(JSON.parse(data || "{}")); } 
         catch(e) { 
-          console.log("[Ninebot] JSON 解析失败：", e); 
+          console.log("[Ninebot] JSON 解析失败：", e, "原始数据：", data); 
           resolve({ raw: data }); 
         }
       }
@@ -90,16 +88,15 @@ function httpPost({ url, headers, body="{}" }) {
 
 function httpGet({ url, headers }) {
   return new Promise((resolve, reject) => {
-    console.log("[Ninebot] GET 请求 url:", url);
     $httpClient.get({ url, headers }, (err, resp, data) => {
       if(err){
-        console.log("[Ninebot] GET 错误：", err);
+        console.log("[Ninebot] GET 错误对象：", JSON.stringify(err, null, 2));
         reject(err);
       } else {
         console.log("[Ninebot] GET 返回原始数据：", data);
         try { resolve(JSON.parse(data || "{}")); } 
         catch(e) { 
-          console.log("[Ninebot] JSON 解析失败：", e); 
+          console.log("[Ninebot] JSON 解析失败：", e, "原始数据：", data); 
           resolve({ raw: data }); 
         }
       }
@@ -134,16 +131,13 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
 
 // ---------- 主流程 ----------
 !(async () => {
-  console.log("[Ninebot] 脚本开始执行");
-  console.log("[Ninebot] 当前配置：", JSON.stringify(cfg, null, 2));
-
   let notifyBody = "";
 
   try {
     // 1) 签到
     log("开始签到请求");
     const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({deviceId: cfg.DeviceId}) });
-    log("签到返回：", JSON.stringify(sign, null, 2));
+    log("签到返回：", sign);
     if (sign && sign.code === 0) notifyBody += `🎉 签到成功\n🎁 +${sign.data?.nCoin || sign.data?.score || 0} N币`;
     else if (sign && sign.code === 540004) notifyBody += `⚠️ 今日已签到`;
     else {
@@ -153,7 +147,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
 
     // 2) 状态
     const st = await httpGet({ url: END.status, headers });
-    log("状态返回：", JSON.stringify(st, null, 2));
+    log("状态返回：", st);
     if (st && st.code === 0) {
       const data = st.data || {};
       const days = data.consecutiveDays || data.continuousDays || 0;
@@ -163,12 +157,12 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
 
     // 3) 余额
     const bal = await httpGet({ url: END.balance, headers });
-    log("余额返回：", JSON.stringify(bal, null, 2));
+    log("余额返回：", bal);
     if (bal && bal.code === 0) notifyBody += `\n💰 N币余额：${bal.data?.balance || 0}`;
 
     // 4) 盲盒
     const box = await httpGet({ url: END.blindBoxList, headers });
-    log("盲盒返回：", JSON.stringify(box, null, 2));
+    log("盲盒返回：", box);
     const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
     if (Array.isArray(notOpened) && notOpened.length > 0) {
       notifyBody += `\n\n📦 盲盒任务：`;
@@ -185,7 +179,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
           for (const b of ready) {
             try {
               const r = await httpPost({ url: END.blindBoxReceive, headers, body: "{}" });
-              log("盲盒领取返回：", JSON.stringify(r, null, 2));
+              log("盲盒领取返回：", r);
               if (r && r.code === 0) notifyBody += `\n🎁 ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || r.data?.score || "未知"}`;
               else notifyBody += `\n❌ ${b.awardDays || b.boxDays}天盲盒领取失败`;
             } catch (e) { log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
@@ -203,7 +197,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
           if (cards > 0 && days === 0) {
             log("触发自动补签");
             const rep = await httpPost({ url: END.repair, headers, body: "{}" });
-            log("补签返回：", JSON.stringify(rep, null, 2));
+            log("补签返回：", rep);
             if (rep && rep.code === 0) notifyBody += `\n🔧 自动补签成功`;
             else notifyBody += `\n🔧 自动补签失败：${rep && rep.msg ? rep.msg : "未知"}`;
           }
@@ -218,6 +212,9 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
 
       if(beta?.data?.qualified){
         notifyBody+="\n🚀 已获得内测资格";
+      }else if(beta?.code !== 0){
+        notifyBody+="\n⚠️ 内测状态未知，服务器异常";
+        log("[Ninebot] 内测接口异常返回：", JSON.stringify(beta, null, 2));
       }else{
         notifyBody+="\n⚠️ 未获得内测资格";
         if(cfg.autoApplyBeta){
@@ -227,7 +224,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
               headers,
               body: JSON.stringify({deviceId: cfg.DeviceId})
             });
-            log("内测申请返回：", JSON.stringify(applyResp, null, 2));
+            log("内测申请返回：", applyResp);
             if(applyResp?.success){
               notifyBody+=" → 自动申请成功 🎉";
             }else{
@@ -251,6 +248,5 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
     if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
   }
 
-  console.log("[Ninebot] 主流程完成，准备 $done()");
   $done();
 })();
