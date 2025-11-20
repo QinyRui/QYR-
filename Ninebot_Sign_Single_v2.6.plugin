@@ -18,7 +18,7 @@ enable_supplement = switch, "true", "false", tag = 自动补签开关
 enable_internal_test = switch, "false", "true", tag = 内测申请开关
 
 notify_title = input, "九号签到助手", tag = 自定义通知标题
-cron_time = input, "10 8 * * *", tag = 签到时间 ）
+cron_time = input, "10 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
 
 enable_capture = switch, "false", "true", tag = 抓包写入开关
 
