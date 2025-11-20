@@ -16,19 +16,19 @@
         "ninebot.autoApplyBeta",
         "ninebot.notifyFail",
         "ninebot.titlePrefix",
-        "ninebot.enable_capture",
-        "ninebot.cron_time"
+        "ninebot.enableCapture",
+        "ninebot.cronTime"
       ],
       "settings": [
-        {"id": "ninebot.debug", "name": "调试日志", "type": "boolean", "val": true},
-        {"id": "ninebot.notify", "name": "通知开关", "type": "boolean", "val": true},
-        {"id": "ninebot.autoOpenBox", "name": "自动开启盲盒", "type": "boolean", "val": true},
-        {"id": "ninebot.autoRepair", "name": "自动补签", "type": "boolean", "val": true},
-        {"id": "ninebot.autoApplyBeta", "name": "自动申请内测资格", "type": "boolean", "val": true},
-        {"id": "ninebot.notifyFail", "name": "签到失败也通知", "type": "boolean", "val": true},
-        {"id": "ninebot.titlePrefix", "name": "自定义通知标题", "type": "text", "val": "九号签到"},
-        {"id": "ninebot.enable_capture", "name": "抓包写入开关", "type": "boolean", "val": false},
-        {"id": "ninebot.cron_time", "name": "签到时间 CRON", "type": "text", "val": "10 8 * * *"}
+        {"id":"ninebot.debug","name":"调试日志开关","type":"boolean","val":true},
+        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
+        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
+        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
+        {"id":"ninebot.autoApplyBeta","name":"自动申请内测资格","type":"boolean","val":true},
+        {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
+        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到助手"},
+        {"id":"ninebot.enableCapture","name":"抓包写入开关","type":"boolean","val":true},
+        {"id":"ninebot.cronTime","name":"签到时间 CRON","type":"text","val":"1 0 * * *"}
       ]
     }
   ]
