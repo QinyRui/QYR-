@@ -10,23 +10,23 @@
 
     if(cfg.debug) console.log("🟢 开始执行九号签到脚本...");
 
-    // ---------- 获取签到状态 ----------
+    // ---------- 1. 获取签到状态 ----------
     const st = await getStatus();
     if(cfg.debug) console.log("📄 当前连续签到天数:", st?.data?.consecutiveDays || 0);
 
-    // ---------- 执行签到 ----------
+    // ---------- 2. 执行签到 ----------
     const sign = await doSign();
     if(cfg.debug) console.log("📄 签到结果:", sign?.msg);
 
-    // ---------- 获取余额 ----------
+    // ---------- 3. 获取余额 ----------
     const bal = await getBalance();
     if(cfg.debug) console.log("📄 N币余额:", bal?.data?.balance);
 
-    // ---------- 获取盲盒任务 ----------
+    // ---------- 4. 获取盲盒任务 ----------
     const box = await getBlindBox();
     if(cfg.debug) console.log("📄 盲盒任务列表结果:", box?.data?.notOpenedBoxes);
 
-    // ---------- 自动开启盲盒 ----------
+    // ---------- 5. 自动开启盲盒 ----------
     if(cfg.autoOpenBox && box?.data?.notOpenedBoxes?.length){
         for(const b of box.data.notOpenedBoxes){
             if(b.leftDaysToOpen === 0){
@@ -36,11 +36,11 @@
         }
     }
 
-    // ---------- 内测申请 ----------
+    // ---------- 6. 内测申请 ----------
     let beta;
     if(cfg.autoApplyBeta) beta = await applyBeta();
 
-    // ---------- 构建美化通知 ----------
+    // ---------- 7. 构建美化通知 ----------
     let notifyLines = [];
     notifyLines.push("📝 签到结果：" + (sign?.code === 0 ? "签到成功" : (sign?.msg || "已签到，不能重复签到")));
     if(st?.code === 0){
