@@ -8,7 +8,6 @@
     {
       "id": "Ninebot_Auto_Sign",
       "name": "九号签到",
-      "script": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js",
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
