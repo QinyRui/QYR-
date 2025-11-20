@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；手动签到 + CRON 控制。
+#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；CRON 控制自动签到。
 #!author=❥﹒﹏非我不可 & QinyRui
 #!version=2.6
 #!homepage=https://t.me/JiuHaoAPP
@@ -24,7 +24,6 @@ Authorization = input, "", tag = Authorization（手动或抓包）
 DeviceId = input, "", tag = DeviceId（手动或抓包）
 UserAgent = input, "", tag = User-Agent（手动或抓包）
 
-enable_manual_sign = switch, "false", "true", tag = 手动签到开关
 enable_capture = switch, "false", "true", tag = 抓包写入开关
 
 ####################################
@@ -37,6 +36,3 @@ http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubuserc
 
 # ② 自动签到（由用户 CRON 控制）
 cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-自动签到, timeout = 120
-
-# ③ 手动签到（开关控制）
-cron 0 0 * * * script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-手动签到, enable = {enable_manual_sign}, timeout = 120
