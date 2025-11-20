@@ -5,10 +5,10 @@
 
 [Script]
 # 定时签到
-cron "10 8 * * *" script-path=https://cdn.jsdelivr.net/gh/QinyRui/QYR-@jiuhao/jiuhao/Ninebot_Sign_Single_v2.4.js, timeout=120
+cron "10 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.4.js, timeout=120
 
 # 内测检测（优化版，含自动申请 + 完整日志）
-cron "15 8 * * *" script-path=https://cdn.jsdelivr.net/gh/QinyRui/QYR-@jiuhao/jiuhao/Ninebot_BetaCheck_Optimized.js, timeout=120
+cron "15 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_BetaCheck_Optimized.js, timeout=120
 
 # HTTP 请求抓包写入 Authorization / DeviceId
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://cdn.jsdelivr.net/gh/QinyRui/QYR-@jiuhao/jiuhao/Ninebot_Sign_Single_v2.4.js, requires-body=0
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.4.js, requires-body=0
