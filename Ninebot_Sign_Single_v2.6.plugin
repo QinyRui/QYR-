@@ -1,6 +1,6 @@
 #!name=九号智能电动车 · 单号自动签到
 #!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；CRON 控制签到时间。
-#!author=❥﹒﹏非我不可 & QinyRui
+#!author=QinyRui
 #!version=2.6
 #!homepage=https://t.me/JiuHaoAPP
 #!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
