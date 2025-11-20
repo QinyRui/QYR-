@@ -1,32 +1,68 @@
-#!name=九号智能电动车 · 单账号自动签到
-#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；CRON 控制自动签到。
-#!author=❥﹒﹏非我不可 & QinyRui
-#!version=2.6
-#!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
-#!system=ios
-#!icon-color=#0A84FF
+(async () => {
+    const cfg = {
+        debug: $argument.enable_debug === "true",
+        notify: $argument.enable_notify === "true",
+        autoOpenBox: $argument.enable_openbox === "true",
+        autoRepair: $argument.enable_supplement === "true",
+        autoApplyBeta: $argument.enable_internal_test === "true",
+        titlePrefix: $argument.notify_title || "九号签到"
+    };
 
-####################################
-#             UI 设置
-####################################
-[Argument]
-enable_debug = switch, "false", "true", tag = 调试日志开关
-enable_notify = switch, "true", "false", tag = 通知开关
-enable_openbox = switch, "true", "false", tag = 自动盲盒开关
-enable_supplement = switch, "true", "false", tag = 自动补签开关
-enable_internal_test = switch, "false", "true", tag = 内测申请开关
-enable_capture = switch, "false", "true", tag = 抓包写入开关
-notify_title = input, "九号签到助手", tag = 自定义通知标题
-cron_time = input, "10 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
+    if(cfg.debug) console.log("🟢 开始执行九号签到脚本...");
 
-####################################
-#            Script
-####################################
-[Script]
+    // ---------- 获取签到状态 ----------
+    const st = await getStatus();
+    if(cfg.debug) console.log("📄 当前连续签到天数:", st?.data?.consecutiveDays || 0);
 
-# ① 抓包写入（只写入一次通知）
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag=九号-抓包写入, timeout=10, enable={enable_capture}
+    // ---------- 执行签到 ----------
+    const sign = await doSign();
+    if(cfg.debug) console.log("📄 签到结果:", sign?.msg);
 
-# ② 自动签到（由用户 CRON 控制）
-cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag=九号-自动签到, timeout=120
+    // ---------- 获取余额 ----------
+    const bal = await getBalance();
+    if(cfg.debug) console.log("📄 N币余额:", bal?.data?.balance);
+
+    // ---------- 获取盲盒任务 ----------
+    const box = await getBlindBox();
+    if(cfg.debug) console.log("📄 盲盒任务列表结果:", box?.data?.notOpenedBoxes);
+
+    // ---------- 自动开启盲盒 ----------
+    if(cfg.autoOpenBox && box?.data?.notOpenedBoxes?.length){
+        for(const b of box.data.notOpenedBoxes){
+            if(b.leftDaysToOpen === 0){
+                const reward = await openBox(b.awardDays);
+                if(cfg.debug) console.log(`🎁 ${b.awardDays}天盲盒领取结果:`, reward);
+            }
+        }
+    }
+
+    // ---------- 内测申请 ----------
+    let beta;
+    if(cfg.autoApplyBeta) beta = await applyBeta();
+
+    // ---------- 构建美化通知 ----------
+    let notifyLines = [];
+    notifyLines.push("📝 签到结果：" + (sign?.code === 0 ? "签到成功" : (sign?.msg || "已签到，不能重复签到")));
+    if(st?.code === 0){
+        notifyLines.push(`📅 连续签到：${st.data?.consecutiveDays || 0} 天`);
+        notifyLines.push(`🎫 补签卡：${st.data?.signCardsNum || 0} 张`);
+    }
+    if(bal?.code === 0){
+        notifyLines.push(`💰 N币余额：${bal.data?.balance || 0}`);
+    }
+    if(box?.data?.notOpenedBoxes?.length){
+        notifyLines.push("🎁 盲盒任务：");
+        box.data.notOpenedBoxes.forEach(b=>{
+            let days = b.awardDays || "?";
+            let left = b.leftDaysToOpen ?? "?";
+            notifyLines.push(`   🔹 ${days}天盲盒，还需 ${left} 天`);
+        });
+    }
+    if(beta){
+        if(beta?.data?.qualified) notifyLines.push("🚀 已获得内测资格");
+        else notifyLines.push("⚠️ 未获得内测资格" + (cfg.autoApplyBeta ? " → 自动申请" : ""));
+    }
+
+    if(cfg.notify) $notification.post(cfg.titlePrefix, "", notifyLines.join("\n"));
+    if(cfg.debug) console.log("✅ 脚本执行完成.");
+})();
