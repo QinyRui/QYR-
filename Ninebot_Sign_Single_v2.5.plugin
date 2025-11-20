@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；手动签到 + CRON 控制；自动盲盒、补签、内测开关
+#!desc=支持手动填写或抓包自动写入 Authorization / DeviceId / User-Agent；调试日志、通知、盲盒、补签、内测开关；手动签到 + CRON 自动签到
 #!author=❥﹒﹏非我不可 & QinyRui
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
@@ -18,11 +18,11 @@ enable_supplement = switch, "true", "false", tag = 自动补签开关
 enable_internal_test = switch, "false", "true", tag = 内测申请开关
 
 notify_title = input, "九号签到助手", tag = 自定义通知标题
-cron_time = input, "10 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
+cron_time = input, "10 8 * * *", tag = 自动签到 CRON（修改此项改变执行时间）
 
-Authorization = input, "", tag = Authorization（手动或抓包）
-DeviceId = input, "", tag = DeviceId（手动或抓包）
-UserAgent = input, "", tag = User-Agent（手动或抓包）
+Authorization = input, "", tag = Authorization（手动填写或抓包）
+DeviceId = input, "", tag = DeviceId（手动填写或抓包）
+UserAgent = input, "", tag = User-Agent（手动填写或抓包）
 
 enable_manual_sign = switch, "false", "true", tag = 手动签到开关
 enable_capture = switch, "false", "true", tag = 抓包写入开关
@@ -32,7 +32,7 @@ enable_capture = switch, "false", "true", tag = 抓包写入开关
 ####################################
 [Script]
 
-# ① 抓包写入（可选）
+# ① 抓包写入 Authorization / DeviceId
 http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10, enable = {enable_capture}
 
 # ② 自动签到（由用户 CRON 控制）
