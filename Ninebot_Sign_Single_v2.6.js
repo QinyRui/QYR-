@@ -36,11 +36,11 @@ if (isReq && cfg.enable_capture) {
             write(dev, "ninebot.deviceId");
             write(ua, "ninebot.userAgent");
             write(now, "ninebot_last_write");
-            console.log("[Ninebot] ✅ 抓包写入成功");
+            console.log(`[${new Date().toLocaleString()}] [Ninebot] ✅ 抓包写入成功`);
             if(cfg.notify) notify(cfg.titlePrefix, "抓包写入成功", "Authorization / DeviceId / User-Agent 已写入");
         }
     } catch (e) {
-        console.log("[Ninebot] 抓包写入异常：", e);
+        console.error(`[${new Date().toLocaleString()}] [Ninebot] 抓包写入异常：`, e);
     }
     $done({});
 }
@@ -49,7 +49,10 @@ if (isReq && cfg.enable_capture) {
 function httpPost({url, headers, body="{}"}) {
     return new Promise((resolve, reject)=>{
         $httpClient.post({url, headers, body}, (err, resp, data)=>{
-            if(err) reject(err);
+            if(err) {
+                console.error(`[${new Date().toLocaleString()}] [Ninebot] HTTP POST 请求失败：`, err);
+                reject(err);
+            }
             else {
                 try { resolve(JSON.parse(data || "{}")); } catch { resolve({raw:data}); }
             }
@@ -60,7 +63,10 @@ function httpPost({url, headers, body="{}"}) {
 function httpGet({url, headers}) {
     return new Promise((resolve, reject)=>{
         $httpClient.get({url, headers}, (err, resp, data)=>{
-            if(err) reject(err);
+            if(err) {
+                console.error(`[${new Date().toLocaleString()}] [Ninebot] HTTP GET 请求失败：`, err);
+                reject(err);
+            }
             else {
                 try { resolve(JSON.parse(data || "{}")); } catch { resolve({raw:data}); }
             }
@@ -71,7 +77,7 @@ function httpGet({url, headers}) {
 // ---------- 主流程 ----------
 !(async()=>{
     let notifyBody = "";
-    console.log("[Ninebot] 开始执行九号签到脚本...");
+    console.log(`[${new Date().toLocaleString()}] [Ninebot] -------------------- 开始执行九号签到脚本 --------------------`);
 
     const Authorization = read("ninebot.authorization") || "";
     const DeviceId = read("ninebot.deviceId") || "";
@@ -103,15 +109,15 @@ function httpGet({url, headers}) {
     };
 
     try{
-        console.log("[Ninebot] 获取签到状态...");
+        console.log(`[${new Date().toLocaleString()}] [Ninebot] 获取签到状态...`);
         const st = await httpGet({url:END.status, headers});
-        console.log("[Ninebot] 当前连续签到天数:", st.data?.consecutiveDays || 0);
+        console.log(`[${new Date().toLocaleString()}] [Ninebot] 当前连续签到天数:`, st.data?.consecutiveDays || 0);
 
-        console.log("[Ninebot] 开始签到...");
+        console.log(`[${new Date().toLocaleString()}] [Ninebot] 开始签到...`);
         const sign = await httpPost({url:END.sign, headers, body:JSON.stringify({deviceId:DeviceId})});
         notifyBody += `签到结果: ${sign.msg || "未知"}\n`;
 
-        console.log("[Ninebot] 签到返回:", sign);
+        console.log(`[${new Date().toLocaleString()}] [Ninebot] 签到返回:`, sign);
 
         const bal = await httpGet({url:END.balance, headers});
         notifyBody += `N币余额: ${bal.data?.balance || 0}\n`;
@@ -124,14 +130,14 @@ function httpGet({url, headers}) {
             if(cfg.autoOpenBox && (b.leftDaysToOpen === 0)){
                 const r = await httpPost({url:END.blindBoxReceive, headers, body:JSON.stringify({})});
                 notifyBody += `→ ${b.awardDays}天盲盒领取结果: ${r.data?.rewardType===1?"经验":"N币"} +${r.data?.rewardValue || 0}\n`;
-                console.log(`[Ninebot] ${b.awardDays}天盲盒领取结果:`, r);
+                console.log(`[${new Date().toLocaleString()}] [Ninebot] ${b.awardDays}天盲盒领取结果:`, r);
             }
         }
 
         if(cfg.notify) notify(cfg.titlePrefix, "签到结果", notifyBody);
-        console.log("[Ninebot] 脚本执行完成.");
+        console.log(`[${new Date().toLocaleString()}] [Ninebot] -------------------- 脚本执行完成. --------------------`);
     }catch(e){
-        console.log("[Ninebot] 主流程异常:", e);
+        console.error(`[${new Date().toLocaleString()}] [Ninebot] 主流程异常:`, e);
         if(cfg.notify) notify(cfg.titlePrefix, "脚本异常", String(e));
     }
 
