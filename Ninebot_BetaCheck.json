@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "name": "九号内测资格检测",
+  "author": "QinyRui",
+  "description": "检测九号电动车内测资格，自动申请内测，支持重试和通知",
+  "configs": [
+    {"key": "ninebot.authorization", "name": "Authorization", "type": "text"},
+    {"key": "ninebot.deviceId", "name": "DeviceId", "type": "text"},
+    {"key": "ninebot.autoApplyBeta", "name": "自动申请内测", "type": "boolean", "default": true},
+    {"key": "ninebot.notify", "name": "推送通知", "type": "boolean", "default": true},
+    {"key": "ninebot.debug", "name": "调试日志", "type": "boolean", "default": false},
+    {"key": "ninebot.titlePrefix", "name": "通知标题前缀", "type": "text", "default": "九号内测"}
+  ],
+  "scripts": [
+    {
+      "name": "Ninebot_BetaCheck",
+      "path": "https://raw.githubusercontent.com/你的仓库/Ninebot_BetaCheck.js",
+      "type": "cron",
+      "interval": 1440,
+      "tag": "九号内测检测"
+    }
+  ]
+}
