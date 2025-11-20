@@ -1,5 +1,5 @@
 #!name=九号智能电动车 · 单账号自动签到
-#!desc=支持抓包或手动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；手动签到 + CRON 控制（不依赖 BoxJS）。
+#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；手动签到 + CRON 控制；自动盲盒、补签、内测开关
 #!author=❥﹒﹏非我不可 & QinyRui
 #!version=2.5
 #!homepage=https://t.me/JiuHaoAPP
@@ -11,41 +11,32 @@
 #             UI 设置
 ####################################
 [Argument]
-# 布尔开关用 switch, 默认值用 "true"/"false"
 enable_debug = switch, "false", "true", tag = 调试日志开关
 enable_notify = switch, "true", "false", tag = 通知开关
 enable_openbox = switch, "true", "false", tag = 自动盲盒开关
 enable_supplement = switch, "true", "false", tag = 自动补签开关
 enable_internal_test = switch, "false", "true", tag = 内测申请开关
 
-# 文本输入
 notify_title = input, "九号签到助手", tag = 自定义通知标题
 cron_time = input, "10 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
 
-# 请在这里手动填写或通过抓包自动写入（抓包写入需打开下面的“抓包写入开关”）
-ui_Authorization = input, "", tag = Authorization（手动或抓包）
-ui_DeviceId = input, "", tag = DeviceId（手动或抓包）
-ui_UserAgent = input, "", tag = User-Agent（手动或抓包）
+Authorization = input, "", tag = Authorization（手动或抓包）
+DeviceId = input, "", tag = DeviceId（手动或抓包）
+UserAgent = input, "", tag = User-Agent（手动或抓包）
 
-enable_manual_sign = switch, "false", "true", tag = 手动签到（打开后可点击执行）
-enable_capture = switch, "false", "true", tag = 抓包写入开关（打开后 http-request 触发写入）
-enable_save_ui_to_store = switch, "false", "true", tag = 点击后将 UI 填写的值保存到插件存储（需手动执行一次）
+enable_manual_sign = switch, "false", "true", tag = 手动签到开关
+enable_capture = switch, "false", "true", tag = 抓包写入开关
 
 ####################################
 #            Script
 ####################################
 [Script]
 
-# ① 抓包写入（可选）—— 当 enable_capture=true 并匹配到 ninebot 域名时，会触发脚本写入 headers
+# ① 抓包写入（可选）
 http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10, enable = {enable_capture}
 
 # ② 自动签到（由用户 CRON 控制）
 cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120
 
-# ③ 手动签到（打开开关后可在 Loon 界面手动运行此脚本）
-script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, enable = {enable_manual_sign}, timeout = 120, manual = true
-
-# ④ 把 UI 填写的值写入持久化（点击执行一次即可保存 UI 值到 $persistentStore）
-script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_SaveUIToStore_v1.0.js, tag = 九号-保存UI配置, enable = {enable_save_ui_to_store}, timeout = 10, manual = true
-
-# 你可以将以上三条都订阅到 Loon，UI 开关会显示在插件详情页
+# ③ 手动签到（开关控制）
+cron 0 0 * * * script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, enable = {enable_manual_sign}, timeout = 120
