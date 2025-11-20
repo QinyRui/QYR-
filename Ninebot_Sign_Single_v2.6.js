@@ -140,7 +140,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
     log("盲盒任务列表结果：", box);
     const notOpened = box?.data?.notOpenedBoxes || [];
     if (notOpened.length > 0) {
-      notifyBody += `\n• 盲盒任务：`;
+      notifyBody += `\n• 🎁盲盒任务：`;
       for (const b of notOpened) {
         const days = b.awardDays;
         const left = b.leftDaysToOpen ?? "?";
