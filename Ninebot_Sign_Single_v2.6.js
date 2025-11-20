@@ -6,154 +6,134 @@
 */
 
 const isReq = typeof $request !== "undefined" && $request.headers;
-const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
-const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
+const read = k => typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null;
+const write = (v, k) => typeof $persistentStore !== "undefined" ? $persistentStore.write(v, k) : null;
+const notify = (t, s, b) => { if(typeof $notification !== "undefined") $notification.post(t, s, b); };
+const log = (...args) => { if(read("ninebot.debug")==="true") console.log("[Ninebot]", ...args); }
 
-const KEY_AUTH = "ninebot.authorization";
-const KEY_DEV = "ninebot.deviceId";
-const KEY_UA = "ninebot.userAgent";
-const KEY_DEBUG = "ninebot.debug";
-const KEY_NOTIFY = "ninebot.notify";
-const KEY_AUTOBOX = "ninebot.autoOpenBox";
-const KEY_AUTOREPAIR = "ninebot.autoRepair";
-const KEY_AUTOAPPLYBETA = "ninebot.autoApplyBeta";
-const KEY_NOTIFYFAIL = "ninebot.notifyFail";
-const KEY_TITLE = "ninebot.titlePrefix";
+// ---------- HTTP helpers + 重试 ----------
+async function httpPost({ url, headers, body="{}" }) {
+  return new Promise((resolve, reject) => {
+    $httpClient.post({ url, headers, body }, (err, resp, data) => {
+      if(err) reject(err);
+      else {
+        try { resolve(JSON.parse(data||"{}")); } catch { resolve({ raw:data }); }
+      }
+    });
+  });
+}
+async function httpGet({ url, headers }) {
+  return new Promise((resolve, reject) => {
+    $httpClient.get({ url, headers }, (err, resp, data) => {
+      if(err) reject(err);
+      else {
+        try { resolve(JSON.parse(data||"{}")); } catch { resolve({ raw:data }); }
+      }
+    });
+  });
+}
+async function retry(fn, times=3, delay=2000){
+  for(let i=0;i<times;i++){
+    try{ return await fn(); }
+    catch(e){ log(`请求失败，第${i+1}次重试`, e); if(i===times-1) throw e; await new Promise(r=>setTimeout(r, delay)); }
+  }
+}
 
-// ---------- 读取配置 ----------
+// ---------- 延迟首次请求 ----------
+await new Promise(r=>setTimeout(r,1000));
+
+// ---------- 读取 BoxJS 配置 ----------
 const cfg = {
-  Authorization: read(KEY_AUTH) || "",
-  DeviceId: read(KEY_DEV) || "",
-  userAgent: read(KEY_UA) || "",
-  debug: read(KEY_DEBUG) === "false" ? false : true,
-  notify: read(KEY_NOTIFY) === "false" ? false : true,
-  autoOpenBox: read(KEY_AUTOBOX) === "true",
-  autoRepair: read(KEY_AUTOREPAIR) === "true",
-  autoApplyBeta: read(KEY_AUTOAPPLYBETA) === "true",
-  notifyFail: read(KEY_NOTIFYFAIL) === "false" ? false : true,
-  titlePrefix: read(KEY_TITLE) || "九号签到"
+  debug: read("ninebot.debug")==="true",
+  notify: read("ninebot.notify")==="true",
+  autoOpenBox: read("ninebot.autoOpenBox")==="true",
+  autoRepair: read("ninebot.autoRepair")==="true",
+  autoApplyBeta: read("ninebot.autoApplyBeta")==="true",
+  titlePrefix: read("ninebot.titlePrefix") || "九号签到",
+  Authorization: read("ninebot.authorization"),
+  DeviceId: read("ninebot.deviceId"),
+  userAgent: read("ninebot.userAgent")
 };
 
-if (!cfg.Authorization || !cfg.DeviceId) {
-  notify(cfg.titlePrefix, "未配置 Token", "请先开启抓包并在九号 App 里操作以写入 Authorization 与 DeviceId");
+if(!cfg.Authorization || !cfg.DeviceId){
+  notify(cfg.titlePrefix,"未配置 Token","请先开启抓包写入 Authorization / DeviceId / User-Agent");
   $done();
 }
 
-// ---------- HTTP helpers ----------
-function httpPost({ url, headers, body = "{}" }) {
-  return new Promise((resolve, reject) => {
-    $httpClient.post({ url, headers, body }, (err, resp, data) => {
-      if (err) reject(err);
-      else {
-        try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
-      }
-    });
-  });
-}
-
-function httpGet({ url, headers }) {
-  return new Promise((resolve, reject) => {
-    $httpClient.get({ url, headers }, (err, resp, data) => {
-      if (err) reject(err);
-      else {
-        try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
-      }
-    });
-  });
-}
-
-// ---------- Endpoints ----------
+// ---------- HTTP 请求头 ----------
 const headers = {
   "Authorization": cfg.Authorization,
-  "Content-Type": "application/json",
+  "Content-Type":"application/json",
   "device_id": cfg.DeviceId,
-  "User-Agent": cfg.userAgent || "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6",
-  "platform": "h5",
-  "Origin": "https://h5-bj.ninebot.com",
-  "language": "zh"
+  "User-Agent": cfg.userAgent || "Mozilla/5.0 (iPhone) Mobile",
+  "platform":"h5",
+  "Origin":"https://h5-bj.ninebot.com",
+  "language":"zh"
 };
-
-const END = {
-  sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
-  status: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
-  blindBoxList: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
-  blindBoxReceive: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive",
-  repair: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair",
-  balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-  betaStatus: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status"
-};
-
-// ---------- 辅助函数 ----------
-function log(...args){ if(cfg.debug) console.log("[Ninebot]", ...args); }
-function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); } }
 
 // ---------- 主流程 ----------
-!(async () => {
+!(async ()=>{
   let notifyBody = "";
 
-  try {
+  try{
+    log("开始执行九号签到脚本...");
+
     // 1) 签到
-    log("开始签到请求");
-    const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({deviceId: cfg.DeviceId}) });
-    log("签到返回：", sign);
-    if (sign && sign.code === 0) notifyBody += `🎉 签到成功\n🎁 +${sign.data?.nCoin || sign.data?.score || 0} N币`;
-    else if (sign && sign.code === 540004) notifyBody += `⚠️ 今日已签到`;
-    else {
-      notifyBody += `❌ 签到失败：${(sign && (sign.msg || safeStr(sign))) || "未知"}`;
-      if(!cfg.notifyFail) notifyBody = "";
-    }
+    log("开始签到...");
+    const sign = await retry(()=>httpPost({url:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign", headers, body: JSON.stringify({deviceId: cfg.DeviceId})}));
+    log("签到结果:", sign);
+    if(sign.code===0) notifyBody+=`🎉 签到成功 +${sign.data?.nCoin||sign.data?.score||0} N币`;
+    else if(sign.code===540004) notifyBody+="⚠️ 今日已签到";
+    else notifyBody+=`❌ 签到失败: ${sign.msg||JSON.stringify(sign)}`;
 
     // 2) 状态
-    const st = await httpGet({ url: END.status, headers });
-    log("状态返回：", st);
-    if (st && st.code === 0) {
-      const data = st.data || {};
-      const days = data.consecutiveDays || data.continuousDays || 0;
-      const cards = data.signCardsNum || data.remedyCard || 0;
-      notifyBody += `\n🗓 连续签到：${days} 天\n🎫 补签卡：${cards} 张`;
-    }
+    const status = await retry(()=>httpGet({url:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status", headers}));
+    log("当前连续签到天数:", status.data?.consecutiveDays);
+    notifyBody+=`\n🗓 连续签到: ${status.data?.consecutiveDays||0} 天\n🎫 补签卡: ${status.data?.signCardsNum||0} 张`;
 
     // 3) 余额
-    const bal = await httpGet({ url: END.balance, headers });
-    log("余额返回：", bal);
-    if (bal && bal.code === 0) notifyBody += `\n💰 N币余额：${bal.data?.balance || 0}`;
+    const balance = await retry(()=>httpGet({url:`https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606`, headers}));
+    log("N币余额:", balance.data?.balance);
+    notifyBody+=`\n💰 N币余额: ${balance.data?.balance||0}`;
 
     // 4) 盲盒
-    const box = await httpGet({ url: END.blindBoxList, headers });
-    log("盲盒返回：", box);
-    const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
-    if (Array.isArray(notOpened) && notOpened.length > 0) {
-      notifyBody += `\n\n📦 盲盒任务：`;
-      notOpened.forEach(b => {
-        const days = b.awardDays || b.boxDays || b.days || "?";
-        const left = b.leftDaysToOpen || b.diffDays || "?";
-        notifyBody += `\n- ${days}天盲盒，还需 ${left} 天`;
-      });
+    const box = await retry(()=>httpGet({url:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list", headers}));
+    log("获取盲盒任务列表...");
+    notifyBody+="\n📦 盲盒任务:";
+    (box.data?.notOpenedBoxes||[]).forEach(b=>{
+      notifyBody+=`\n- ${b.awardDays}天盲盒，还需${b.leftDaysToOpen}天`;
+      if(cfg.autoOpenBox && b.leftDaysToOpen===0){
+        retry(()=>httpPost({url:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive", headers, body:"{}"}))
+          .then(r=>log(`${b.awardDays}天盲盒领取结果:`, r))
+          .catch(e=>log(`${b.awardDays}天盲盒领取异常:`, e));
+      }
+    });
 
-      if (cfg.autoOpenBox) {
-        const ready = notOpened.filter(b => (b.leftDaysToOpen === 0 || b.diffDays === 0) && (b.rewardStatus === 2 || b.status === 2));
-        if (ready.length > 0) {
-          notifyBody += `\n\n🎉 自动开启盲盒：`;
-          for (const b of ready) {
-            try {
-              const r = await httpPost({ url: END.blindBoxReceive, headers, body: "{}" });
-              log("盲盒领取返回：", r);
-              if (r && r.code === 0) notifyBody += `\n🎁 ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || r.data?.score || "未知"}`;
-              else notifyBody += `\n❌ ${b.awardDays || b.boxDays}天盲盒领取失败`;
-            } catch (e) { log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
-          }
-        }
+    // 5) 补签
+    if(cfg.autoRepair && status.data?.signCardsNum>0){
+      const rep = await retry(()=>httpPost({url:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair", headers, body:"{}"}));
+      log("自动补签返回:", rep);
+      notifyBody+=`\n🔧 自动补签: ${rep.code===0?"成功":"失败"}`;
+    }
+
+    // 6) 内测
+    if(cfg.autoApplyBeta){
+      const beta = await retry(()=>httpGet({url:"https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status", headers}));
+      log("内测状态:", beta);
+      if(!beta.data?.qualified){
+        const apply = await retry(()=>httpPost({url:"https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration", headers, body: JSON.stringify({deviceId:cfg.DeviceId})}));
+        log("内测申请返回:", apply);
       }
     }
 
-    // ✅ 最终通知
+    // ✅ 通知
     if(cfg.notify) notify(cfg.titlePrefix,"签到结果",notifyBody);
 
-  } catch (e) {
-    log("主流程异常：", e);
+    log("脚本执行完成.");
+  }catch(e){
+    log("脚本异常:", e);
     if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
   }
 
   $done();
-})();
+})();})();
