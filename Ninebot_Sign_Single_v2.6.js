@@ -1,210 +1,177 @@
 /*
-🛵 九号智能电动车 · 自动签到（单账号）
-版本：v2.6
-作者：❥﹒﹏非我不可 & QinyRui
-更新：2025-11-21
-支持：自动签到 + 自动盲盒 + 自动补签 + 自动内测申请 + 抓包写入 + B 级美化通知
+📱 九号智能电动车自动签到 · 单账号版（v2.6）
+👤 作者：❥﹒﹏非我不可 & QinyRui
+📅 更新时间：2025-02
+📌 功能：签到、补签、盲盒、抓包写入、内测申请、美化通知
 */
 
 const $ = new Env("九号智能电动车签到");
 
-const STORAGE_KEY = "NINEBOT_ACCOUNT";
-let account = $.getdata(STORAGE_KEY) ? JSON.parse($.getdata(STORAGE_KEY)) : {};
+// ========== 配置项 ==========
+const TITLE = $.getdata("ninebot_notify_title") || "九号签到助手";
+const ENABLE_DEBUG = $.getdata("ninebot_enable_debug") === "true";
+const ENABLE_NOTIFY = $.getdata("ninebot_enable_notify") !== "false";
+const ENABLE_OPENBOX = $.getdata("ninebot_enable_openbox") !== "false";
+const ENABLE_SUPPLEMENT = $.getdata("ninebot_enable_supplement") !== "false";
+const ENABLE_INTERNAL = $.getdata("ninebot_enable_internal_test") === "true";
 
-const NEED_HEADER = ["Authorization", "DeviceId", "User-Agent"];
+// 抓包写入
+const enable_capture = $.getdata("ninebot_enable_capture") === "true";
 
-// =====================================
-// ① 抓包写入模块（只写一次通知）
-// =====================================
-if (typeof $request !== "undefined" && $request.headers) {
-  let changed = false;
-  NEED_HEADER.forEach(key => {
-    const v = $request.headers[key] || $request.headers[key.toLowerCase()];
-    if (v && account[key] !== v) {
-      account[key] = v;
-      changed = true;
+let Authorization = $.getdata("Ninebot_Authorization");
+let DeviceId = $.getdata("Ninebot_DeviceId");
+let UserAgent = $.getdata("Ninebot_UA") || "Mozilla/5.0";
+
+
+// ========== 抓包写入 ==========
+if (typeof $request !== "undefined" && enable_capture) {
+    const headers = $request.headers;
+
+    if (headers.authorization) {
+        $.setdata(headers.authorization, "Ninebot_Authorization");
     }
-  });
+    if (headers["device_id"]) {
+        $.setdata(headers["device_id"], "Ninebot_DeviceId");
+    }
+    if (headers["user-agent"]) {
+        $.setdata(headers["user-agent"], "Ninebot_UA");
+    }
 
-  if (changed) {
-    $.setdata(JSON.stringify(account), STORAGE_KEY);
+    $.notify("九号抓包写入成功", "已自动写入以下信息：", "Authorization\nDeviceId\nUser-Agent\n现在可以关闭抓包");
+    $.done();
+}
+
+
+// ========== 无配置时提醒 ==========
+if (!Authorization || !DeviceId) {
     $.notify(
-      "🛵 九号抓包写入成功",
-      "",
-      `已自动写入以下信息：\n- Authorization\n- DeviceId\n- User-Agent\n\n现在可以关闭抓包`
+        "九号签到 · 配置缺失",
+        "",
+        "未找到 Authorization / DeviceId\n请开启抓包写入并重新打开九号 App"
     );
-  }
-
-  $.done({});
+    $.done();
 }
 
-// =====================================
-// ② 主逻辑 · 自动签到
-// =====================================
+
+// ========== 主流程 ==========
 !(async () => {
-  if (!account.Authorization || !account["DeviceId"]) {
-    $.notify("九号签到 · 配置缺失", "", "未找到 Authorization / DeviceId，请先打开九号 APP 抓包写入。");
-    return $.done();
-  }
+    log("🟩 开始执行九号自动签到...");
 
-  const headers = {
-    Authorization: account.Authorization,
-    DeviceId: account["DeviceId"],
-    "User-Agent": account["User-Agent"] || "ningbo"
-  };
+    const signInfo = await doSign();         // 签到
+    const statusInfo = await getStatus();    // 签到状态（连续签到/补签卡）
+    const balanceInfo = await getBalance();  // N币余额
+    const boxInfo = await getBlindBox();     // 盲盒任务
 
-  // ==============================
-  // 签到
-  // ==============================
-  const signRes = await request("POST", "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign", headers);
-
-  let signStatus = signRes?.msg || signRes?.data?.signMessage || "未知";
-  let continueDays = signRes?.data?.continuityDays || 0;
-  let repairCard = signRes?.data?.makeUpCardCount || 0;
-
-  // ==============================
-  // 余额
-  // ==============================
-  const balanceRes = await request("GET", "https://cn-cbu-gateway.ninebot.com/portal/api/user/balance", headers);
-  const coin = balanceRes?.data?.nbalance || 0;
-
-  // ==============================
-  // 盲盒任务
-  // ==============================
-  const boxRes = await request("GET", "https://cn-cbu-gateway.ninebot.com/portal/api/sign/blind-box/list", headers);
-  const blindBoxList = (boxRes?.data || []).map(box => ({
-    name: `${box.boxDay}天盲盒`,
-    leftDays: box.leftDays
-  }));
-
-  // ==============================
-  // 内测资格 + 自动申请
-  // ==============================
-  const betaRes = await request("GET", "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/status", headers);
-  let internalTest = betaRes?.data?.betaStatus || "未知";
-
-  let internalApplyError = null;
-
-  if (internalTest !== "SUCCESS") {
-    const applyRes = await request(
-      "POST",
-      "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration",
-      headers
-    );
-    if (applyRes?.status !== 200 && applyRes?.code !== 0) {
-      internalApplyError = JSON.stringify(applyRes, null, 2);
+    let openBoxResult = "";
+    if (ENABLE_OPENBOX) {
+        openBoxResult = await autoOpenBox(boxInfo);
     }
-  }
 
-  // ==============================
-  // B 级美化通知
-  // ==============================
-  sendPrettyNotify({
-    signStatus,
-    continueDays,
-    repairCard,
-    coin,
-    blindBoxList,
-    internalTest,
-    internalApplyError
-  });
+    let supplementResult = "";
+    if (ENABLE_SUPPLEMENT) {
+        supplementResult = await autoSupplement(statusInfo);
+    }
 
-  $.done();
-})();
+    let internalResult = "";
+    if (ENABLE_INTERNAL) {
+        internalResult = await applyInternalTest();
+    }
 
-// =====================================
-// HTTP 封装
-// =====================================
-function request(method, url, headers, body = null) {
-  return new Promise(resolve => {
-    $.send(
-      {
-        url,
-        method,
-        headers,
-        body
-      },
-      (err, resp, data) => {
-        if (err) return resolve({ error: err });
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          resolve({ parse_error: e, raw: data });
-        }
-      }
-    );
-  });
-}
+    // ========== 美化通知内容 ==========
+    const msg = `
+📌 *九号今日结果*
 
-// ==========================================
-// 🛵 B 风格美化通知模块（最终版）
-// ==========================================
-function sendPrettyNotify(result) {
-  const {
-    signStatus,
-    continueDays,
-    repairCard,
-    coin,
-    blindBoxList,
-    internalTest,
-    internalApplyError
-  } = result;
+① *签到结果*
+• 状态：${signInfo.msg}
+• 连续签到：${statusInfo.continuousDays} 天
+• 补签卡：${statusInfo.supplyCard} 张
+• N币余额：${balanceInfo} 
 
-  const blindBoxText = blindBoxList
-    .map(box => `• 🎁 ${box.name}：还需 **${box.leftDays} 天**`)
-    .join("\n");
+② *盲盒任务*
+${formatBox(boxInfo)}
 
-  let internalText = `• 📌 当前状态：**${internalTest}**`;
-  if (internalApplyError) {
-    internalText += `\n• ❌ 自动申请失败：\n\`\`\`\n${internalApplyError}\n\`\`\``;
-  }
-
-  const notifyBody = `
-🛵 **九号 · 今日结果**
-
-**① 签到状态**  
-• 📅 今日签到：**${signStatus}**  
-• 🔁 连续签到：**${continueDays} 天**  
-• 🎟️ 补签卡：**${repairCard} 张**  
-• 💰 N 币余额：**${coin}**
-
----
-
-**② 盲盒任务**  
-${blindBoxText}
-
----
-
-**③ 内测资格状态**  
-${internalText}
+${openBoxResult ? "③ 自动盲盒：\n" + openBoxResult : ""}
+${supplementResult ? "④ 自动补签：\n" + supplementResult : ""}
+${internalResult ? "⑤ 内测状态：\n" + internalResult : ""}
 `;
 
-  $.notify("🛵 九号 · 今日结果", "", notifyBody);
+    if (ENABLE_NOTIFY) $.notify("🛵 九号签到 • 今日结果", "", msg);
+
+})().finally(() => $.done());
+
+
+// ======= API 封装 =======
+function doSign() {
+    return request("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign", "POST");
 }
 
-// =====================================
-// Env 环境
-// =====================================
-function Env(t) {
-  return new class {
-    constructor(name) {
-      this.name = name;
-    }
-    getdata(key) {
-      return $persistentStore.read(key);
-    }
-    setdata(val, key) {
-      return $persistentStore.write(val, key);
-    }
-    notify(title, sub, body) {
-      $notification.post(title, sub, body);
-    }
-    send(opts, cb) {
-      if (opts.method === "POST") $httpClient.post(opts, cb);
-      else $httpClient.get(opts, cb);
-    }
-    done(value = {}) {
-      $done(value);
-    }
-  }(t);
+function getStatus() {
+    return request("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status", "GET");
+}
+
+function getBalance() {
+    return request("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/balance", "GET");
+}
+
+function getBlindBox() {
+    return request("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list", "GET");
+}
+
+function receiveBox() {
+    return request("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive", "POST");
+}
+
+function applyInternalTest() {
+    return request("https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration", "POST");
+}
+
+
+// ===== 工具函数 =====
+function formatBox(list) {
+    if (!list || !list.length) return "暂无盲盒任务";
+
+    return list.map(i => `• ${i.days} 天盲盒，还需 ${i.leftDays} 天`).join("\n");
+}
+
+function log(msg) {
+    if (ENABLE_DEBUG) console.log(msg);
+}
+
+function request(url, method = "GET", body = null) {
+    return new Promise(resolve => {
+        const options = {
+            url,
+            method,
+            headers: {
+                Authorization,
+                device_id: DeviceId,
+                "User-Agent": UserAgent,
+                "content-type": "application/json"
+            }
+        };
+        if (body) options.body = JSON.stringify(body);
+
+        $.send(options, (err, resp, data) => {
+            if (err) return resolve({ msg: "请求失败", error: err });
+
+            try {
+                resolve(JSON.parse(data));
+            } catch {
+                resolve({ msg: "解析失败", raw: data });
+            }
+        });
+    });
+}
+
+
+// ========== Env ==========
+function Env(t, s) {
+    return new class {
+        constructor(t, s) { this.name = t, this.data = {}, this.logs = [] }
+        getdata(k) { return $persistentStore.read(k) }
+        setdata(v, k) { return $persistentStore.write(v, k) }
+        notify(t, s, m) { $notification.post(t, s, m) }
+        send(o, t) { $httpClient[o.method.toLowerCase()](o, t) }
+        done() { }
+    };
 }
