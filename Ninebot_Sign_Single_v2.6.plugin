@@ -1,119 +1,16 @@
-#!name=九号智能电动车 · 单号自动签到（v2.6）
-#!desc=支持抓包自动写入；调试日志、通知、自动盲盒、自动补签、内测申请开关；CRON 控制
-#!author=QinyRui & ❥﹒﹏非我不可
-#!version=2.6
-#!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
-#!system=ios
-#!icon-color=#0A84FF
-#!update=2025/11/21/16/30/00
+#!name=九号智能电动车自动签到（单账号）
+#!desc=自动抓包写入 Authorization & DeviceId，自动执行签到任务
+#!author=QinyRui（❥﹒﹏非我不可）
+#!update=2025-11-21
+#!version=v1.2
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/jiuhao/logo.png
 
-####################################
-#             UI 设置
-####################################
-[Argument]
-enable_debug = switch, "false", "true", tag = 调试日志开关
-enable_notify = switch, "true", "false", tag = 通知开关
-enable_openbox = switch, "true", "false", tag = 自动盲盒开关
-enable_supplement = switch, "true", "false", tag = 自动补签开关
-enable_internal_test = switch, "false", "true", tag = 内测申请开关
-enable_capture = switch, "false", "true", tag = 抓包写入开关
-
-notify_title = input, "九号签到助手", tag = 自定义通知标题
-cron_time = input, "10 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
-
-####################################
-#            Script
-####################################
 [Script]
+# 获取 Token（自动写入 BoxJS）
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/jiuhao/Ninebot_Sign_Share.js, tag=九号签到_写入Token
 
-# ① 抓包写入（可选）
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag=九号-抓包写入, timeout=10, enable={enable_capture}
+# 自动签到（定时任务）
+cron "15 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/jiuhao/Ninebot_Sign_Share.js, timeout=30, tag=九号智能电动车自动签到
 
-# ② 自动签到（由用户 CRON 控制）
-cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag=九号-自动签到, timeout=120
-
-####################################
-#       JS 主体 (v2.6)
-####################################
-
-// 配置对象（可由抓包自动写入）
-const cfg = {
-    debug: $argument.enable_debug === "true",
-    notify: $argument.enable_notify === "true",
-    autoOpenBox: $argument.enable_openbox === "true",
-    autoRepair: $argument.enable_supplement === "true",
-    autoApplyBeta: $argument.enable_internal_test === "true",
-    titlePrefix: $argument.notify_title || "九号签到助手"
-};
-
-(async function main() {
-    try {
-        if(cfg.debug) console.log("开始执行九号签到脚本...");
-
-        // ---------- 1. 获取签到状态 ----------
-        let st = await $httpClient.get("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status");
-        st = JSON.parse(st.body || "{}");
-        if(cfg.debug) console.log("当前签到状态:", st);
-
-        // ---------- 2. 执行签到 ----------
-        let sign = await $httpClient.post("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign");
-        sign = JSON.parse(sign.body || "{}");
-        if(cfg.debug) console.log("签到接口返回:", sign);
-
-        // ---------- 3. 获取余额 ----------
-        let bal = await $httpClient.get("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/balance");
-        bal = JSON.parse(bal.body || "{}");
-        if(cfg.debug) console.log("余额信息:", bal);
-
-        // ---------- 4. 获取盲盒列表 ----------
-        let box = await $httpClient.get("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list");
-        box = JSON.parse(box.body || "{}");
-        if(cfg.debug) console.log("盲盒任务列表:", box);
-
-        // ---------- 5. 自动领取盲盒 ----------
-        if(cfg.autoOpenBox && box?.data?.notOpenedBoxes?.length) {
-            for(let b of box.data.notOpenedBoxes){
-                if(b.leftDaysToOpen === 0){
-                    let reward = await $httpClient.post("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive", {body: JSON.stringify({awardDays:b.awardDays})});
-                    reward = JSON.parse(reward.body || "{}");
-                    if(cfg.debug) console.log(`盲盒领取 ${b.awardDays}天:`, reward);
-                }
-            }
-        }
-
-        // ---------- 6. 获取内测状态 ----------
-        let beta = await $httpClient.get("https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration");
-        beta = JSON.parse(beta.body || "{}");
-        if(cfg.debug) console.log("内测状态:", beta);
-
-        // ---------- 7. 构建通知 ----------
-        let notifyLines = [];
-        notifyLines.push("📌 签到结果：" + (sign?.code === 0 ? "签到成功" : (sign?.msg || "未知")));
-        if(st?.code === 0){
-            notifyLines.push(`🗓 连续签到：${st.data?.consecutiveDays || 0} 天`);
-            notifyLines.push(`🎫 补签卡：${st.data?.signCardsNum || 0} 张`);
-        }
-        if(bal?.code === 0) notifyLines.push(`💰 N币余额：${bal.data?.balance || 0}`);
-        if(box?.data?.notOpenedBoxes?.length){
-            notifyLines.push("🎁 盲盒任务：");
-            box.data.notOpenedBoxes.forEach(b=>{
-                let days = b.awardDays || "?";
-                let left = b.leftDaysToOpen ?? "?";
-                notifyLines.push(`   - ${days}天盲盒，还需 ${left} 天`);
-            });
-        }
-        if(beta){
-            if(beta?.data?.qualified) notifyLines.push("🚀 已获得内测资格");
-            else notifyLines.push("⚠️ 未获得内测资格" + (cfg.autoApplyBeta ? " → 自动申请" : ""));
-        }
-
-        if(cfg.notify) $notification.post(cfg.titlePrefix, "", notifyLines.join("\n"));
-
-        if(cfg.debug) console.log("脚本执行完成.");
-
-    } catch(e){
-        console.log("九号脚本异常:", e);
-        if(cfg.notify) $notification.post(cfg.titlePrefix, "脚本异常", e.message || e);
-    }
-})();
+[MITM]
+hostname = cn-cbu-gateway.ninebot.com
