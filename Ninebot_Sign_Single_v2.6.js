@@ -1,7 +1,7 @@
 /*
-📱 九号智能电动车 · 单号自动签到（v2.7）
+📱 九号智能电动车 · 单号自动签到（v2.8）
 👤 作者：QinyRui & ❥﹒﹏非我不可
-📆 更新日期：2025/11/21 16:00:00
+📆 更新日期：2025/11/21 16:05:00
 Telegram 群：https://t.me/JiuHaoAPP
 支持系统：iOS / iPadOS / macOS
 */
@@ -78,7 +78,7 @@ function httpGet({url, headers}) {
     const UserAgent = read("ninebot.userAgent") || "";
 
     if(!Authorization || !DeviceId){
-        notify(cfg.titlePrefix, "未配置 Token", "请先抓包写入 Authorization / DeviceId / User-Agent");
+        notify(cfg.titlePrefix, "❌ 未配置 Token", "请先抓包写入 Authorization / DeviceId / User-Agent");
         $done();
     }
 
@@ -103,38 +103,48 @@ function httpGet({url, headers}) {
     };
 
     try{
-        console.log("[Ninebot] 获取签到状态...");
+        console.log("[Ninebot] 正在获取签到状态...");
         const st = await httpGet({url:END.status, headers});
         const consecutiveDays = st.data?.consecutiveDays || 0;
-        console.log("[Ninebot] 当前连续签到天数:", consecutiveDays);
-        notifyBody += `连续签到: ${consecutiveDays} 天\n`; // 新增：将连续签到天数加入通知
-
-        console.log("[Ninebot] 开始签到...");
+        console.log(`[Ninebot] 连续签到: ${consecutiveDays} 天`);
+        
+        console.log("[Ninebot] 正在执行签到...");
         const sign = await httpPost({url:END.sign, headers, body:JSON.stringify({deviceId:DeviceId})});
-        notifyBody += `签到结果: ${sign.msg || "未知"}\n`;
-
-        console.log("[Ninebot] 签到返回:", sign);
+        console.log(`[Ninebot] 签到结果: ${sign.msg || "未知"}`);
+        
+        // --- 组合通知内容 ---
+        notifyBody += `🗓️ 连续签到: ${consecutiveDays} 天\n`;
+        notifyBody += `✅ 签到结果: ${sign.msg || "未知"}\n`;
 
         const bal = await httpGet({url:END.balance, headers});
-        notifyBody += `N币余额: ${bal.data?.balance || 0}\n`;
+        console.log(`[Ninebot] N币余额: ${bal.data?.balance || 0}`);
+        notifyBody += `💰 N币余额: ${bal.data?.balance || 0}\n`;
 
         const box = await httpGet({url:END.blindBoxList, headers});
-        notifyBody += `盲盒任务:\n`;
-        for(const b of box.data?.notOpenedBoxes || []){
-            notifyBody += `- ${b.awardDays}天盲盒，还需 ${b.leftDaysToOpen} 天\n`;
-            // 自动开启
-            if(cfg.autoOpenBox && (b.leftDaysToOpen === 0)){
-                const r = await httpPost({url:END.blindBoxReceive, headers, body:JSON.stringify({})});
-                notifyBody += `→ ${b.awardDays}天盲盒领取结果: ${r.data?.rewardType===1?"经验":"N币"} +${r.data?.rewardValue || 0}\n`;
-                console.log(`[Ninebot] ${b.awardDays}天盲盒领取结果:`, r);
+        notifyBody += `🎁 盲盒任务:\n`;
+        if ((box.data?.notOpenedBoxes || []).length === 0) {
+            notifyBody += `   - 暂无盲盒可开\n`;
+        } else {
+            for(const b of box.data.notOpenedBoxes){
+                notifyBody += `   - ${b.awardDays}天盲盒，还需 ${b.leftDaysToOpen} 天\n`;
+                // 自动开启
+                if(cfg.autoOpenBox && (b.leftDaysToOpen === 0)){
+                    const r = await httpPost({url:END.blindBoxReceive, headers, body:JSON.stringify({})});
+                    const rewardText = `${r.data?.rewardType===1?"经验":"N币"} +${r.data?.rewardValue || 0}`;
+                    notifyBody += `   - ✨ 领取成功: ${rewardText}\n`;
+                    console.log(`[Ninebot] ${b.awardDays}天盲盒领取结果:`, rewardText);
+                }
             }
         }
-
-        if(cfg.notify) notify(cfg.titlePrefix, "签到结果", notifyBody);
+        
+        // --- 日志输出与系统通知 ---
+        console.log("----------\n[Ninebot] 📢 通知内容预览:\n" + notifyBody + "\n----------");
+        if(cfg.notify) notify(cfg.titlePrefix, "签到完成", notifyBody);
         console.log("[Ninebot] 脚本执行完成.");
+
     }catch(e){
-        console.log("[Ninebot] 主流程异常:", e);
-        if(cfg.notify) notify(cfg.titlePrefix, "脚本异常", String(e));
+        console.log("[Ninebot] 脚本主流程发生异常:", e);
+        if(cfg.notify) notify(cfg.titlePrefix, "❌ 脚本异常", String(e));
     }
 
     $done();
