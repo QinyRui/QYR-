@@ -1,20 +1,21 @@
-{
-  "id": "ninebot.sign.single",
-  "name": "九号智能电动车 · 单号自动签到（v2.6）",
-  "author": "QinyRui & ❥﹒﹏非我不可",
-  "version": "2.6",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
-  "descs_html": [
-    "<h2>📱 九号智能电动车 · 自动签到（单账号）</h2>",
-    "<p>本 BoxJS 仅负责自动写入 Authorization、DeviceId、User-Agent。</p>",
-    "<p>所有开关（通知、盲盒、补签、内测、调试、抓包、CRON）均在 Loon 插件中控制。</p>",
-    "<p>📅 版本：v2.6</p>",
-    "<p>Telegram 群：<a href='https://t.me/JiuHaoAPP'>@JiuHaoAPP</a></p>"
-  ],
-
-  "keys": [
-    "ninebot.authorization",
-    "ninebot.deviceId",
-    "ninebot.userAgent"
-  ]
-}
+[
+  {
+    "id": "ninebot.sign.single",
+    "name": "九号智能电动车 · 单号自动签到（v2.6）",
+    "author": "QinyRui & ❥﹒﹏非我不可",
+    "version": "2.6",
+    "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
+    "descs_html": [
+      "<h2>📱 九号智能电动车 · 自动签到（单账号）</h2>",
+      "<p>本 BoxJS 仅负责自动写入 Authorization、DeviceId、User-Agent。</p>",
+      "<p>所有开关（通知、盲盒、补签、内测、调试、抓包、CRON）均在 Loon 插件中控制。</p>",
+      "<p>📅 版本：v2.6</p>",
+      "<p>Telegram 群：<a href='https://t.me/JiuHaoAPP'>@JiuHaoAPP</a></p>"
+    ],
+    "keys": [
+      "ninebot.authorization",
+      "ninebot.deviceId",
+      "ninebot.userAgent"
+    ]
+  }
+]
