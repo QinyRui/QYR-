@@ -1,5 +1,5 @@
 /*
-📱 九号智能电动车 · 单号自动签到（v2.6）
+📱 九号智能电动车 · 单号自动签到（v2.7）
 👤 作者：QinyRui & ❥﹒﹏非我不可
 📆 更新日期：2025/11/21 16:00:00
 Telegram 群：https://t.me/JiuHaoAPP
@@ -105,7 +105,9 @@ function httpGet({url, headers}) {
     try{
         console.log("[Ninebot] 获取签到状态...");
         const st = await httpGet({url:END.status, headers});
-        console.log("[Ninebot] 当前连续签到天数:", st.data?.consecutiveDays || 0);
+        const consecutiveDays = st.data?.consecutiveDays || 0;
+        console.log("[Ninebot] 当前连续签到天数:", consecutiveDays);
+        notifyBody += `连续签到: ${consecutiveDays} 天\n`; // 新增：将连续签到天数加入通知
 
         console.log("[Ninebot] 开始签到...");
         const sign = await httpPost({url:END.sign, headers, body:JSON.stringify({deviceId:DeviceId})});
