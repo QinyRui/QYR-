@@ -4,7 +4,7 @@
     "name": "九号智能电动车 · 单号自动签到 v2.6",
     "author": "QinyRui & 非我不可",
     "version": "2.6",
-    "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/juihao/icon/ninebot_128.png",
+    "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
     "descs_html": [
       "<h2>九号智能电动车 · 单号自动签到</h2>",
       "<p>本 BoxJS 仅负责自动写入 Authorization、DeviceId、User-Agent。</p>",
