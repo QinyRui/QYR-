@@ -1,36 +1,22 @@
 {
-  "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到（单账号）",
-  "author": "QinyRui",
-  "version": "1.5",
+  "id": "ninebot.sign.single.v26",
+  "name": "九号智能电动车 · 单号自动签到 v2.6",
+  "author": "QinyRui & 非我不可",
+  "version": "2.6",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
   "apps": [
     {
-      "id": "Ninebot_Auto_Sign",
-      "name": "九号签到",
+      "id": "Ninebot_Sign_Single_v26",
+      "name": "九号自动签到（单账号）",
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
-        "ninebot.userAgent",
-        "ninebot.debug",
-        "ninebot.notify",
-        "ninebot.autoOpenBox",
-        "ninebot.autoRepair",
-        "ninebot.autoApplyBeta",
-        "ninebot.notifyFail",
-        "ninebot.titlePrefix"
+        "ninebot.userAgent"
       ],
       "settings": [
         {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
         {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
-        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""},
-        {"id":"ninebot.debug","name":"调试日志","type":"boolean","val":true},
-        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
-        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
-        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
-        {"id":"ninebot.autoApplyBeta","name":"自动申请内测资格","type":"boolean","val":true},
-        {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
-        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"}
+        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""}
       ]
     }
   ]
