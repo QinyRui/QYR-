@@ -1,6 +1,6 @@
 /*
 📱 九号智能电动车 · 全功能签到（单号版 v2.4）
-👤 作者：QinyRui
+👤 作者：QinyRui & ❥﹒﹏非我不可
 📆 功能：
   - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
@@ -9,9 +9,9 @@
 */
 
 const isReq = typeof $request !== "undefined" && $request.headers;
-const read = (k: string): string | null => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-const write = (v: string, k: string): boolean => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
-const notify = (title: string, sub: string, body: string): void => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
+const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
+const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
+const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ---------- BoxJS keys ----------
 const KEY_AUTH = "ninebot.authorization";
@@ -42,27 +42,14 @@ if (isReq) {
       notify("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入 BoxJS");
       console.log("[Ninebot] 抓包写入成功:", {auth, dev, ua});
     }
-  } catch (e: any) {
+  } catch (e) {
     console.log("[Ninebot] 抓包写入异常：", e);
   }
   $done({});
 }
 
 // ---------- 读取配置 ----------
-interface Config {
-  Authorization: string;
-  DeviceId: string;
-  userAgent: string;
-  debug: boolean;
-  notify: boolean;
-  autoOpenBox: boolean;
-  autoRepair: boolean;
-  autoApplyBeta: boolean;
-  notifyFail: boolean;
-  titlePrefix: string;
-}
-
-const cfg: Config = {
+const cfg = {
   Authorization: read(KEY_AUTH) || "",
   DeviceId: read(KEY_DEV) || "",
   userAgent: read(KEY_UA) || "",
@@ -77,76 +64,33 @@ const cfg: Config = {
 
 if (!cfg.Authorization || !cfg.DeviceId) {
   notify(cfg.titlePrefix, "未配置 Token", "请先开启抓包并在九号 App 里操作以写入 Authorization 与 DeviceId");
-  // Script.exit({ success: false, message: "未配置 Token" }); // 使用 Script.exit()
-  $done(); // 兼容原始 $done
+  $done();
 }
 
 // ---------- HTTP helpers ----------
-interface HttpResponse {
-  code?: number;
-  msg?: string;
-  data?: any;
-  raw?: string;
-  status?: number;
-  statusText?: string;
-}
-
-interface HttpRequestParams {
-  url: string;
-  headers: Record<string, string>;
-  body?: string;
-}
-
-/**
- * Performs an HTTP POST request using $httpClient.
- * @param params - Request parameters including URL, headers, and body.
- * @returns A promise that resolves with the JSON response or raw data if JSON parsing fails.
- */
-function httpPost(params: HttpRequestParams): Promise<HttpResponse> {
+function httpPost({ url, headers, body = "{}" }) {
   return new Promise((resolve, reject) => {
-    if (typeof $httpClient === "undefined") {
-      return reject(new Error("$httpClient is not defined"));
-    }
-    $httpClient.post({ url: params.url, headers: params.headers, body: params.body }, (err, resp, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        try {
-          resolve(JSON.parse(data || "{}"));
-        } catch (e) {
-          resolve({ raw: data, status: resp?.status, statusText: resp?.statusText });
-        }
+    $httpClient.post({ url, headers, body }, (err, resp, data) => {
+      if (err) reject(err);
+      else {
+        try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
       }
     });
   });
 }
-
-/**
- * Performs an HTTP GET request using $httpClient.
- * @param params - Request parameters including URL and headers.
- * @returns A promise that resolves with the JSON response or raw data if JSON parsing fails.
- */
-function httpGet(params: HttpRequestParams): Promise<HttpResponse> {
+function httpGet({ url, headers }) {
   return new Promise((resolve, reject) => {
-    if (typeof $httpClient === "undefined") {
-      return reject(new Error("$httpClient is not defined"));
-    }
-    $httpClient.get({ url: params.url, headers: params.headers }, (err, resp, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        try {
-          resolve(JSON.parse(data || "{}"));
-        } catch (e) {
-          resolve({ raw: data, status: resp?.status, statusText: resp?.statusText });
-        }
+    $httpClient.get({ url, headers }, (err, resp, data) => {
+      if (err) reject(err);
+      else {
+        try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
       }
     });
   });
 }
 
 // ---------- Endpoints ----------
-const headers: Record<string, string> = {
+const headers = {
   "Authorization": cfg.Authorization,
   "Content-Type": "application/json",
   "device_id": cfg.DeviceId,
@@ -167,29 +111,12 @@ const END = {
 };
 
 // ---------- 辅助函数 ----------
-function log(...args: any[]): void {
-  if(cfg.debug) {
-    // 将所有参数合并成一个字符串，以确保 console.log 正确输出
-    const message = args.map(arg => {
-      if (typeof arg === 'object' && arg !== null) {
-        try {
-          return JSON.stringify(arg);
-        } catch {
-          return String(arg);
-        }
-      }
-      return String(arg);
-    }).join(" ");
-    console.log("[Ninebot]", message);
-  }
-}
-function safeStr(v: any): string { try{ return JSON.stringify(v); } catch { return String(v); } }
+function log(...args){ if(cfg.debug) console.log("[Ninebot]", ...args); }
+function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); } }
 
 // ---------- 主流程 ----------
 !(async () => {
-  console.log("[Ninebot] 脚本主流程开始执行..."); // 添加此行以确认脚本开始
   let notifyBody = "";
-  let scriptResult = { success: false, message: "脚本执行异常" };
 
   try {
     // 1) 签到
@@ -240,7 +167,7 @@ function safeStr(v: any): string { try{ return JSON.stringify(v); } catch { retu
               log("盲盒领取返回：", r);
               if (r && r.code === 0) notifyBody += `\n🎁 ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || r.data?.score || "未知"}`;
               else notifyBody += `\n❌ ${b.awardDays || b.boxDays}天盲盒领取失败`;
-            } catch (e: any) { log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
+            } catch (e) { log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
           }
         }
       }
@@ -260,7 +187,7 @@ function safeStr(v: any): string { try{ return JSON.stringify(v); } catch { retu
             else notifyBody += `\n🔧 自动补签失败：${rep && rep.msg ? rep.msg : "未知"}`;
           }
         }
-      } catch (e: any) { log("自动补签异常：", e); }
+      } catch (e) { log("自动补签异常：", e); }
     }
 
     // 6) 内测资格检测 & 自动申请
@@ -285,31 +212,23 @@ function safeStr(v: any): string { try{ return JSON.stringify(v); } catch { retu
             }else{
               notifyBody+=" → 自动申请失败 ❌";
             }
-          }catch(e: any){
+          }catch(e){
             log("内测自动申请异常：", e);
             notifyBody+=" → 自动申请异常 ❌";
           }
         }
       }
-    }catch(e: any){
+    }catch(e){
       log("内测检测异常：", e);
     }
 
     // ✅ 最终通知
     if(cfg.notify) notify(cfg.titlePrefix,"签到结果",notifyBody);
-    scriptResult = { success: true, message: notifyBody };
 
-  } catch (e: any) {
+  } catch (e) {
     log("主流程异常：", e);
     if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
-    scriptResult.message = `脚本执行异常: ${String(e)}`;
   }
 
-  // 确保 Script.exit() 在主流程结束时被调用
-  if (typeof Script !== "undefined" && typeof Script.exit === "function") {
-    Script.exit(scriptResult);
-  } else {
-    // Fallback for environments where Script.exit is not available
-    $done(scriptResult);
-  }
+  $done();
 })();
