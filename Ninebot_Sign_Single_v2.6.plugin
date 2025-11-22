@@ -23,3 +23,5 @@ http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubuserc
 
 # ② 自动签到（由用户 CRON 控制）
 cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/juihao/Ninebot_Sign_Single_v2.6.js, tag = 九号-自动签到, timeout = 120
+# ② 自动签到（由用户 CRON 控制）
+cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-自动签到, timeout = 120
