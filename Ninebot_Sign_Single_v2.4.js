@@ -1,8 +1,6 @@
-import { Script } from "scripting"; // 导入 Script 模块以使用 Script.exit()
-
 /*
 📱 九号智能电动车 · 全功能签到（单号版 v2.4）
-👤 作者：QinyRui
+👤 作者：QinyRui & ❥﹒﹏非我不可
 📆 功能：
   - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
@@ -290,5 +288,5 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
     scriptResult.message = `脚本执行异常: ${String(e)}`;
   }
 
-  Script.exit(scriptResult); // 使用 Script.exit() 结束脚本并返回结果
+  Script.exit(scriptResult); // 假设 Script 是全局对象
 })();
