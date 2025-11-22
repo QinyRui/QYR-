@@ -1,9 +1,9 @@
-6#!name=九号智能电动车 · 单号自动签到
+#!name=九号智能电动车 · 单号自动签到
 #!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；自动签到 + CRON 控制
 #!author=QinyRui & ❥﹒﹏非我不可
 #!version=2.6
 #!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/juihao/icon/ninebot_128.png
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
 #!system=ios
 #!icon-color=#0A84FF
 
@@ -20,7 +20,7 @@ cron_time = input, "1 0 * * *", tag = 签到时间 CRON（修改此项改变执�
 [Script]
 
 # ① 抓包写入（可选）
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/juihao/Ninebot_Sign_Single_v2.6.js, tag = 九号-抓包写入, timeout = 10, enable = {capture}
+http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-抓包写入, timeout = 10, enable = {capture}
 
 # ② 自动签到（由用户 CRON 控制）
 cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-自动签到, timeout = 120
