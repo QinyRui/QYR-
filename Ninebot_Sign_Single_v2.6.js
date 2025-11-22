@@ -12,7 +12,7 @@ const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $p
 const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ==============================
-// 兼容 $environment，不存在时使用默认值
+// 兼容 $environment
 // ==============================
 const cfg = {
     debug: (typeof $environment !== "undefined" && $environment.debug === "true") || false,
@@ -50,7 +50,7 @@ if (isReq && cfg.enable_capture) {
 
 // ---------- HTTP helper ----------
 function httpPost({url, headers, body="{}"}) {
-    return new Promise((resolve)=>{
+    return new Promise(resolve=>{
         $httpClient.post({url, headers, body}, (err, resp, data)=>{
             if(err) resolve({error: err});
             else {
@@ -61,7 +61,7 @@ function httpPost({url, headers, body="{}"}) {
 }
 
 function httpGet({url, headers}) {
-    return new Promise((resolve)=>{
+    return new Promise(resolve=>{
         $httpClient.get({url, headers}, (err, resp, data)=>{
             if(err) resolve({error: err});
             else {
@@ -72,30 +72,6 @@ function httpGet({url, headers}) {
 }
 
 function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
-
-async function trySign(headers, DeviceId, maxRetry = 3){
-    let lastErr = null;
-    for(let i=1;i<=maxRetry;i++){
-        try{
-            console.log(`[Ninebot] 签到尝试 ${i}/${maxRetry} ...`);
-            const body = JSON.stringify({deviceId: DeviceId});
-            const sign = await httpPost({url:END.sign, headers, body});
-            console.log("[Ninebot] /sign 原始返回：", sign);
-            const ok =
-                sign && (sign.code === 0 || String(sign.msg || "").toLowerCase().includes("success") || sign.data?.success === true || sign.data?.status === "success");
-            if(ok){
-                return {ok:true, resp:sign};
-            } else {
-                lastErr = sign;
-            }
-        }catch(e){
-            lastErr = e;
-            console.log(`[Ninebot] 签到请求异常（尝试 ${i}）：`, String(e));
-        }
-        await sleep(800 + Math.floor(Math.random()*400));
-    }
-    return {ok:false, resp:lastErr};
-}
 
 // ---------- 主流程 ----------
 !(async()=>{
@@ -126,43 +102,38 @@ async function trySign(headers, DeviceId, maxRetry = 3){
         status: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
         blindBoxList: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
         blindBoxReceive: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive",
-        repair: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair",
         balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-        betaStatus: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status"
     };
 
     try{
-        console.log("[Ninebot] 正在获取签到状态...");
-        const st = await httpGet({url:END.status, headers});
-        console.log("[Ninebot] /status 原始返回：", st);
+        console.log("[Ninebot] 获取签到状态...");
+        const stBefore = await httpGet({url:END.status, headers});
+        console.log("[Ninebot] /status 原始返回：", stBefore);
 
-        // 自动兼容各种返回结构
-        let beforeDays = 0;
-        if(st.data?.consecutiveDays) beforeDays = st.data.consecutiveDays;
-        else if(st.data?.userSignInfo?.consecutiveDays) beforeDays = st.data.userSignInfo.consecutiveDays;
-        else if(st.data?.status?.consecutiveDays) beforeDays = st.data.status.consecutiveDays;
-
+        // 自动兼容字段
+        const beforeDays = stBefore.data?.consecutiveDays || stBefore.data?.userSignInfo?.consecutiveDays || stBefore.data?.status?.consecutiveDays || 0;
         console.log(`[Ninebot] 连续签到: ${beforeDays} 天`);
 
-        console.log("[Ninebot] 正在执行签到...");
-        const sign = await trySign(headers, DeviceId, 3);
-        await sleep(600);
+        console.log("[Ninebot] 执行签到...");
+        const signResp = await httpPost({url:END.sign, headers, body:JSON.stringify({deviceId: DeviceId})});
+        console.log("[Ninebot] /sign 原始返回:", signResp);
+
+        // 等待接口刷新
+        await sleep(1500);
 
         const stAfter = await httpGet({url:END.status, headers});
-        console.log("[Ninebot] /status 更新后原始返回：", stAfter);
+        const afterDays = stAfter.data?.consecutiveDays || stAfter.data?.userSignInfo?.consecutiveDays || stAfter.data?.status?.consecutiveDays || beforeDays;
 
-        let afterDays = beforeDays;
-        if(stAfter.data?.consecutiveDays) afterDays = stAfter.data.consecutiveDays;
-        else if(stAfter.data?.userSignInfo?.consecutiveDays) afterDays = stAfter.data.userSignInfo.consecutiveDays;
-        else if(stAfter.data?.status?.consecutiveDays) afterDays = stAfter.data.status.consecutiveDays;
+        const confirmed = afterDays > beforeDays;
 
-        let confirmed = afterDays > beforeDays;
+        // 签到结果显示 msg 或 data.status
+        const signMsg = signResp.msg || signResp.data?.status || JSON.stringify(signResp);
+
         notifyBody += `🗓️ 连续签到: ${beforeDays} → ${afterDays}\n`;
-        notifyBody += `✅ 签到接口返回: ${JSON.stringify(sign.resp)}\n`;
+        notifyBody += `✅ 签到接口返回: ${signMsg}\n`;
         notifyBody += `🔎 最终确认: ${confirmed ? "已生效" : "未确认"}\n`;
 
         const bal = await httpGet({url:END.balance, headers});
-        console.log(`[Ninebot] N币余额: ${bal.data?.balance || 0}`);
         notifyBody += `💰 N币余额: ${bal.data?.balance || 0}\n`;
 
         const box = await httpGet({url:END.blindBoxList, headers});
@@ -172,12 +143,6 @@ async function trySign(headers, DeviceId, maxRetry = 3){
         } else {
             for(const b of box.data.notOpenedBoxes){
                 notifyBody += `   - ${b.awardDays}天盲盒，还需 ${b.leftDaysToOpen} 天\n`;
-                if(cfg.autoOpenBox && (b.leftDaysToOpen === 0)){
-                    const r = await httpPost({url:END.blindBoxReceive, headers, body:JSON.stringify({})});
-                    const rewardText = `${r.data?.rewardType===1?"经验":"N币"} +${r.data?.rewardValue || 0}`;
-                    notifyBody += `   - ✨ 领取成功: ${rewardText}\n`;
-                    console.log(`[Ninebot] ${b.awardDays}天盲盒领取结果:`, rewardText);
-                }
             }
         }
 
