@@ -1,6 +1,6 @@
 /*
 📱 九号智能电动车 · 全功能签到（单号版 v2.4）
-👤 作者：QinyRui & ❥
+👤 作者：QinyRui & ❥﹒﹏非我不可
 📆 功能：
   - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
@@ -9,9 +9,9 @@
 */
 
 const isReq = typeof $request !== "undefined" && $request.headers;
-const read = (k: string): string | null => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-const write = (v: string, k: string): boolean => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
-const notify = (title: string, sub: string, body: string): void => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
+const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
+const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
+const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ---------- BoxJS keys ----------
 const KEY_AUTH = "ninebot.authorization";
@@ -42,7 +42,7 @@ if (isReq) {
       notify("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入 BoxJS");
       console.log("[Ninebot] 抓包写入成功:", {auth, dev, ua});
     }
-  } catch (e: any) {
+  } catch (e) {
     console.log("[Ninebot] 抓包写入异常：", e);
   }
   $done({});
@@ -68,21 +68,7 @@ if (!cfg.Authorization || !cfg.DeviceId) {
 }
 
 // ---------- HTTP helpers ----------
-interface HttpResponse {
-  code?: number;
-  msg?: string;
-  data?: any;
-  raw?: string;
-  success?: boolean;
-}
-
-interface HttpRequestOptions {
-  url: string;
-  headers: Record<string, string>;
-  body?: string;
-}
-
-function httpPost({ url, headers, body = "{}" }: HttpRequestOptions): Promise<HttpResponse> {
+function httpPost({ url, headers, body = "{}" }) {
   return new Promise((resolve, reject) => {
     $httpClient.post({ url, headers, body }, (err, resp, data) => {
       if (err) {
@@ -97,7 +83,7 @@ function httpPost({ url, headers, body = "{}" }: HttpRequestOptions): Promise<Ht
     });
   });
 }
-function httpGet({ url, headers }: HttpRequestOptions): Promise<HttpResponse> {
+function httpGet({ url, headers }) {
   return new Promise((resolve, reject) => {
     $httpClient.get({ url, headers }, (err, resp, data) => {
       if (err) {
@@ -135,10 +121,10 @@ const END = {
 };
 
 // ---------- 辅助函数 (日志函数已修改为无条件打印) ----------
-function log(...args: any[]): void {
+function log(...args){
   console.log("[Ninebot]", ...args);
 }
-function safeStr(v: any): string {
+function safeStr(v){
   try { return JSON.stringify(v); } catch { return String(v); }
 }
 
@@ -179,14 +165,14 @@ function safeStr(v: any): string {
     const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
     if (Array.isArray(notOpened) && notOpened.length > 0) {
       notifyBody += `\n\n📦 盲盒任务：`;
-      notOpened.forEach((b: any) => {
+      notOpened.forEach(b => {
         const days = b.awardDays || b.boxDays || b.days || "?";
         const left = b.leftDaysToOpen || b.diffDays || "?";
         notifyBody += `\n- ${days}天盲盒，还需 ${left} 天`;
       });
 
       if (cfg.autoOpenBox) {
-        const ready = notOpened.filter((b: any) => (b.leftDaysToOpen === 0 || b.diffDays === 0) && (b.rewardStatus === 2 || b.status === 2));
+        const ready = notOpened.filter(b => (b.leftDaysToOpen === 0 || b.diffDays === 0) && (b.rewardStatus === 2 || b.status === 2));
         if (ready.length > 0) {
           notifyBody += `\n\n🎉 自动开启盲盒：`;
           for (const b of ready) {
@@ -253,7 +239,7 @@ function safeStr(v: any): string {
     // ✅ 最终通知
     if(cfg.notify) notify(cfg.titlePrefix,"签到结果",notifyBody);
 
-  } catch (e: any) {
+  } catch (e) {
     log("主流程异常：", e);
     if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
   }
