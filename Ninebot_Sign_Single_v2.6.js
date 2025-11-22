@@ -1,5 +1,5 @@
 /*
-📱 九号智能电动车 · 单号自动签到（v2.6 安全版）
+📱 九号智能电动车 · 单号自动签到（v2.6 安全版 + 补签卡显示）
 👤 作者：QinyRui & ❥﹒﹏非我不可
 📆 更新日期：2025/11/22
 Telegram 群：https://t.me/JiuHaoAPP
@@ -102,6 +102,7 @@ function httpGet({url, headers}) {
         blindBoxList: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
         blindBoxReceive: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive",
         repair: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair",
+        repairStatus: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair/status",
         balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
         betaStatus: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status"
     };
@@ -126,6 +127,15 @@ function httpGet({url, headers}) {
         const nCoin = bal.data?.balance || 0;
         console.log(`[Ninebot] N币余额: ${nCoin}`);
 
+        // --- 获取补签卡 ---
+        let repairCardNum = 0;
+        try{
+            const repairStatus = await httpGet({url:END.repairStatus, headers});
+            repairCardNum = repairStatus.data?.repairCardNum || 0;
+        }catch(e){
+            console.log("[Ninebot] 获取补签卡数量异常:", e);
+        }
+
         // --- 获取盲盒 ---
         const box = await httpGet({url:END.blindBoxList, headers});
         let boxList = [];
@@ -148,6 +158,7 @@ function httpGet({url, headers}) {
         notifyBody += `🗓️ 连续签到: ${consecutiveDays}\n`;
         notifyBody += `✅ ${signMsg}\n`;
         notifyBody += `💰 N币余额: ${nCoin}\n`;
+        notifyBody += `🃏 补签卡剩余: ${repairCardNum}\n`;
         notifyBody += `🎁 盲盒任务:\n`;
         boxList.forEach(b => notifyBody += `   - ${b}\n`);
 
