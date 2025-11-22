@@ -1,6 +1,6 @@
 /*
 📱 九号智能电动车 · 单号自动签到（v2.6）
-👤 作者：QinyRui & ❥﹒﹏非我不可
+👤 作者：QinyRui
 📆 更新时间：2025/11/22
 Telegram 群：https://t.me/JiuHaoAPP
 支持系统：iOS / iPadOS / macOS
