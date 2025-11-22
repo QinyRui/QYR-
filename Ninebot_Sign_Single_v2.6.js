@@ -1,6 +1,6 @@
 /*
 📱 九号智能电动车 · 单号自动签到（v2.6）
-👤 作者：QinyRui
+👤 作者：QinyRui & ❥﹒﹏非我不可
 📆 更新时间：2025/11/22
 Telegram 群：https://t.me/JiuHaoAPP
 支持系统：iOS / iPadOS / macOS
@@ -80,7 +80,7 @@ async function trySign(headers, DeviceId, maxRetry = 3){
             console.log(`[Ninebot] 签到尝试 ${i}/${maxRetry} ...`);
             const body = JSON.stringify({deviceId: DeviceId});
             const sign = await httpPost({url:END.sign, headers, body});
-            console.log("[Ninebot] /sign 返回：", sign);
+            console.log("[Ninebot] /sign 原始返回：", sign);
             const ok =
                 sign && (sign.code === 0 || String(sign.msg || "").toLowerCase().includes("success") || sign.data?.success === true || sign.data?.status === "success");
             if(ok){
@@ -134,19 +134,31 @@ async function trySign(headers, DeviceId, maxRetry = 3){
     try{
         console.log("[Ninebot] 正在获取签到状态...");
         const st = await httpGet({url:END.status, headers});
-        const beforeDays = st.data?.consecutiveDays || 0;
+        console.log("[Ninebot] /status 原始返回：", st);
+
+        // 自动兼容各种返回结构
+        let beforeDays = 0;
+        if(st.data?.consecutiveDays) beforeDays = st.data.consecutiveDays;
+        else if(st.data?.userSignInfo?.consecutiveDays) beforeDays = st.data.userSignInfo.consecutiveDays;
+        else if(st.data?.status?.consecutiveDays) beforeDays = st.data.status.consecutiveDays;
+
         console.log(`[Ninebot] 连续签到: ${beforeDays} 天`);
 
         console.log("[Ninebot] 正在执行签到...");
         const sign = await trySign(headers, DeviceId, 3);
-
         await sleep(600);
+
         const stAfter = await httpGet({url:END.status, headers});
-        const afterDays = stAfter.data?.consecutiveDays || beforeDays;
+        console.log("[Ninebot] /status 更新后原始返回：", stAfter);
+
+        let afterDays = beforeDays;
+        if(stAfter.data?.consecutiveDays) afterDays = stAfter.data.consecutiveDays;
+        else if(stAfter.data?.userSignInfo?.consecutiveDays) afterDays = stAfter.data.userSignInfo.consecutiveDays;
+        else if(stAfter.data?.status?.consecutiveDays) afterDays = stAfter.data.status.consecutiveDays;
 
         let confirmed = afterDays > beforeDays;
         notifyBody += `🗓️ 连续签到: ${beforeDays} → ${afterDays}\n`;
-        notifyBody += `✅ 签到接口返回: ${sign.msg || JSON.stringify(sign.resp)}\n`;
+        notifyBody += `✅ 签到接口返回: ${JSON.stringify(sign.resp)}\n`;
         notifyBody += `🔎 最终确认: ${confirmed ? "已生效" : "未确认"}\n`;
 
         const bal = await httpGet({url:END.balance, headers});
