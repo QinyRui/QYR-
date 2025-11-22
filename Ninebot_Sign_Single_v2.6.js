@@ -1,6 +1,6 @@
 /*
 📱 九号智能电动车 · 单号自动签到（v2.6）
-👤 作者：QinyRui & ❥﹒﹏非我不可
+👤 作者：QinyRui
 📆 更新时间：2025/11/22
 Telegram 群：https://t.me/JiuHaoAPP
 支持系统：iOS / iPadOS / macOS
@@ -12,16 +12,16 @@ const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $p
 const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ==============================
-// 从插件 UI 环境变量读取开关
+// 兼容 $environment，不存在时使用默认值
 // ==============================
 const cfg = {
-    debug: $environment?.debug === "true",
-    notify: $environment?.notify === "true",
-    autoOpenBox: $environment?.openbox === "true",
-    autoRepair: $environment?.repair === "true",
-    autoApplyBeta: $environment?.beta === "true",
-    titlePrefix: $environment?.titlePrefix || "九号签到",
-    enable_capture: $environment?.capture === "true"
+    debug: (typeof $environment !== "undefined" && $environment.debug === "true") || false,
+    notify: (typeof $environment !== "undefined" && $environment.notify === "true") || true,
+    autoOpenBox: (typeof $environment !== "undefined" && $environment.openbox === "true") || false,
+    autoRepair: (typeof $environment !== "undefined" && $environment.repair === "true") || false,
+    autoApplyBeta: (typeof $environment !== "undefined" && $environment.beta === "true") || false,
+    titlePrefix: (typeof $environment !== "undefined" && $environment.titlePrefix) || "九号签到",
+    enable_capture: (typeof $environment !== "undefined" && $environment.capture === "true") || false
 };
 
 // ---------- 抓包写入 ----------
