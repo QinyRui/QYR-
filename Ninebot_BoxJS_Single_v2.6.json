@@ -1,14 +1,14 @@
 [
   {
     "id": "ninebot.sign.single",
-    "name": "九号智能电动车 · 单号自动签到 v2.6",
+    "name": "九号智能电动车 · 单号自动签到 v2.6 升级版",
     "author": "QinyRui & ❥﹒﹏非我不可",
     "version": "2.6",
-    "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
+    "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/juihao/icon/ninebot_128.png",
     "descs_html": [
-      "<h2>📱 九号智能电动车 · 单号自动签到</h2>",
+      "<h2>📱 九号智能电动车 · 单号自动签到（升级版）</h2>",
       "<p>本 BoxJS 仅负责自动写入 Authorization、DeviceId、User-Agent。</p>",
-      "<p>所有开关由 Loon 插件控制（通知、盲盒、补签、内测、抓包、CRON）。</p>",
+      "<p>所有开关由 Loon 插件控制（通知、盲盒、补签、内测、调试、抓包、CRON）。</p>",
       "<p>📅 版本：v2.6</p>",
       "<p>Telegram 群：<a href='https://t.me/JiuHaoAPP'>@JiuHaoAPP</a></p>"
     ],
@@ -16,6 +16,37 @@
       "ninebot.authorization",
       "ninebot.deviceId",
       "ninebot.userAgent"
+    ],
+    "apps": [
+      {
+        "id": "Ninebot_Auto_Sign",
+        "name": "九号签到",
+        "keys": [
+          "ninebot.authorization",
+          "ninebot.deviceId",
+          "ninebot.userAgent"
+        ],
+        "settings": [
+          {
+            "id": "ninebot.authorization",
+            "name": "Authorization",
+            "type": "text",
+            "val": ""
+          },
+          {
+            "id": "ninebot.deviceId",
+            "name": "DeviceId",
+            "type": "text",
+            "val": ""
+          },
+          {
+            "id": "ninebot.userAgent",
+            "name": "User-Agent（自动写入）",
+            "type": "text",
+            "val": ""
+          }
+        ]
+      }
     ]
   }
 ]
