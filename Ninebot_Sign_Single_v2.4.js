@@ -1,3 +1,5 @@
+import { Script } from "scripting"; // 导入 Script 模块以使用 Script.exit()
+
 /*
 📱 九号智能电动车 · 全功能签到（单号版 v2.4）
 👤 作者：QinyRui & ❥﹒﹏非我不可
@@ -9,7 +11,7 @@
 */
 
 const isReq = typeof $request !== "undefined" && $request.headers;
-const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
+const read = (k) => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
 const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
 const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
@@ -151,12 +153,28 @@ const END = {
 };
 
 // ---------- 辅助函数 ----------
-function log(...args){ if(cfg.debug) console.log("[Ninebot]", ...args); }
+function log(...args){
+  if(cfg.debug) {
+    // 将所有参数合并成一个字符串，以确保 console.log 正确输出
+    const message = args.map(arg => {
+      if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg);
+        } catch {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    }).join(" ");
+    console.log("[Ninebot]", message);
+  }
+}
 function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); } }
 
 // ---------- 主流程 ----------
 !(async () => {
   let notifyBody = "";
+  let scriptResult = { success: false, message: "脚本执行异常" };
 
   try {
     // 1) 签到
@@ -264,11 +282,13 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
 
     // ✅ 最终通知
     if(cfg.notify) notify(cfg.titlePrefix,"签到结果",notifyBody);
+    scriptResult = { success: true, message: notifyBody };
 
   } catch (e) {
     log("主流程异常：", e);
     if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
+    scriptResult.message = `脚本执行异常: ${String(e)}`;
   }
 
-  $done();
+  Script.exit(scriptResult); // 使用 Script.exit() 结束脚本并返回结果
 })();
