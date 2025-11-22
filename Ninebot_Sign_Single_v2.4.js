@@ -8,10 +8,14 @@
   - BoxJS 配置读取
 */
 
+// 导入 fetch 相关的类型和函数，假设它们在 Scripting 环境中是全局可用的，
+// 如果不是，则需要从 "scripting" 模块导入。
+// import { fetch, Headers, RequestInit, Response } from "scripting";
+
 const isReq = typeof $request !== "undefined" && $request.headers;
-const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
-const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
+const read = (k: string): string | null => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
+const write = (v: string, k: string): boolean | void => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
+const notify = (title: string, sub: string, body: string) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ---------- BoxJS keys ----------
 const KEY_AUTH = "ninebot.authorization";
@@ -42,14 +46,27 @@ if (isReq) {
       notify("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入 BoxJS");
       console.log("[Ninebot] 抓包写入成功:", {auth, dev, ua});
     }
-  } catch (e) {
+  } catch (e: any) {
     console.log("[Ninebot] 抓包写入异常：", e);
   }
   $done({});
 }
 
 // ---------- 读取配置 ----------
-const cfg = {
+interface Config {
+  Authorization: string;
+  DeviceId: string;
+  userAgent: string;
+  debug: boolean;
+  notify: boolean;
+  autoOpenBox: boolean;
+  autoRepair: boolean;
+  autoApplyBeta: boolean;
+  notifyFail: boolean;
+  titlePrefix: string;
+}
+
+const cfg: Config = {
   Authorization: read(KEY_AUTH) || "",
   DeviceId: read(KEY_DEV) || "",
   userAgent: read(KEY_UA) || "",
@@ -68,39 +85,75 @@ if (!cfg.Authorization || !cfg.DeviceId) {
 }
 
 // ---------- HTTP helpers ----------
-function httpPost({ url, headers, body = "{}" }) {
-  return new Promise((resolve, reject) => {
-    $httpClient.post({ url, headers, body }, (err, resp, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        try {
-          resolve(JSON.parse(data || "{}"));
-        } catch (e) {
-          resolve({ raw: data });
-        }
-      }
-    });
-  });
+interface HttpRequestParams {
+  url: string;
+  headers: Record<string, string>;
+  body?: string;
 }
-function httpGet({ url, headers }) {
-  return new Promise((resolve, reject) => {
-    $httpClient.get({ url, headers }, (err, resp, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        try {
-          resolve(JSON.parse(data || "{}"));
-        } catch (e) {
-          resolve({ raw: data });
-        }
-      }
-    });
-  });
+
+/**
+ * Performs an HTTP POST request using the fetch API.
+ * @param params - Request parameters including URL, headers, and body.
+ * @returns A promise that resolves with the JSON response or raw data if JSON parsing fails.
+ * @throws {Error} If a network error or timeout occurs.
+ */
+async function httpPost(params: HttpRequestParams): Promise<any> {
+  try {
+    const requestInit: RequestInit = {
+      method: "POST",
+      headers: new Headers(params.headers),
+      body: params.body || "{}",
+      debugLabel: `Ninebot POST: ${params.url}`, // Add debug label for better logging
+      timeout: 30, // Set a timeout of 30 seconds
+    };
+    const response: Response = await fetch(params.url, requestInit);
+
+    try {
+      return await response.json();
+    } catch (e: any) {
+      const rawText = await response.text();
+      // Return raw data and status if JSON parsing fails, similar to original behavior
+      return { raw: rawText, status: response.status, statusText: response.statusText };
+    }
+  } catch (error: any) {
+    // Catch network errors, timeouts, or explicit rejections from fetch
+    log("httpPost network or parsing error:", error.message || error);
+    throw error; // Re-throw to be caught by the main async IIFE
+  }
+}
+
+/**
+ * Performs an HTTP GET request using the fetch API.
+ * @param params - Request parameters including URL and headers.
+ * @returns A promise that resolves with the JSON response or raw data if JSON parsing fails.
+ * @throws {Error} If a network error or timeout occurs.
+ */
+async function httpGet(params: HttpRequestParams): Promise<any> {
+  try {
+    const requestInit: RequestInit = {
+      method: "GET",
+      headers: new Headers(params.headers),
+      debugLabel: `Ninebot GET: ${params.url}`, // Add debug label for better logging
+      timeout: 30, // Set a timeout of 30 seconds
+    };
+    const response: Response = await fetch(params.url, requestInit);
+
+    try {
+      return await response.json();
+    } catch (e: any) {
+      const rawText = await response.text();
+      // Return raw data and status if JSON parsing fails, similar to original behavior
+      return { raw: rawText, status: response.status, statusText: response.statusText };
+    }
+  } catch (error: any) {
+    // Catch network errors, timeouts, or explicit rejections from fetch
+    log("httpGet network or parsing error:", error.message || error);
+    throw error; // Re-throw to be caught by the main async IIFE
+  }
 }
 
 // ---------- Endpoints ----------
-const headers = {
+const headers: Record<string, string> = {
   "Authorization": cfg.Authorization,
   "Content-Type": "application/json",
   "device_id": cfg.DeviceId,
@@ -120,13 +173,9 @@ const END = {
   betaStatus: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status"
 };
 
-// ---------- 辅助函数 (日志函数已修改为无条件打印) ----------
-function log(...args){
-  console.log("[Ninebot]", ...args);
-}
-function safeStr(v){
-  try { return JSON.stringify(v); } catch { return String(v); }
-}
+// ---------- 辅助函数 ----------
+function log(...args: any[]){ if(cfg.debug) console.log("[Ninebot]", ...args); }
+function safeStr(v: any): string{ try{ return JSON.stringify(v); } catch { return String(v); } }
 
 // ---------- 主流程 ----------
 !(async () => {
@@ -165,14 +214,14 @@ function safeStr(v){
     const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
     if (Array.isArray(notOpened) && notOpened.length > 0) {
       notifyBody += `\n\n📦 盲盒任务：`;
-      notOpened.forEach(b => {
+      notOpened.forEach((b: any) => {
         const days = b.awardDays || b.boxDays || b.days || "?";
         const left = b.leftDaysToOpen || b.diffDays || "?";
         notifyBody += `\n- ${days}天盲盒，还需 ${left} 天`;
       });
 
       if (cfg.autoOpenBox) {
-        const ready = notOpened.filter(b => (b.leftDaysToOpen === 0 || b.diffDays === 0) && (b.rewardStatus === 2 || b.status === 2));
+        const ready = notOpened.filter((b: any) => (b.leftDaysToOpen === 0 || b.diffDays === 0) && (b.rewardStatus === 2 || b.status === 2));
         if (ready.length > 0) {
           notifyBody += `\n\n🎉 自动开启盲盒：`;
           for (const b of ready) {
@@ -181,7 +230,7 @@ function safeStr(v){
               log("盲盒领取返回：", r);
               if (r && r.code === 0) notifyBody += `\n🎁 ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || r.data?.score || "未知"}`;
               else notifyBody += `\n❌ ${b.awardDays || b.boxDays}天盲盒领取失败`;
-            } catch (e) { log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
+            } catch (e: any) { log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
           }
         }
       }
@@ -201,7 +250,7 @@ function safeStr(v){
             else notifyBody += `\n🔧 自动补签失败：${rep && rep.msg ? rep.msg : "未知"}`;
           }
         }
-      } catch (e) { log("自动补签异常：", e); }
+      } catch (e: any) { log("自动补签异常：", e); }
     }
 
     // 6) 内测资格检测 & 自动申请
@@ -226,20 +275,20 @@ function safeStr(v){
             }else{
               notifyBody+=" → 自动申请失败 ❌";
             }
-          }catch(e){
+          }catch(e: any){
             log("内测自动申请异常：", e);
             notifyBody+=" → 自动申请异常 ❌";
           }
         }
       }
-    }catch(e){
+    }catch(e: any){
       log("内测检测异常：", e);
     }
 
     // ✅ 最终通知
     if(cfg.notify) notify(cfg.titlePrefix,"签到结果",notifyBody);
 
-  } catch (e) {
+  } catch (e: any) {
     log("主流程异常：", e);
     if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
   }
