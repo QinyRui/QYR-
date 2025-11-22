@@ -10,7 +10,7 @@
 
 const isReq = typeof $request !== "undefined" && $request.headers;
 const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
+const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
 const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ---------- BoxJS keys ----------
@@ -71,9 +71,14 @@ if (!cfg.Authorization || !cfg.DeviceId) {
 function httpPost({ url, headers, body = "{}" }) {
   return new Promise((resolve, reject) => {
     $httpClient.post({ url, headers, body }, (err, resp, data) => {
-      if (err) reject(err);
-      else {
-        try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
+      if (err) {
+        reject(err);
+      } else {
+        try {
+          resolve(JSON.parse(data || "{}"));
+        } catch (e) {
+          resolve({ raw: data });
+        }
       }
     });
   });
@@ -81,9 +86,14 @@ function httpPost({ url, headers, body = "{}" }) {
 function httpGet({ url, headers }) {
   return new Promise((resolve, reject) => {
     $httpClient.get({ url, headers }, (err, resp, data) => {
-      if (err) reject(err);
-      else {
-        try { resolve(JSON.parse(data || "{}")); } catch (e) { resolve({ raw: data }); }
+      if (err) {
+        reject(err);
+      } else {
+        try {
+          resolve(JSON.parse(data || "{}"));
+        } catch (e) {
+          resolve({ raw: data });
+        }
       }
     });
   });
@@ -110,9 +120,13 @@ const END = {
   betaStatus: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status"
 };
 
-// ---------- 辅助函数 ----------
-function log(...args){ if(cfg.debug) console.log("[Ninebot]", ...args); }
-function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); } }
+// ---------- 辅助函数 (日志函数已修改为无条件打印) ----------
+function log(...args){
+  console.log("[Ninebot]", ...args);
+}
+function safeStr(v){
+  try { return JSON.stringify(v); } catch { return String(v); }
+}
 
 // ---------- 主流程 ----------
 !(async () => {
