@@ -18,7 +18,6 @@ titlePrefix = input, "九号签到助手", tag = 自定义通知标题
 cron_time = input, "1 0 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
 
 [Script]
-
 # ① 抓包写入（可选）
 http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-抓包写入, timeout = 10, enable = {capture}
 
