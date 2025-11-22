@@ -1,6 +1,6 @@
 /*
 📱 九号智能电动车 · 单号自动签到（v2.6）
-👤 作者：QinyRui
+👤 作者：QinyRui & ❥﹒﹏非我不可
 📆 更新时间：2025/11/22
 Telegram 群：https://t.me/JiuHaoAPP
 支持系统：iOS / iPadOS / macOS
@@ -10,18 +10,19 @@ const isReq = typeof $request !== "undefined" && $request.headers;
 const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
 const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
 const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
+const sleep = ms => new Promise(res=>setTimeout(res, ms));
 
 // ==============================
-// 兼容 $environment
+// 配置
 // ==============================
 const cfg = {
-    debug: (typeof $environment !== "undefined" && $environment.debug === "true") || false,
-    notify: (typeof $environment !== "undefined" && $environment.notify === "true") || true,
-    autoOpenBox: (typeof $environment !== "undefined" && $environment.openbox === "true") || false,
-    autoRepair: (typeof $environment !== "undefined" && $environment.repair === "true") || false,
-    autoApplyBeta: (typeof $environment !== "undefined" && $environment.beta === "true") || false,
-    titlePrefix: (typeof $environment !== "undefined" && $environment.titlePrefix) || "九号签到",
-    enable_capture: (typeof $environment !== "undefined" && $environment.capture === "true") || false
+    debug: read("ninebot.debug") === "false" ? false : true,
+    notify: read("ninebot.notify") === "false" ? false : true,
+    autoOpenBox: read("ninebot.autoOpenBox") === "true",
+    autoRepair: read("ninebot.autoRepair") === "true",
+    autoApplyBeta: read("ninebot.autoApplyBeta") === "true",
+    titlePrefix: read("ninebot.titlePrefix") || "九号签到",
+    enable_capture: read("ninebot.enable_capture") === "true"
 };
 
 // ---------- 抓包写入 ----------
@@ -71,8 +72,6 @@ function httpGet({url, headers}) {
     });
 }
 
-function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
-
 // ---------- 主流程 ----------
 !(async()=>{
     let notifyBody = "";
@@ -106,36 +105,29 @@ function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
     };
 
     try{
-        console.log("[Ninebot] 获取签到状态...");
+        // 获取签到状态
         const stBefore = await httpGet({url:END.status, headers});
-        console.log("[Ninebot] /status 原始返回：", stBefore);
-
-        // 自动兼容字段
         const beforeDays = stBefore.data?.consecutiveDays || stBefore.data?.userSignInfo?.consecutiveDays || stBefore.data?.status?.consecutiveDays || 0;
-        console.log(`[Ninebot] 连续签到: ${beforeDays} 天`);
 
-        console.log("[Ninebot] 执行签到...");
+        // 执行签到
         const signResp = await httpPost({url:END.sign, headers, body:JSON.stringify({deviceId: DeviceId})});
-        console.log("[Ninebot] /sign 原始返回:", signResp);
-
-        // 等待接口刷新
-        await sleep(1500);
+        await sleep(1500); // 等待状态刷新
 
         const stAfter = await httpGet({url:END.status, headers});
         const afterDays = stAfter.data?.consecutiveDays || stAfter.data?.userSignInfo?.consecutiveDays || stAfter.data?.status?.consecutiveDays || beforeDays;
 
-        const confirmed = afterDays > beforeDays;
-
-        // 签到结果显示 msg 或 data.status
+        // ------------------------
+        // 简化通知输出
+        // ------------------------
+        notifyBody += `🗓️ 连续签到: ${afterDays}\n`;
         const signMsg = signResp.msg || signResp.data?.status || JSON.stringify(signResp);
-
-        notifyBody += `🗓️ 连续签到: ${beforeDays} → ${afterDays}\n`;
         notifyBody += `✅ 签到接口返回: ${signMsg}\n`;
-        notifyBody += `🔎 最终确认: ${confirmed ? "已生效" : "未确认"}\n`;
 
+        // N币余额
         const bal = await httpGet({url:END.balance, headers});
         notifyBody += `💰 N币余额: ${bal.data?.balance || 0}\n`;
 
+        // 盲盒任务
         const box = await httpGet({url:END.blindBoxList, headers});
         notifyBody += `🎁 盲盒任务:\n`;
         if ((box.data?.notOpenedBoxes || []).length === 0) {
