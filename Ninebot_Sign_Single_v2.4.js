@@ -1,6 +1,6 @@
 /*
 📱 九号智能电动车 · 全功能签到（单号版 v2.4）
-👤 作者：QinyRui & ❥﹒﹏非我不可
+👤 作者：QinyRui
 📆 功能：
   - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
@@ -9,9 +9,9 @@
 */
 
 const isReq = typeof $request !== "undefined" && $request.headers;
-const read = (k) => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); };
-const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
+const read = (k: string): string | null => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
+const write = (v: string, k: string): boolean => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
+const notify = (title: string, sub: string, body: string): void => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ---------- BoxJS keys ----------
 const KEY_AUTH = "ninebot.authorization";
@@ -42,14 +42,27 @@ if (isReq) {
       notify("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入 BoxJS");
       console.log("[Ninebot] 抓包写入成功:", {auth, dev, ua});
     }
-  } catch (e) {
+  } catch (e: any) {
     console.log("[Ninebot] 抓包写入异常：", e);
   }
   $done({});
 }
 
 // ---------- 读取配置 ----------
-const cfg = {
+interface Config {
+  Authorization: string;
+  DeviceId: string;
+  userAgent: string;
+  debug: boolean;
+  notify: boolean;
+  autoOpenBox: boolean;
+  autoRepair: boolean;
+  autoApplyBeta: boolean;
+  notifyFail: boolean;
+  titlePrefix: string;
+}
+
+const cfg: Config = {
   Authorization: read(KEY_AUTH) || "",
   DeviceId: read(KEY_DEV) || "",
   userAgent: read(KEY_UA) || "",
@@ -64,73 +77,76 @@ const cfg = {
 
 if (!cfg.Authorization || !cfg.DeviceId) {
   notify(cfg.titlePrefix, "未配置 Token", "请先开启抓包并在九号 App 里操作以写入 Authorization 与 DeviceId");
-  $done();
+  // Script.exit({ success: false, message: "未配置 Token" }); // 使用 Script.exit()
+  $done(); // 兼容原始 $done
 }
 
 // ---------- HTTP helpers ----------
-/**
- * Performs an HTTP POST request using the fetch API.
- * @param params - Request parameters including URL, headers, and body.
- * @returns A promise that resolves with the JSON response or raw data if JSON parsing fails.
- * @throws {Error} If a network error or timeout occurs.
- */
-async function httpPost(params) {
-  try {
-    const requestInit = {
-      method: "POST",
-      headers: new Headers(params.headers),
-      body: params.body || "{}",
-      debugLabel: `Ninebot POST: ${params.url}`, // Add debug label for better logging
-      timeout: 30, // Set a timeout of 30 seconds
-    };
-    const response = await fetch(params.url, requestInit);
+interface HttpResponse {
+  code?: number;
+  msg?: string;
+  data?: any;
+  raw?: string;
+  status?: number;
+  statusText?: string;
+}
 
-    try {
-      return await response.json();
-    } catch (e) {
-      const rawText = await response.text();
-      // Return raw data and status if JSON parsing fails, similar to original behavior
-      return { raw: rawText, status: response.status, statusText: response.statusText };
-    }
-  } catch (error) {
-    // Catch network errors, timeouts, or explicit rejections from fetch
-    log("httpPost network or parsing error:", error.message || error);
-    throw error; // Re-throw to be caught by the main async IIFE
-  }
+interface HttpRequestParams {
+  url: string;
+  headers: Record<string, string>;
+  body?: string;
 }
 
 /**
- * Performs an HTTP GET request using the fetch API.
+ * Performs an HTTP POST request using $httpClient.
+ * @param params - Request parameters including URL, headers, and body.
+ * @returns A promise that resolves with the JSON response or raw data if JSON parsing fails.
+ */
+function httpPost(params: HttpRequestParams): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    if (typeof $httpClient === "undefined") {
+      return reject(new Error("$httpClient is not defined"));
+    }
+    $httpClient.post({ url: params.url, headers: params.headers, body: params.body }, (err, resp, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        try {
+          resolve(JSON.parse(data || "{}"));
+        } catch (e) {
+          resolve({ raw: data, status: resp?.status, statusText: resp?.statusText });
+        }
+      }
+    });
+  });
+}
+
+/**
+ * Performs an HTTP GET request using $httpClient.
  * @param params - Request parameters including URL and headers.
  * @returns A promise that resolves with the JSON response or raw data if JSON parsing fails.
- * @throws {Error} If a network error or timeout occurs.
  */
-async function httpGet(params) {
-  try {
-    const requestInit = {
-      method: "GET",
-      headers: new Headers(params.headers),
-      debugLabel: `Ninebot GET: ${params.url}`, // Add debug label for better logging
-      timeout: 30, // Set a timeout of 30 seconds
-    };
-    const response = await fetch(params.url, requestInit);
-
-    try {
-      return await response.json();
-    } catch (e) {
-      const rawText = await response.text();
-      // Return raw data and status if JSON parsing fails, similar to original behavior
-      return { raw: rawText, status: response.status, statusText: response.statusText };
+function httpGet(params: HttpRequestParams): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    if (typeof $httpClient === "undefined") {
+      return reject(new Error("$httpClient is not defined"));
     }
-  } catch (error) {
-    // Catch network errors, timeouts, or explicit rejections from fetch
-    log("httpGet network or parsing error:", error.message || error);
-    throw error; // Re-throw to be caught by the main async IIFE
-  }
+    $httpClient.get({ url: params.url, headers: params.headers }, (err, resp, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        try {
+          resolve(JSON.parse(data || "{}"));
+        } catch (e) {
+          resolve({ raw: data, status: resp?.status, statusText: resp?.statusText });
+        }
+      }
+    });
+  });
 }
 
 // ---------- Endpoints ----------
-const headers = {
+const headers: Record<string, string> = {
   "Authorization": cfg.Authorization,
   "Content-Type": "application/json",
   "device_id": cfg.DeviceId,
@@ -151,7 +167,7 @@ const END = {
 };
 
 // ---------- 辅助函数 ----------
-function log(...args){
+function log(...args: any[]): void {
   if(cfg.debug) {
     // 将所有参数合并成一个字符串，以确保 console.log 正确输出
     const message = args.map(arg => {
@@ -167,10 +183,11 @@ function log(...args){
     console.log("[Ninebot]", message);
   }
 }
-function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); } }
+function safeStr(v: any): string { try{ return JSON.stringify(v); } catch { return String(v); } }
 
 // ---------- 主流程 ----------
 !(async () => {
+  console.log("[Ninebot] 脚本主流程开始执行..."); // 添加此行以确认脚本开始
   let notifyBody = "";
   let scriptResult = { success: false, message: "脚本执行异常" };
 
@@ -223,7 +240,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
               log("盲盒领取返回：", r);
               if (r && r.code === 0) notifyBody += `\n🎁 ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || r.data?.score || "未知"}`;
               else notifyBody += `\n❌ ${b.awardDays || b.boxDays}天盲盒领取失败`;
-            } catch (e) { log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
+            } catch (e: any) { log("盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
           }
         }
       }
@@ -243,7 +260,7 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
             else notifyBody += `\n🔧 自动补签失败：${rep && rep.msg ? rep.msg : "未知"}`;
           }
         }
-      } catch (e) { log("自动补签异常：", e); }
+      } catch (e: any) { log("自动补签异常：", e); }
     }
 
     // 6) 内测资格检测 & 自动申请
@@ -268,13 +285,13 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
             }else{
               notifyBody+=" → 自动申请失败 ❌";
             }
-          }catch(e){
+          }catch(e: any){
             log("内测自动申请异常：", e);
             notifyBody+=" → 自动申请异常 ❌";
           }
         }
       }
-    }catch(e){
+    }catch(e: any){
       log("内测检测异常：", e);
     }
 
@@ -282,11 +299,17 @@ function safeStr(v){ try{ return JSON.stringify(v); } catch { return String(v); 
     if(cfg.notify) notify(cfg.titlePrefix,"签到结果",notifyBody);
     scriptResult = { success: true, message: notifyBody };
 
-  } catch (e) {
+  } catch (e: any) {
     log("主流程异常：", e);
     if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
     scriptResult.message = `脚本执行异常: ${String(e)}`;
   }
 
-  Script.exit(scriptResult); // 假设 Script 是全局对象
+  // 确保 Script.exit() 在主流程结束时被调用
+  if (typeof Script !== "undefined" && typeof Script.exit === "function") {
+    Script.exit(scriptResult);
+  } else {
+    // Fallback for environments where Script.exit is not available
+    $done(scriptResult);
+  }
 })();
