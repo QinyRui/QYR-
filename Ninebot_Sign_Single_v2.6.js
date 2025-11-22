@@ -4,6 +4,7 @@
 📆 功能：
   - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
+  - 调试模式（打印请求/响应）
   - 控制台日志（带时间戳和分级）+ 通知
   - BoxJS 配置读取
 */
@@ -27,14 +28,14 @@ const KEY_TITLE = "ninebot.titlePrefix";
 
 // ---------- 日志函数 ----------
 function log(level, ...args){
-  const ts = new Date().toLocaleString("zh-CN", { hour12: false });
+  const ts = new Date().toLocaleString("zh-CN",{hour12:false});
   const prefix = `[${ts}]`;
-  const formatted = args.map(a => typeof a === 'object' ? JSON.stringify(a,null,2) : a);
+  const formatted = args.map(a => typeof a==='object'?JSON.stringify(a,null,2):a);
   switch(level){
-    case "info": console.info(prefix, ...formatted); break;
-    case "warn": console.warn(prefix, ...formatted); break;
-    case "error": console.error(prefix, ...formatted); break;
-    default: console.log(prefix, ...formatted);
+    case "info": console.info(prefix,...formatted); break;
+    case "warn": console.warn(prefix,...formatted); break;
+    case "error": console.error(prefix,...formatted); break;
+    default: console.log(prefix,...formatted);
   }
 }
 function safeStr(v){ try{ return JSON.stringify(v); }catch{ return String(v); } }
@@ -42,7 +43,7 @@ function safeStr(v){ try{ return JSON.stringify(v); }catch{ return String(v); } 
 // ---------- 抓包写入 ----------
 if(isReq){
   try{
-    const h = $request.headers || {};
+    const h = $request.headers||{};
     const auth = h["Authorization"]||h["authorization"]||"";
     const dev = h["DeviceId"]||h["deviceid"]||h["device_id"]||"";
     const ua = h["User-Agent"]||h["user-agent"]||"";
@@ -56,9 +57,7 @@ if(isReq){
     }else{
       log("info","抓包数据无变化，无需写入。");
     }
-  }catch(e){
-    log("error","抓包写入异常：",e);
-  }
+  }catch(e){ log("error","抓包写入异常：",e); }
   $done({});
 }
 
@@ -67,7 +66,7 @@ const cfg={
   Authorization: read(KEY_AUTH)||"",
   DeviceId: read(KEY_DEV)||"",
   userAgent: read(KEY_UA)||"",
-  debug: read(KEY_DEBUG)==="false"?false:true,
+  debug: read(KEY_DEBUG)==="false"?false:true, // 调试模式开关
   notify: read(KEY_NOTIFY)==="false"?false:true,
   autoOpenBox: read(KEY_AUTOBOX)==="true",
   autoRepair: read(KEY_AUTOREPAIR)==="true",
@@ -83,9 +82,32 @@ if(!cfg.Authorization || !cfg.DeviceId){
   $done();
 }
 
-// ---------- HTTP helpers ----------
-function httpPost({url,headers,body="{}"}){ return new Promise((res,rej)=>{$httpClient.post({url,headers,body},(e,r,d)=>{if(e) rej(e); else {try{res(JSON.parse(d||"{}"))}catch{res({raw:d})}}});}); }
-function httpGet({url,headers}){ return new Promise((res,rej)=>{$httpClient.get({url,headers},(e,r,d)=>{if(e) rej(e); else {try{res(JSON.parse(d||"{}"))}catch{res({raw:d})}}});}); }
+// ---------- HTTP helpers（调试模式打印请求/响应） ----------
+async function httpPost({url,headers,body="{}"}){
+  if(cfg.debug) log("info","POST 请求:",{url,headers,body});
+  return new Promise((res,rej)=>{
+    $httpClient.post({url,headers,body},(e,r,d)=>{
+      if(e){ log("error","POST请求异常:",e); rej(e); }
+      else{
+        if(cfg.debug) log("info","POST 响应:",d);
+        try{ res(JSON.parse(d||"{}")); }catch{ res({raw:d}); }
+      }
+    });
+  });
+}
+
+async function httpGet({url,headers}){
+  if(cfg.debug) log("info","GET 请求:",{url,headers});
+  return new Promise((res,rej)=>{
+    $httpClient.get({url,headers},(e,r,d)=>{
+      if(e){ log("error","GET请求异常:",e); rej(e); }
+      else{
+        if(cfg.debug) log("info","GET 响应:",d);
+        try{ res(JSON.parse(d||"{}")); }catch{ res({raw:d}); }
+      }
+    });
+  });
+}
 
 // ---------- Endpoints ----------
 const headers={
