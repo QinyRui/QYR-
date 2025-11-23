@@ -1,37 +1,59 @@
 {
-  "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到（单账号）",
-  "author": "QinyRui",
-  "version": "2.6",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
-  "apps": [
+  "title": "九号智能电动车签到（单账号）",
+  "icon": "car",
+  "icon-color": "#FF4500",
+  "items": [
     {
-      "id": "Ninebot_Auto_Sign",
-      "name": "九号签到",
-      "keys": [
-        "ninebot.authorization",
-        "ninebot.deviceId",
-        "ninebot.userAgent",
-        "ninebot.debug",
-        "ninebot.notify",
-        "ninebot.autoOpenBox",
-        "ninebot.autoRepair",
-        "ninebot.autoApplyBeta",
-        "ninebot.notifyFail",
-        "ninebot.titlePrefix"
-      ],
-      "settings": [
-        {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
-        {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
-        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""},
-        {"id":"ninebot.debug","name":"调试日志","type":"boolean","val":true},
-        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
-        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
-        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
-        {"id":"ninebot.autoApplyBeta","name":"自动申请内测资格","type":"boolean","val":true},
-        {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
-        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"}
-      ]
+      "type": "input",
+      "name": "Authorization",
+      "key": "ninebot.authorization",
+      "placeholder": "抓包获取 Authorization",
+      "value": ""
+    },
+    {
+      "type": "input",
+      "name": "DeviceId",
+      "key": "ninebot.deviceId",
+      "placeholder": "抓包获取 DeviceId",
+      "value": ""
+    },
+    {
+      "type": "input",
+      "name": "User-Agent",
+      "key": "ninebot.userAgent",
+      "placeholder": "抓包获取 User-Agent",
+      "value": ""
+    },
+    {
+      "type": "switch",
+      "name": "自动开盲盒",
+      "key": "ninebot.autoOpenBox",
+      "value": true
+    },
+    {
+      "type": "switch",
+      "name": "自动补签",
+      "key": "ninebot.autoRepair",
+      "value": true
+    },
+    {
+      "type": "switch",
+      "name": "发送通知",
+      "key": "ninebot.notify",
+      "value": true
+    },
+    {
+      "type": "switch",
+      "name": "通知失败也显示",
+      "key": "ninebot.notifyFail",
+      "value": false
+    },
+    {
+      "type": "input",
+      "name": "通知标题前缀",
+      "key": "ninebot.titlePrefix",
+      "placeholder": "默认：九号签到",
+      "value": "九号签到"
     }
   ]
 }
