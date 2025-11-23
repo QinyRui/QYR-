@@ -1,18 +1,9 @@
 {
-  "title": "九号智能电动车 · 自动写入数据",
+  "title": "九号智能电动车 · 自动写入抓包数据",
   "icon": "📱",
   "author": "QinyRui",
   "version": "2.6",
   "homepage": "https://t.me/JiuHaoAPP",
-  "type": "cron",
-  "script": "Ninebot_Sign_Single_v2.6.js",
-  "cron": "0 0 * * *",
-  "settings": [
-    {
-      "id": "capture",
-      "name": "抓包写入开关",
-      "type": "bool",
-      "default": true
-    }
-  ]
+  "type": "store",
+  "settings": []
 }
