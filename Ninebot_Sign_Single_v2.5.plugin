@@ -1,42 +1,238 @@
-#!name=九号智能电动车 · 单账号自动签到
-#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；手动签到 + CRON 控制。
-#!author=❥﹒﹏非我不可 & QinyRui
-#!version=2.5
+#!name=九号智能电动车自动签到（单号版 v2.6）
+#!desc=支持抓包自动写入 Authorization/DeviceId/User-Agent；通知开关、自动盲盒开关、自动补签开关；可自定义通知标题和签到时间 CRON
+#!author=QinyRui
+#!version=2.6
 #!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
-#!system=ios
-#!icon-color=#0A84FF
+#!icon-color=#FF9900
+#!type=cron
 
-####################################
-#             UI 设置
-####################################
-[Argument]
-enable_debug = switch, "false", "true", tag = 调试日志开关
-enable_notify = switch, "true", "false", tag = 通知开关
-enable_openbox = switch, "true", "false", tag = 自动盲盒开关
-enable_supplement = switch, "true", "false", tag = 自动补签开关
-enable_internal_test = switch, "false", "true", tag = 内测申请开关
+// ==================== 配置区 ====================
+#!enabled=true
+#!cron=0 8 * * *
+#!boxjs=true
+#!config=BoxJS
+#!arg=enableCapture:true,enableNotify:true,autoOpenBox:true,autoRepair:true,titlePrefix:九号签到,cronTime:0 8 * * *
 
-notify_title = input, "九号签到助手", tag = 自定义通知标题
-cron_time = input, "10 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
+// ------------------ UI 开关 ------------------
+#!arg=enableCapture:boolean:true;抓包写入开关
+#!arg=enableNotify:boolean:true;通知开关
+#!arg=autoOpenBox:boolean:true;自动盲盒开关
+#!arg=autoRepair:boolean:true;自动补签开关
+#!arg=titlePrefix:string:九号签到;自定义通知标题
+#!arg=cronTime:string:0 8 * * *;签到时间 CRON
+// ==============================================
 
-Authorization = input, "", tag = Authorization（手动或抓包）
-DeviceId = input, "", tag = DeviceId（手动或抓包）
-UserAgent = input, "", tag = User-Agent（手动或抓包）
+const isReq = typeof $request !== "undefined" && $request.headers;
+const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
+const write = (v,k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v,k); return false; };
+const notify = (title,sub,body)=>{ if(typeof $notification!=="undefined") $notification.post(title,sub,body); };
 
-enable_manual_sign = switch, "false", "true", tag = 手动签到开关
-enable_capture = switch, "false", "true", tag = 抓包写入开关
+// ---------- BoxJS keys ----------
+const KEY_AUTH="ninebot.authorization";
+const KEY_DEV="ninebot.deviceId";
+const KEY_UA="ninebot.userAgent";
+const KEY_ENABLE_NOTIFY="ninebot.enableNotify";
+const KEY_AUTOBOX="ninebot.autoOpenBox";
+const KEY_AUTOREPAIR="ninebot.autoRepair";
+const KEY_ENABLE_CAPTURE="ninebot.enableCapture";
+const KEY_TITLE="ninebot.titlePrefix";
+const KEY_CRON="ninebot.cronTime";
 
-####################################
-#            Script
-####################################
-[Script]
+// ---------- 抓包写入 ----------
+if(isReq && read(KEY_ENABLE_CAPTURE)==="true"){
+  try{
+    const h=$request.headers||{};
+    const auth=h["Authorization"]||h["authorization"]||"";
+    const dev=h["DeviceId"]||h["deviceid"]||h["device_id"]||"";
+    const ua=h["User-Agent"]||h["user-agent"]||"";
 
-# ① 抓包写入（可选）
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-抓包写入, timeout = 10, enable = {enable_capture}
+    let changed=false;
+    if(auth && read(KEY_AUTH)!==auth){write(auth,KEY_AUTH);changed=true;}
+    if(dev && read(KEY_DEV)!==dev){write(dev,KEY_DEV);changed=true;}
+    if(ua && read(KEY_UA)!==ua){write(ua,KEY_UA);changed=true;}
 
-# ② 自动签到（由用户 CRON 控制）
-cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-自动签到, timeout = 120
+    if(changed){
+      notify("九号智能电动车","抓包成功 ✓","Authorization / DeviceId / User-Agent 已写入 BoxJS");
+      console.log(`[${new Date().toLocaleString()}] 抓包写入成功:`, {auth,dev,ua});
+    }
+  }catch(e){
+    console.log(`[${new Date().toLocaleString()}] 抓包写入异常:`, e);
+  }
+  $done({});
+}
 
-# ③ 手动签到（开关控制）
-cron 0 0 * * * script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.5.js, tag = 九号-手动签到, enable = {enable_manual_sign}, timeout = 120
+// ---------- 读取配置 ----------
+const cfg={
+  Authorization: read(KEY_AUTH)||"",
+  DeviceId: read(KEY_DEV)||"",
+  userAgent: read(KEY_UA)||"",
+  enableNotify: read(KEY_ENABLE_NOTIFY)!=="false",
+  autoOpenBox: read(KEY_AUTOBOX)==="true",
+  autoRepair: read(KEY_AUTOREPAIR)==="true",
+  enableCapture: read(KEY_ENABLE_CAPTURE)==="true",
+  titlePrefix: read(KEY_TITLE)||"九号签到",
+  cronTime: read(KEY_CRON)||"0 8 * * *"
+};
+
+if(!cfg.Authorization || !cfg.DeviceId){
+  notify(cfg.titlePrefix,"未配置 Token","请先开启抓包并在九号 App 里操作以写入 Authorization 与 DeviceId / User-Agent");
+  console.log(`[${new Date().toLocaleString()}] 终止：未读取到账号信息`);
+  $done();
+}
+
+// ---------- HTTP helpers ----------
+function httpPost({url,headers,body="{}"}){
+  return new Promise((resolve,reject)=>{
+    $httpClient.post({url,headers,body},(err,resp,data)=>{
+      if(err) reject(err);
+      else{
+        try{resolve(JSON.parse(data||"{}"));}
+        catch{resolve({raw:data});}
+      }
+    });
+  });
+}
+function httpGet({url,headers}){
+  return new Promise((resolve,reject)=>{
+    $httpClient.get({url,headers},(err,resp,data)=>{
+      if(err) reject(err);
+      else{
+        try{resolve(JSON.parse(data||"{}"));}
+        catch{resolve({raw:data});}
+      }
+    });
+  });
+}
+
+// ---------- Endpoints ----------
+const headers={
+  "Authorization": cfg.Authorization,
+  "Content-Type": "application/json",
+  "device_id": cfg.DeviceId,
+  "User-Agent": cfg.userAgent||"Mozilla/5.0 (iPhone; CPU iPhone OS 18_7) Mobile/15E148 Segway v6",
+  "platform":"h5",
+  "Origin":"https://h5-bj.ninebot.com",
+  "language":"zh"
+};
+const END={
+  sign:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
+  status:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
+  blindBoxList:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
+  blindBoxReceive:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive",
+  repair:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair",
+  balance:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
+  betaStatus:"https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status"
+};
+
+// ---------- 日志辅助 ----------
+function log(...args){console.log(`[${new Date().toLocaleString()}]`, ...args);}
+function info(...args){console.info(`[${new Date().toLocaleString()}]`, ...args);}
+function warn(...args){console.warn(`[${new Date().toLocaleString()}]`, ...args);}
+function error(...args){console.error(`[${new Date().toLocaleString()}]`, ...args);}
+function safeStr(v){try{return JSON.stringify(v,null,2);}catch{return String(v);}}
+
+// ---------- 主流程 ----------
+!(async()=>{
+  let notifyBody="";
+  log("======== 九号自动签到开始 ========");
+
+  try{
+    // 1) 签到
+    log("开始签到请求");
+    const sign = await httpPost({url:END.sign,headers,body:JSON.stringify({deviceId:cfg.DeviceId})});
+    log("签到返回:", safeStr(sign));
+    if(sign?.code===0) notifyBody+=`🎉 签到成功\n🎁 +${sign.data?.nCoin||sign.data?.score||0} N币`;
+    else if(sign?.code===540004) notifyBody+=`⚠️ 今日已签到`;
+    else{
+      notifyBody+=`❌ 签到失败：${(sign?.msg||safeStr(sign))||"未知"}`;
+      if(!cfg.enableNotify) notifyBody="";
+    }
+
+    // 2) 状态
+    const st = await httpGet({url:END.status,headers});
+    log("状态返回:", safeStr(st));
+    if(st?.code===0){
+      const data=st.data||{};
+      const days=data.consecutiveDays||data.continuousDays||0;
+      const cards=data.signCardsNum||data.remedyCard||0;
+      notifyBody+=`\n🗓 连续签到：${days} 天\n🎫 补签卡：${cards} 张`;
+    }
+
+    // 3) 余额
+    const bal = await httpGet({url:END.balance,headers});
+    log("余额返回:", safeStr(bal));
+    if(bal?.code===0) notifyBody+=`\n💰 N币余额：${bal.data?.balance||0}`;
+
+    // 4) 盲盒
+    const box = await httpGet({url:END.blindBoxList,headers});
+    log("盲盒返回:", safeStr(box));
+    const notOpened = box?.data?.notOpenedBoxes||box?.data||[];
+    if(Array.isArray(notOpened) && notOpened.length>0){
+      notifyBody+=`\n\n📦 盲盒任务：`;
+      notOpened.forEach(b=>{
+        const days=b.awardDays||b.boxDays||b.days||"?";
+        const left=b.leftDaysToOpen||b.diffDays||"?";
+        notifyBody+=`\n- ${days}天盲盒，还需 ${left} 天`;
+      });
+
+      if(cfg.autoOpenBox){
+        const ready=notOpened.filter(b=>(b.leftDaysToOpen===0||b.diffDays===0)&&(b.rewardStatus===2||b.status===2));
+        if(ready.length>0){
+          notifyBody+=`\n\n🎉 自动开启盲盒：`;
+          for(const b of ready){
+            try{
+              const r = await httpPost({url:END.blindBoxReceive,headers,body:"{}"});
+              log("盲盒领取返回:", safeStr(r));
+              if(r?.code===0) notifyBody+=`\n🎁 ${b.awardDays||b.boxDays}天盲盒获得：${r.data?.rewardValue||r.data?.score||"未知"}`;
+              else notifyBody+=`\n❌ ${b.awardDays||b.boxDays}天盲盒领取失败`;
+            }catch(e){log("盲盒领取异常:", e);notifyBody+=`\n❌ ${b.awardDays}天盲盒领取异常`;}
+          }
+        }
+      }
+    }
+
+    // 5) 自动补签
+    if(cfg.autoRepair){
+      try{
+        if(st?.code===0){
+          const cards=st.data?.signCardsNum||st.data?.remedyCard||0;
+          const days=st.data?.consecutiveDays||st.data?.continuousDays||0;
+          if(cards>0 && days===0){
+            log("触发自动补签");
+            const rep = await httpPost({url:END.repair,headers,body:"{}"});
+            log("补签返回:", safeStr(rep));
+            if(rep?.code===0) notifyBody+=`\n🔧 自动补签成功`;
+            else notifyBody+=`\n🔧 自动补签失败：${rep?.msg||"未知"}`;
+          }
+        }
+      }catch(e){log("自动补签异常:", e);}
+    }
+
+    // 6) 内测资格检测 & 自动申请
+    try{
+      const beta = await httpGet({url:END.betaStatus,headers});
+      log("内测状态:", safeStr(beta));
+      if(beta?.data?.qualified) notifyBody+="\n🚀 已获得内测资格";
+      else{
+        notifyBody+="\n⚠️ 未获得内测资格";
+        if(cfg.autoApplyBeta){
+          try{
+            const applyResp = await httpPost({url:"https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration",headers,body:JSON.stringify({deviceId:cfg.DeviceId})});
+            log("内测申请返回:", safeStr(applyResp));
+            if(applyResp?.success) notifyBody+=" → 自动申请成功 🎉";
+            else notifyBody+=" → 自动申请失败 ❌";
+          }catch(e){log("内测自动申请异常:", e);notifyBody+=" → 自动申请异常 ❌";}
+        }
+      }
+    }catch(e){log("内测检测异常:", e);}
+
+    if(cfg.enableNotify) notify(cfg.titlePrefix,"签到结果",notifyBody);
+
+  }catch(e){
+    log("主流程异常:", e);
+    if(cfg.enableNotify) notify(cfg.titlePrefix,"脚本异常",String(e));
+  }
+
+  log("======== 九号自动签到结束 ========");
+  $done();
+})();
