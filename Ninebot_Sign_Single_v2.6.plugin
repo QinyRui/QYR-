@@ -1,25 +1,48 @@
-#!name=九号智能电动车 · 单号自动签到
-#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；自动签到 + CRON 控制
-#!author=QinyRui & ❥﹒﹏非我不可
-#!version=2.6
-#!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
-#!system=ios
-#!icon-color=#0A84FF
-
-[Argument]
-debug = switch, "false", "true", tag = 调试日志开关
-notify = switch, "true", "false", tag = 通知开关
-openbox = switch, "true", "false", tag = 自动盲盒开关
-repair = switch, "true", "false", tag = 自动补签开关
-beta = switch, "false", "true", tag = 内测申请开关
-capture = switch, "false", "true", tag = 抓包写入开关
-titlePrefix = input, "九号签到助手", tag = 自定义通知标题
-cron_time = input, "1 0 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
-
-[Script]
-# ① 抓包写入（可选）
-http-request ^https:\/\/.+ninebot\.com\/.+ script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-抓包写入, timeout = 10, enable = {capture}
-
-# ② 自动签到（由用户 CRON 控制）
-cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-自动签到, timeout = 120
+{
+  "title": "九号智能电动车自动签到（单号版 v2.6）",
+  "icon": "📱",
+  "author": "QinyRui",
+  "version": "2.6",
+  "homepage": "https://t.me/JiuHaoAPP",
+  "type": "cron",
+  "script": "Ninebot_Sign_Single_v2.6.js",
+  "cron": "0 8 * * *",
+  "settings": [
+    {
+      "id": "enableNotify",
+      "name": "通知开关",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "id": "autoOpenBox",
+      "name": "自动盲盒开关",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "id": "autoRepair",
+      "name": "自动补签开关",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "id": "enableCapture",
+      "name": "抓包写入开关",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "id": "titlePrefix",
+      "name": "自定义通知标题",
+      "type": "text",
+      "default": "九号签到"
+    },
+    {
+      "id": "cronTime",
+      "name": "签到时间 CRON",
+      "type": "text",
+      "default": "0 8 * * *"
+    }
+  ]
+}
