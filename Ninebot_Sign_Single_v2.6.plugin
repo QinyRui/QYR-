@@ -1,14 +1,13 @@
 #!name = 九号智能电动车 · 单号自动签到
 #!desc = 支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；自动签到 + CRON 控制
 #!openUrl = https://t.me/JiuHaoAPP
-#!author = QinyRui & ❥﹒﹏非我不可
+#!author = QinyRui
 #!homepage = https://t.me/JiuHaoAPP
-#!icon = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
 #!tag = 九号智能电动车
-#!system = iOS
+#!system = iOS,iPadOS,macOS
 #!date = 2025-11-23 12:00:00
 #!version = 2.6
-#!system_version = 18+
+#!system_version = 15
 
 [Argument]
 notify = switch, "true", "false", tag = 通知开关
