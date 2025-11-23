@@ -1,11 +1,12 @@
 /*
 Ninebot_Sign_Single_v2.6.js
-最终版（增强 + 自动分享任务）
-更新日期：2025/11/24 04:01
+最终版（增强 + 自动分享任务 + 今日已签到优化）
+更新日期：2025/11/24 04:30
 - 自动重试（网络异常重试）
 - 签到前查询状态（避免重复签到）
 - 积分流水统计（今日积分变化，含分享任务）
 - 自动完成分享任务
+- 今日已签到时隐藏无新增奖励
 - 显示今日获得经验/积分/盲盒奖励
 - N币余额显示（只显示签到所得 N 币）
 - 7天 / 666天 盲盒进度条（默认：7天用5格，666天用12格）
@@ -50,9 +51,9 @@ const END={
   status:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
   blindBoxList:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
   balance:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-  creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/my-detail", // 积分信息
-  creditList:"https://api5-h5-app-bj.ninebot.com/web/credit/list", // 积分流水 (备用)
-  shareTask:"https://snssdk.ninebot.com/service/2/app_log/?aid=10000004" // 分享任务（使用你抓包的接口）
+  creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/my-detail",
+  creditList:"https://api5-h5-app-bj.ninebot.com/web/credit/list",
+  shareTask:"https://snssdk.ninebot.com/service/2/app_log/?aid=10000004"
 };
 
 // ---------- 网络请求（带重试） ----------
@@ -169,97 +170,44 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
     log("info","发送签到请求...");
     let signResp=null;
     try{signResp=await httpPost(END.sign,headers,JSON.stringify({deviceId:cfg.DeviceId}));}catch(e){log("warn","签到请求异常：",String(e));}
-    let signMsg="", signPoint=0, todayGainExp=0, todayGainNcoin=0;
+    let signMsg="", todayGainExp=0, todayGainNcoin=0;
     if(signResp){
       if(signResp.code===0||signResp.code===1){
         const nCoin=Number(signResp.data?.nCoin??signResp.data?.coin??0);
         const score=Number(signResp.data?.score??0);
-        todayGainNcoin+=nCoin; signPoint = score; todayGainExp+=score;
-        signMsg=`🎉 今日签到成功\n🎁 已得 N币: ${nCoin}${score?`\n🏆 已得 积分: ${score}`:""}`;
+        todayGainNcoin+=nCoin; todayGainExp+=score;
+        signMsg=`🎁 今日签到获得 N币: ${nCoin} / 积分: ${score}`;
       }else if(signResp.code===540004||(signResp.msg&&/已签到/.test(signResp.msg))){
         signMsg=`⚠️ 今日已签到`;
-        const nCoin=Number(signResp.data?.nCoin??signResp.data?.coin??0);
-        const score=Number(signResp.data?.score??0);
-        if(nCoin) todayGainNcoin+=nCoin; if(score) signPoint=score;
-        if(nCoin||score) signMsg+=`\n🎁 本次已得 N币: ${nCoin}${score?` / 积分: ${score}`:""}`;
       }else{ signMsg=`❌ 签到失败：${signResp.msg??JSON.stringify(signResp)}`; if(!cfg.notifyFail) signMsg=""; }
     }else{ signMsg=`❌ 签到请求异常（网络/超时）`; if(!cfg.notifyFail) signMsg=""; }
 
-    // 3) 自动分享任务（查询并统计今日分享积分）
-    let shareGain=0, shareCountToday=0, shareTaskLine="";
+    // 3) 自动分享任务（完成并统计积分）
+    let shareGain=0, shareTaskLine="";
     try{
-      // 你给的分享流水格式里包含 occurrenceTime（秒）和 source: "分享"
-      // 这里我们 POST 固定体 {page:1,size:10,tranType:1}（你之前指定）
       const shareResp = await httpPost(END.shareTask, headers, JSON.stringify({page:1,size:10,tranType:1}));
-      // The snssdk endpoint may return different shape; handle defensively
-      if(shareResp && Array.isArray(shareResp.data)){
-        // If endpoint returns array directly as data
-        const list = shareResp.data;
-        const today = todayKey();
-        const todayShares = list.filter(item => {
-          const ts = Number(item.occurrenceTime || item.create_date || item.createDate || 0);
-          return ts > 0 && toDateKeyFromSec(ts) === today && (String(item.source || "").includes("分享") || item.source==="" || true);
-        });
-        todayShares.forEach(it => { shareGain += Number(it.count ?? 0); });
-        shareCountToday = todayShares.length;
-      } else if(shareResp && Array.isArray(shareResp.data?.list)) {
-        const list = shareResp.data.list;
-        const today = todayKey();
-        const todayShares = list.filter(item => {
-          const ts = Number(item.occurrenceTime || item.create_date || item.createDate || 0);
-          return ts > 0 && toDateKeyFromSec(ts) === today && (String(item.source || "").includes("分享") || item.source==="" || true);
-        });
-        todayShares.forEach(it => { shareGain += Number(it.count ?? 0); });
-        shareCountToday = todayShares.length;
-      } else if (shareResp && Array.isArray(shareResp.data?.list || shareResp.data)) {
-        // fallback handled above, but keep safe
-      } else {
-        // some responses are like {e:0,...} that you showed earlier; try to parse elsewhere
-        // If none, ignore silently
+      if(shareResp?.code===0 && Array.isArray(shareResp.data?.list)){
+        const today=todayKey();
+        const todayShares=shareResp.data.list.filter(item=>toDateKeyFromSec(Number(item.occurrenceTime))===today);
+        todayShares.forEach(it=>{ shareGain+=Number(it.count??0); });
+        if(todayShares.length>0) shareTaskLine=`🎁 今日分享任务获得 积分: ${shareGain}`;
+        todayGainExp+=shareGain;
       }
-
-      if(shareGain>0 || shareCountToday>0){
-        shareTaskLine = `\n📌 今日分享任务：${shareCountToday>0?'已完成':'未完成'}，获得 ${shareGain} 积分`;
-        todayGainExp += shareGain;
-      } else {
-        // If no shares found, still show '未完成' line to be explicit
-        shareTaskLine = `\n📌 今日分享任务：未完成`;
-      }
-    }catch(e){ log("warn","分享任务查询异常：",String(e)); shareTaskLine = `\n📌 今日分享任务：查询异常`; }
+    }catch(e){log("warn","分享任务查询异常：",String(e));}
 
     // 4) 积分/经验信息
-    let upgradeLine = "";
-    let currentExp = 0, currentLevel = 0, expToNext = 0;
+    let upgradeLine="";
     try{
       const creditInfo = await httpGet(END.creditInfo, headers);
-      if(creditInfo && (creditInfo.code === 1 || creditInfo.code === 0) && creditInfo.data){
-        currentExp = Number(creditInfo.data.my_credits ?? creditInfo.data.credit ?? 0);
-        currentLevel = creditInfo.data.level ?? (creditInfo.data.level_list?.find(l=>Array.isArray(l.credit_range) && Number(l.credit_range[0]) <= currentExp && Number(l.credit_range[1]) >= currentExp)?.level ?? 0);
-        const levelList = creditInfo.data.level_list || [];
-        const levelInfo = Array.isArray(levelList) ? levelList.find(l => l.level === currentLevel) : null;
-        if (levelInfo && Array.isArray(levelInfo.credit_range) && levelInfo.credit_range.length >= 2) {
-          expToNext = Number(levelInfo.credit_range[1]) - currentExp;
-          if (expToNext < 0) expToNext = 0;
-        } else if (creditInfo.data.msg && typeof creditInfo.data.msg === "object" && creditInfo.data.msg.credit_upgrade) {
-          // try parse fallback string like "当前3437经验值，还需1563可升级"
-          const m = String(creditInfo.data.msg.credit_upgrade).match(/还需\s*(\d+)/);
-          if (m) expToNext = Number(m[1]);
-        }
-      } else {
-        // try alternative shape your provided earlier (code:1 with data.my_credits)
-        if (creditInfo && creditInfo.data && creditInfo.data.my_credits) {
-          currentExp = Number(creditInfo.data.my_credits);
-          currentLevel = creditInfo.data.level ?? currentLevel;
-          const levelList = creditInfo.data.level_list || [];
-          const levelInfo = Array.isArray(levelList) ? levelList.find(l => l.level === currentLevel) : null;
-          if (levelInfo && Array.isArray(levelInfo.credit_range) && levelInfo.credit_range.length >= 2) {
-            expToNext = Number(levelInfo.credit_range[1]) - currentExp;
-            if (expToNext < 0) expToNext = 0;
-          }
-        }
+      if(creditInfo?.code===1 && creditInfo.data){
+        const credit = Number(creditInfo.data.my_credits ?? 0);
+        const level = creditInfo.data.level ?? null;
+        const range = creditInfo.data.level_list?.find(l=>l.level===level)?.credit_range ?? [];
+        let need = 0;
+        if(range.length===2) need=range[1]-credit;
+        upgradeLine=`📈 当前经验：${credit}${level?`（LV.${level}）`:''}，\n距离升级还需 ${need}`;
       }
-      // build upgradeLine in two-line style later when composing notification
-    }catch(e){ log("warn","经验信息查询异常：",String(e)); }
+    }catch(e){log("warn","经验信息查询异常：",String(e));}
 
     // 5) 余额
     let balMsg="";
@@ -272,84 +220,34 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
       const notOpened = box?.data?.notOpenedBoxes??[];
       if(Array.isArray(notOpened)&&notOpened.length>0){
         notOpened.forEach(b=>{
-          const target=Number(b.awardDays || b.boxDays || b.days || 0);
-          const left=Number(b.leftDaysToOpen ?? b.diffDays ?? 0);
-          const opened=Math.max(0, target - left);
+          const target=Number(b.awardDays), left=Number(b.leftDaysToOpen), opened=Math.max(0,target-left);
           blindProgressInfo.push({target,left,opened});
         });
       }
-      // Sort to put 7-day first then 666 if present (for stable mapping)
-      blindProgressInfo.sort((a,b)=>{
-        if(a.target===7) return -1;
-        if(b.target===7) return 1;
-        if(a.target===666) return -1;
-        if(b.target===666) return 1;
-        return a.target - b.target;
+      blindProgressInfo.forEach(info=>{
+        const width=(info.target===7?5:(info.target===666?12:12));
+        const bar = progressBarSimple(info.opened,info.target,width);
+        blindMsg+=`\n🔋 ${info.target}天盲盒进度：${bar} (${info.opened}/${info.target}) 还需 ${info.left} 天`;
       });
     }catch(e){log("warn","盲盒列表查询异常：",String(e));}
 
-    // Build box7 and box666 objects for notify (guarantee structure even if missing)
-    const defaultBox = { bar: '░░░░░', current: 0, total: 0, left: '?' };
-    let box7 = Object.assign({}, defaultBox);
-    let box666 = Object.assign({}, defaultBox);
-    if (blindProgressInfo.length > 0) {
-      for (const info of blindProgressInfo) {
-        const width = (info.target === 7 ? 5 : (info.target === 666 ? 12 : 12));
-        const bar = progressBarSimple(info.opened, info.target, width);
-        const obj = { bar, current: info.opened, total: info.target, left: info.left };
-        if (info.target === 7) box7 = obj;
-        else if (info.target === 666) box666 = obj;
-        else {
-          // if different target, assign to box666 if empty, else to box7
-          if (box666.current === 0 && box666.total === 0) box666 = obj;
-          else if (box7.current === 0 && box7.total === 0) box7 = obj;
-        }
-      }
-    }
-
     // 7) 连续签到 & 补签卡
-    const consecutiveLine = `\n🗓 连续签到：${consecutiveDays} 天\n🎫 补签卡：${signCards} 张`;
+    const consecutiveLine = `🗓 连续签到：${consecutiveDays} 天\n🎫 补签卡：${signCards} 张`;
 
-    // 8) 汇总通知 - using the EXACT aligned format you requested
-    const todayCoin = todayGainNcoin;
-    const todayPoint = signPoint;
-    const sharePoint = shareGain;
-    const totalPoint = (todayPoint || 0) + (sharePoint || 0);
+    // 8) 汇总通知
+    let notifyBody=[signMsg];
+    if(shareTaskLine) notifyBody.push(shareTaskLine);
+    if(upgradeLine) notifyBody.push(upgradeLine);
+    if(balMsg) notifyBody.push(balMsg);
+    notifyBody.push(consecutiveLine);
+    if(blindMsg) notifyBody.push(blindMsg);
+    if(todayGainExp) notifyBody.push(`🎯 今日总积分（签到 + 分享）：${todayGainExp}`);
+    if(todayGainNcoin) notifyBody.push(`🎯 今日获得 N币（签到）：${todayGainNcoin}`);
 
-    // Build the exact aligned message:
-    const titlePrefix = cfg.titlePrefix || "九号 APP";
-    const line1 = signMsg || `⚠️ 今日签到状态未知`;
-    const line2 = `🎁 今日签到获得 N币: ${todayCoin} / 积分: ${todayPoint}`;
-    const line3 = `🎁 今日分享任务获得 积分: ${sharePoint}`;
-    const line4 = `📈 当前经验：${currentExp}（LV.${currentLevel}），`;
-    const line5 = `   距离升级还需 ${expToNext}`;
-    const line6 = balMsg || `💰 N币余额：?`;
-    const line7 = `🗓 连续签到：${consecutiveDays} 天`;
-    const line8 = `🎫 补签卡：${signCards} 张`;
-    const line9 = `🔋 7天盲盒进度：${box7.bar} (${box7.current}/${box7.total})   还需 ${box7.left} 天`;
-    const line10 = `🔋 666天盲盒进度：${box666.bar} (${box666.current}/${box666.total})   还需 ${box666.left} 天`;
-    const line11 = `🎯 今日总积分（签到 + 分享）：${totalPoint}`;
-
-    const notifyMsg = [
-      line1,
-      line2,
-      line3,
-      line4,
-      line5,
-      line6,
-      line7,
-      line8,
-      line9,
-      line10,
-      line11
-    ].join('\n');
-
-    if(cfg.notify && notifyMsg.trim()){
-      notify(titlePrefix,"签到结果",notifyMsg);
-      log("info","发送通知：", titlePrefix, notifyMsg.replace(/\n/g," | "));
-    } else {
-      log("info","通知已禁用或无内容，跳过发送。");
-    }
+    if(cfg.notify && notifyBody.length>0){
+      notify(cfg.titlePrefix||"九号签到","签到结果",notifyBody.join("\n"));
+      log("info","发送通知：",cfg.titlePrefix,notifyBody.join(" | "));
+    } else log("info","通知已禁用或无内容，跳过发送。");
 
   }catch(e){
     log("error","主流程未捕获异常：",e);
