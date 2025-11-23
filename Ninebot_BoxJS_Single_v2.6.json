@@ -6,9 +6,8 @@
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
   "apps": [
     {
-      "id": "Ninebot_Auto_Sign_v2.6",
+      "id": "Ninebot_Auto_Sign",
       "name": "九号签到",
-      "script": "Ninebot_Sign_Single_v2.6.js",
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
