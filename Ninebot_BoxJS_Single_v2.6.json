@@ -1,22 +1,24 @@
 {
-  "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到（单账号）",
-  "author": "QinyRui",
-  "version": "2.6",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
+  "id": "ninebot.sign.single",
+  "name": "九号智能电动车·单号自动签到（自动写入）",
+  "author": "QinyRui & ❥﹒﹏非我不可",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot/logo.png",
+  "repo": "https://t.me/JiuHaoAPP",
   "apps": [
     {
-      "id": "Ninebot_Auto_Sign",
-      "name": "九号签到",
+      "id": "Ninebot_Sign_Single",
+      "name": "九号自动签到（单账号）",
       "keys": [
-        "ninebot.authorization",
-        "ninebot.deviceId",
-        "ninebot.userAgent"
+        "NINEBOT_ACCOUNT"
       ],
       "settings": [
-        {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
-        {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
-        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""}
+        {
+          "id": "tips",
+          "name": "📌 使用说明",
+          "val": "",
+          "type": "textarea",
+          "placeholder": "此 BoxJS 仅负责自动写入 Authorization / DeviceId / User-Agent。\n无需在 BoxJS 中开启任何开关。\n抓包一次即可自动写入。"
+        }
       ]
     }
   ]
