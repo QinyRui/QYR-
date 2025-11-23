@@ -1,27 +1,23 @@
 {
-  "title": "九号智能电动车 · BoxJS 自动写入",
-  "icon": "📱",
+  "id": "ninebot.auto.sign",
+  "name": "九号智能电动车 BoxJS 自动写入（单账号）",
   "author": "QinyRui",
   "version": "2.6",
-  "type": "store",
-  "items": [
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
+  "apps": [
     {
-      "id": "ninebot.authorization",
-      "name": "Authorization",
-      "type": "text",
-      "value": ""
-    },
-    {
-      "id": "ninebot.deviceId",
-      "name": "DeviceId",
-      "type": "text",
-      "value": ""
-    },
-    {
-      "id": "ninebot.userAgent",
-      "name": "User-Agent",
-      "type": "text",
-      "value": ""
+      "id": "Ninebot_BoxJS_Single",
+      "name": "九号签到 BoxJS",
+      "keys": [
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent"
+      ],
+      "settings": [
+        {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
+        {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
+        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""}
+      ]
     }
   ]
 }
