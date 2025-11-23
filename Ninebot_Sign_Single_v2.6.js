@@ -3,11 +3,10 @@
 👤 作者：QinyRui
 📆 功能：
   - 自动签到、补签、盲盒领取
-  - 内测资格检测 + 自动申请
   - 控制台日志 + 通知
-  - BoxJS 配置读取（抓包自动写入）
-  - 插件自定义通知名优先
+  - BoxJS 配置读取
   - 时间戳 + 日志等级输出
+  - 删除内测资格检测
 */
 
 const isReq = typeof $request !== "undefined" && $request.url && $request.url.includes("user-sign/v2/status");
@@ -23,10 +22,8 @@ const KEY_DEBUG = "ninebot.debug";
 const KEY_NOTIFY = "ninebot.notify";
 const KEY_AUTOBOX = "ninebot.autoOpenBox";
 const KEY_AUTOREPAIR = "ninebot.autoRepair";
-const KEY_AUTOAPPLYBETA = "ninebot.autoApplyBeta";
 const KEY_NOTIFYFAIL = "ninebot.notifyFail";
-const KEY_TITLE = "ninebot.titlePrefix"; // BoxJS 通知名
-const PLUGIN_TITLE = "ninebot.pluginTitle"; // 插件自定义通知名
+const KEY_TITLE = "ninebot.titlePrefix";
 
 // ---------- 抓包写入 ----------
 if (isReq) {
@@ -54,9 +51,6 @@ if (isReq) {
 }
 
 // ---------- 读取配置 ----------
-const pluginTitle = read(PLUGIN_TITLE); // 插件自定义通知名
-const boxjsTitle = read(KEY_TITLE) || "九号签到";
-
 const cfg = {
   Authorization: read(KEY_AUTH) || "",
   DeviceId: read(KEY_DEV) || "",
@@ -65,10 +59,8 @@ const cfg = {
   notify: read(KEY_NOTIFY) === "false" ? false : true,
   autoOpenBox: read(KEY_AUTOBOX) === "true",
   autoRepair: read(KEY_AUTOREPAIR) === "true",
-  autoApplyBeta: read(KEY_AUTOAPPLYBETA) === "true",
   notifyFail: read(KEY_NOTIFYFAIL) === "false" ? false : true,
-  // 优先使用插件通知名
-  titlePrefix: pluginTitle || boxjsTitle
+  titlePrefix: read(KEY_TITLE) || "九号签到"
 };
 
 if (!cfg.Authorization || !cfg.DeviceId) {
@@ -118,8 +110,7 @@ const END = {
   blindBoxList: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
   blindBoxReceive: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive",
   repair: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/repair",
-  balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-  betaStatus: "https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration/status"
+  balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606"
 };
 
 // ---------- 辅助函数 ----------
@@ -140,7 +131,7 @@ function safeStr(v){ try { return JSON.stringify(v); } catch { return String(v);
     log("info", "开始签到请求");
     const sign = await httpPost({ url: END.sign, headers, body: JSON.stringify({deviceId: cfg.DeviceId}) });
     log("info", "签到返回：", sign);
-    if (sign && sign.code === 0) notifyBody += `🎉 签到成功\n🎁 +${sign.data?.nCoin || sign.data?.score || 0} N币`;
+    if (sign && sign.code === 0) notifyBody += `🎉 今日签到成功\n🎁 已得 N币: ${sign.data?.nCoin || sign.data?.score || 0}`;
     else if (sign && sign.code === 540004) notifyBody += `⚠️ 今日已签到`;
     else {
       notifyBody += `❌ 签到失败：${(sign && (sign.msg || safeStr(sign))) || "未知"}`;
@@ -177,14 +168,13 @@ function safeStr(v){ try { return JSON.stringify(v); } catch { return String(v);
       if (cfg.autoOpenBox) {
         const ready = notOpened.filter(b => (b.leftDaysToOpen === 0 || b.diffDays === 0) && (b.rewardStatus === 2 || b.status === 2));
         if (ready.length > 0) {
-          notifyBody += `\n\n🎉 自动开启盲盒：`;
+          notifyBody += `\n\n🎉 今日盲盒奖励：`;
           for (const b of ready) {
             try {
               const r = await httpPost({ url: END.blindBoxReceive, headers, body: "{}" });
               log("info", "盲盒领取返回：", r);
-              if (r && r.code === 0) notifyBody += `\n🎁 ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || r.data?.score || "未知"}`;
-              else notifyBody += `\n❌ ${b.awardDays || b.boxDays}天盲盒领取失败`;
-            } catch (e) { log("error", "盲盒领取异常：", e); notifyBody += `\n❌ ${b.awardDays}天盲盒领取异常`; }
+              if (r && r.code === 0) notifyBody += `\n- ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || r.data?.score || "未知"}`;
+            } catch (e) { log("error", "盲盒领取异常：", e); }
           }
         }
       }
@@ -205,38 +195,6 @@ function safeStr(v){ try { return JSON.stringify(v); } catch { return String(v);
           }
         }
       } catch (e) { log("error", "自动补签异常：", e); }
-    }
-
-    // 6) 内测资格检测 & 自动申请
-    try{
-      const beta = await httpGet({url:END.betaStatus, headers});
-      log("info", "内测状态：", beta);
-
-      if(beta?.data?.qualified){
-        notifyBody+="\n🚀 已获得内测资格";
-      }else{
-        notifyBody+="\n⚠️ 未获得内测资格";
-        if(cfg.autoApplyBeta){
-          try{
-            const applyResp = await httpPost({
-              url:"https://cn-cbu-gateway.ninebot.com/app-api/beta/v1/registration",
-              headers,
-              body: JSON.stringify({deviceId: cfg.DeviceId})
-            });
-            log("info", "内测申请返回：", applyResp);
-            if(applyResp?.success){
-              notifyBody+=" → 自动申请成功 🎉";
-            }else{
-              notifyBody+=" → 自动申请失败 ❌";
-            }
-          }catch(e){
-            log("error", "内测自动申请异常：", e);
-            notifyBody+=" → 自动申请异常 ❌";
-          }
-        }
-      }
-    }catch(e){
-      log("error", "内测检测异常：", e);
     }
 
     // ✅ 最终通知
