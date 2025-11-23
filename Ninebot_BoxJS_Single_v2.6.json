@@ -1,24 +1,37 @@
 {
-  "id": "ninebot.sign.single",
-  "name": "九号智能电动车自动签到（单账号）",
-  "author": "QinyRui & ❥﹒﹏非我不可",
+  "id": "ninebot.boxjs",
+  "name": "九号智能电动车 · BoxJS 自动写入",
+  "author": "QinyRui",
   "version": "2.6",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
   "apps": [
     {
-      "id": "Ninebot_Auto_Sign_Single",
-      "name": "九号单号自动签到",
+      "id": "Ninebot_BoxJS_Single",
+      "name": "九号 BoxJS 数据写入",
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
-        "ninebot.userAgent",
-        "ninebot.titlePrefix"
+        "ninebot.userAgent"
       ],
       "settings": [
-        { "id": "ninebot.authorization", "name": "Authorization", "type": "text", "val": "" },
-        { "id": "ninebot.deviceId", "name": "DeviceId", "type": "text", "val": "" },
-        { "id": "ninebot.userAgent", "name": "User-Agent（自动写入）", "type": "text", "val": "" },
-        { "id": "ninebot.titlePrefix", "name": "自定义通知标题", "type": "text", "val": "九号签到助手" }
+        {
+          "id": "ninebot.authorization",
+          "name": "Authorization",
+          "type": "text",
+          "val": ""
+        },
+        {
+          "id": "ninebot.deviceId",
+          "name": "DeviceId",
+          "type": "text",
+          "val": ""
+        },
+        {
+          "id": "ninebot.userAgent",
+          "name": "User-Agent（自动写入）",
+          "type": "text",
+          "val": ""
+        }
       ]
     }
   ]
