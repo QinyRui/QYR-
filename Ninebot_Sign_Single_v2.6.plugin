@@ -2,17 +2,17 @@
 /*
 📱 九号智能电动车 · 全功能签到（单号版 v2.6）
 👤 作者：QinyRui
-#!name = {{@package 'displayName'}}
-#!desc = {{inline (@package 'description')}}
-#!openUrl = {{@package 'openUrl'}}
-#!author = {{@package 'contributors'}}
-#!homepage = {{@package 'homepage'}}
-#!icon = {{@package 'icon'}}
-#!tag = {{@package 'organizationName'}}
-#!system = {{@package 'system'}}
+#!name = {{'displayName'}}
+#!desc = {{inline ('description')}}
+#!openUrl = {{'openUrl'}}
+#!author = {{'contributors'}}
+#!homepage = {{'homepage'}}
+#!icon = {{'icon'}}
+#!tag = {{'organizationName'}}
+#!system = {{'system'}}
 #!date = {{now "yyyy-MM-dd HH:mm:ss"}}
-#!version = {{@package 'version'}}
-#!system_version = {{ @package 'systemVersion'}}
+#!version = {{'version'}}
+#!system_version = {{ 'systemVersion'}}
 📆 功能：
   - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
