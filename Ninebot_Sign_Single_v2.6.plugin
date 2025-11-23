@@ -1,11 +1,3 @@
-
-/*
-📱 九号智能电动车 · 全功能签到（单号版 v2.6）
-📆 功能：
-  - 自动签到、补签、盲盒领取
-  - 内测资格检测 + 自动申请
-  - 控制台日志 + 通知
-  - BoxJS 配置读取
 #!name = {{'displayName'}}
 #!desc = {{inline ('description')}}
 #!openUrl = {{'openUrl'}}
@@ -17,15 +9,16 @@
 #!date = {{now "yyyy-MM-dd HH:mm:ss"}}
 #!version = {{'version'}}
 #!system_version = {{'systemVersion'}}
-*/
 
 [Argument]
-capture = switch, "true", "false", tag = 抓包写入开关
+notify = switch, "true", "false", tag = 通知开关
+capture = switch, "false", "true", tag = 抓包写入开关
+titlePrefix = input, "九号签到助手", tag = 自定义通知标题
 cron_time = input, "0 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
 
 [Script]
-# ① 抓包写入（可选）
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-抓包写入, timeout = 10, enable = {capture}
+# ---------- ① 抓包写入（可选） ----------
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status\?t=.* script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-抓包写入, timeout = 10, enable = {capture}
 
-# ② 自动签到（由用户 CRON 控制）
+# ---------- ② 自动签到（由用户 CRON 控制） ----------
 cron {cron_time} script-path = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, tag = 九号-自动签到, timeout = 120
