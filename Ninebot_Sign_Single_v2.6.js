@@ -2,18 +2,18 @@
 📱 九号智能电动车 · 全功能签到（单号版 v2.6）
 👤 作者：QinyRui
 📆 功能：
-  - 自动签到、补签、盲盒领取🎁
+  - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
   - 控制台日志 + 通知
-  - BoxJS 配置读取（仅抓包数据）
-  - 插件 UI 修改自定义通知名与通知开关优先
+  - BoxJS 配置读取（抓包自动写入）
+  - 插件自定义通知名优先
   - 时间戳 + 日志等级输出
 */
 
 const isReq = typeof $request !== "undefined" && $request.url && $request.url.includes("user-sign/v2/status");
 const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
 const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
-const notifyFunc = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
+const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ---------- BoxJS keys ----------
 const KEY_AUTH = "ninebot.authorization";
@@ -25,12 +25,8 @@ const KEY_AUTOBOX = "ninebot.autoOpenBox";
 const KEY_AUTOREPAIR = "ninebot.autoRepair";
 const KEY_AUTOAPPLYBETA = "ninebot.autoApplyBeta";
 const KEY_NOTIFYFAIL = "ninebot.notifyFail";
-const KEY_TITLE = "ninebot.titlePrefix";
-
-// ---------- 插件传参（优先） ----------
-const pluginArg = typeof $argument !== "undefined" ? $argument : {};
-const pluginNotify = pluginArg.notify === "true" ? true : (pluginArg.notify === "false" ? false : null);
-const pluginTitle = pluginArg.titlePrefix || null;
+const KEY_TITLE = "ninebot.titlePrefix"; // BoxJS 通知名
+const PLUGIN_TITLE = "ninebot.pluginTitle"; // 插件自定义通知名
 
 // ---------- 抓包写入 ----------
 if (isReq) {
@@ -46,7 +42,7 @@ if (isReq) {
     if (ua && read(KEY_UA) !== ua) { write(ua, KEY_UA); changed = true; }
 
     if (changed) {
-      notifyFunc("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入 BoxJS");
+      notify("九号智能电动车", "抓包成功 ✓", "Authorization / DeviceId / User-Agent 已写入 BoxJS");
       console.info(`[${new Date().toLocaleString()}] 抓包写入成功`, {auth, dev, ua});
     } else {
       console.info(`[${new Date().toLocaleString()}] 抓包未发生变化`);
@@ -58,21 +54,25 @@ if (isReq) {
 }
 
 // ---------- 读取配置 ----------
+const pluginTitle = read(PLUGIN_TITLE); // 插件自定义通知名
+const boxjsTitle = read(KEY_TITLE) || "九号签到";
+
 const cfg = {
   Authorization: read(KEY_AUTH) || "",
   DeviceId: read(KEY_DEV) || "",
   userAgent: read(KEY_UA) || "",
   debug: read(KEY_DEBUG) === "false" ? false : true,
-  notify: pluginNotify !== null ? pluginNotify : (read(KEY_NOTIFY) === "false" ? false : true),
+  notify: read(KEY_NOTIFY) === "false" ? false : true,
   autoOpenBox: read(KEY_AUTOBOX) === "true",
   autoRepair: read(KEY_AUTOREPAIR) === "true",
   autoApplyBeta: read(KEY_AUTOAPPLYBETA) === "true",
   notifyFail: read(KEY_NOTIFYFAIL) === "false" ? false : true,
-  titlePrefix: pluginTitle || read(KEY_TITLE) || "九号签到"
+  // 优先使用插件通知名
+  titlePrefix: pluginTitle || boxjsTitle
 };
 
 if (!cfg.Authorization || !cfg.DeviceId) {
-  notifyFunc(cfg.titlePrefix, "未配置 Token", "请先开启抓包并在九号 App 里操作以写入 Authorization 与 DeviceId");
+  notify(cfg.titlePrefix, "未配置 Token", "请先开启抓包并在九号 App 里操作以写入 Authorization 与 DeviceId");
   console.warn(`[${new Date().toLocaleString()}] 终止：未读取到账号信息`);
   $done();
 }
@@ -240,11 +240,11 @@ function safeStr(v){ try { return JSON.stringify(v); } catch { return String(v);
     }
 
     // ✅ 最终通知
-    if(cfg.notify) notifyFunc(cfg.titlePrefix,"签到结果",notifyBody);
+    if(cfg.notify) notify(cfg.titlePrefix,"签到结果",notifyBody);
 
   } catch (e) {
     log("error", "主流程异常：", e);
-    if(cfg.notify) notifyFunc(cfg.titlePrefix,"脚本异常",String(e));
+    if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
   }
 
   logStart("九号自动签到结束");
