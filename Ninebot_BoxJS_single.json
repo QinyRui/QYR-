@@ -2,7 +2,7 @@
   "id": "ninebot.auto.sign",
   "name": "九号智能电动车自动签到（单账号）",
   "author": "QinyRui",
-  "version": "1.5",
+  "version": "2.4",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
   "apps": [
     {
