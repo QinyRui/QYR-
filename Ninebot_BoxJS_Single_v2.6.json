@@ -1,11 +1,10 @@
 {
-  "title": "九号智能电动车 · 自动写入抓包数据",
+  "title": "九号智能电动车 · BoxJS 自动写入",
   "icon": "📱",
   "author": "QinyRui",
   "version": "2.6",
-  "homepage": "https://t.me/JiuHaoAPP",
   "type": "store",
-  "settings": [
+  "items": [
     {
       "id": "ninebot.authorization",
       "name": "Authorization",
