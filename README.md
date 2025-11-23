@@ -43,7 +43,7 @@
 
 ## 抓包写入说明
 
-- **触发条件**：访问九号 App 签到状态接口  https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status?t=xxx- **写入 BoxJS**：
+- **触发条件**：访问九号 App →我的→签到中心- **写入 BoxJS**：
 - Authorization  
 - DeviceId  
 - User-Agent  
