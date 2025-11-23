@@ -1,13 +1,18 @@
-// @name: 九号智能电动车 · 全功能签到（单号版 v2.6）
-// @author: QinyRui & ❥﹒﹏非我不可
-// @version: v2.6
-// @description: 自动签到、补签、盲盒领取、内测资格检测与自动申请、控制台日志与通知、BoxJS 配置读取
-// @date: 2025-11-23 // 请根据实际修改日期更新此行
-// @supported_systems: Loon
 
 /*
 📱 九号智能电动车 · 全功能签到（单号版 v2.6）
-👤 作者：QinyRui & ❥﹒﹏非我不可
+👤 作者：QinyRui
+#!name = {{@package 'displayName'}}
+#!desc = {{inline (@package 'description')}}
+#!openUrl = {{@package 'openUrl'}}
+#!author = {{@package 'contributors'}}
+#!homepage = {{@package 'homepage'}}
+#!icon = {{@package 'icon'}}
+#!tag = {{@package 'organizationName'}}
+#!system = {{@package 'system'}}
+#!date = {{now "yyyy-MM-dd HH:mm:ss"}}
+#!version = {{@package 'version'}}
+#!system_version = {{ @package 'systemVersion'}}
 📆 功能：
   - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
