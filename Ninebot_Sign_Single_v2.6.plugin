@@ -1,11 +1,19 @@
-#!name=九号智能电动车 · 单号自动签到
-#!desc=支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；自动签到 + CRON 控制
-#!author=QinyRui & ❥﹒﹏非我不可
-#!version=2.6
-#!homepage=https://t.me/JiuHaoAPP
-#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
-#!system=ios
-#!icon-color=#0A84FF
+// @name: 九号智能电动车 · 全功能签到（单号版 v2.6）
+// @author: QinyRui & ❥﹒﹏非我不可
+// @version: v2.6
+// @description: 自动签到、补签、盲盒领取、内测资格检测与自动申请、控制台日志与通知、BoxJS 配置读取
+// @date: 2025-11-23 // 请根据实际修改日期更新此行
+// @supported_systems: Loon
+
+/*
+📱 九号智能电动车 · 全功能签到（单号版 v2.6）
+👤 作者：QinyRui & ❥﹒﹏非我不可
+📆 功能：
+  - 自动签到、补签、盲盒领取
+  - 内测资格检测 + 自动申请
+  - 控制台日志 + 通知
+  - BoxJS 配置读取
+*/
 
 [Argument]
 capture = switch, "true", "false", tag = 抓包写入开关
