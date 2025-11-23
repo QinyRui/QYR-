@@ -8,9 +8,7 @@
 #!icon-color=#0A84FF
 
 [Argument]
-notify = switch, "true", "false", tag = 通知开关
 capture = switch, "true", "false", tag = 抓包写入开关
-titlePrefix = input, "九号签到助手", tag = 自定义通知标题
 cron_time = input, "0 8 * * *", tag = 签到时间 CRON（修改此项改变执行时间）
 
 [Script]
