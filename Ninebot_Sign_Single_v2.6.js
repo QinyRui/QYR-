@@ -1,6 +1,6 @@
 /*
 📱 九号智能电动车 · 全功能签到（单号版 v2.6）
-👤 作者：QinyRui & ❥﹒﹏非我不可
+👤 作者：QinyRui
 📆 功能：
   - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
@@ -9,9 +9,9 @@
 */
 
 const isReq = typeof $request !== "undefined" && $request.url;
-const read = (k: string): string | null => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-const write = (v: string, k: string): boolean => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
-const notify = (title: string, sub: string, body: string): void => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
+const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
+const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
+const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ---------- BoxJS keys ----------
 const KEY_AUTH = "ninebot.authorization";
@@ -51,20 +51,7 @@ if (isReq && $request.url.startsWith("https://cn-cbu-gateway.ninebot.com/portal/
 }
 
 // ---------- 读取配置 ----------
-interface Config {
-    Authorization: string;
-    DeviceId: string;
-    userAgent: string;
-    debug: boolean;
-    notify: boolean;
-    autoOpenBox: boolean;
-    autoRepair: boolean;
-    autoApplyBeta: boolean;
-    notifyFail: boolean;
-    titlePrefix: string;
-}
-
-const cfg: Config = {
+const cfg = {
     Authorization: read(KEY_AUTH) || "",
     DeviceId: read(KEY_DEV) || "",
     userAgent: read(KEY_UA) || "",
@@ -84,15 +71,9 @@ if (!cfg.Authorization || !cfg.DeviceId) {
 }
 
 // ---------- HTTP helpers ----------
-interface HttpResponse {
-    status: number;
-    headers: Record<string, string>;
-    data: string;
-}
-
-function httpPost({ url, headers, body = "{}" }: { url: string; headers: Record<string, string>; body?: string }): Promise<any> {
+function httpPost({ url, headers, body = "{}" }) {
     return new Promise((resolve, reject) => {
-        $httpClient.post({ url, headers, body }, (err: Error | null, resp: HttpResponse, data: string) => {
+        $httpClient.post({ url, headers, body }, (err, resp, data) => {
             if (err) reject(err);
             else {
                 try { resolve(JSON.parse(data || "{}")); } 
@@ -101,9 +82,9 @@ function httpPost({ url, headers, body = "{}" }: { url: string; headers: Record<
         });
     });
 }
-function httpGet({ url, headers }: { url: string; headers: Record<string, string> }): Promise<any> {
+function httpGet({ url, headers }) {
     return new Promise((resolve, reject) => {
-        $httpClient.get({ url, headers }, (err: Error | null, resp: HttpResponse, data: string) => {
+        $httpClient.get({ url, headers }, (err, resp, data) => {
             if (err) reject(err);
             else {
                 try { resolve(JSON.parse(data || "{}")); }
@@ -114,7 +95,7 @@ function httpGet({ url, headers }: { url: string; headers: Record<string, string
 }
 
 // ---------- Endpoints ----------
-const headers: Record<string, string> = {
+const headers = {
     "Authorization": cfg.Authorization,
     "Content-Type": "application/json",
     "device_id": cfg.DeviceId,
@@ -135,7 +116,7 @@ const END = {
 };
 
 // ---------- 日志函数 ----------
-function log(level: string, ...args: unknown[]): void {
+function log(level, ...args) {
     const ts = `[${new Date().toLocaleString()}]`;
     const messageParts = args.map(arg => typeof arg === 'object' ? safeStr(arg) : String(arg));
     const fullMessage = messageParts.join(' ');
@@ -155,14 +136,14 @@ function log(level: string, ...args: unknown[]): void {
     }
 }
 
-function safeStr(v: unknown): string {
+function safeStr(v) {
     try { return JSON.stringify(v, null, 2); } catch { return String(v); }
 }
 
 // ---------- 主流程 ----------
 !(async () => {
     let notifyBody = "";
-    log("info","======== 九号自动签到开始 ========"); // 此处调用会根据log函数内部逻辑不显示"info"
+    log("info","======== 九号自动签到开始 ========");
 
     try {
         // 签到
@@ -195,13 +176,13 @@ function safeStr(v: unknown): string {
         const notOpened = box?.data?.notOpenedBoxes||[];
         if(notOpened.length>0){
             notifyBody += `\n\n📦 盲盒任务：`;
-            notOpened.forEach((b: any)=>{
+            notOpened.forEach(b=>{
                 const days=b.awardDays||"?";
                 const left=b.leftDaysToOpen||"?";
                 notifyBody += `\n- ${days}天盲盒，还需 ${left} 天`;
             });
             if(cfg.autoOpenBox){
-                const ready = notOpened.filter((b: any)=>b.leftDaysToOpen===0 && (b.rewardStatus===2));
+                const ready = notOpened.filter(b=>b.leftDaysToOpen===0 && (b.rewardStatus===2));
                 if(ready.length>0){
                     notifyBody += `\n\n🎉 自动开启盲盒：`;
                     for(const b of ready){
@@ -228,7 +209,7 @@ function safeStr(v: unknown): string {
                     if(rep?.code===0) notifyBody += `\n🔧 自动补签成功`;
                     else notifyBody += `\n🔧 自动补签失败：${rep?.msg||"未知"}`;
                 } else {
-                    log("info", "未触发自动补签"); // 保持与用户提供的日志示例一致
+                    log("info", "未触发自动补签");
                 }
             }catch(e){ log("error","自动补签异常：", e); }
         }
@@ -257,6 +238,6 @@ function safeStr(v: unknown): string {
         if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
     }
 
-    log("info","======== 九号自动签到结束 ========"); // 此处调用会根据log函数内部逻辑不显示"info"
+    log("info","======== 九号自动签到结束 ========");
     $done();
 })();
