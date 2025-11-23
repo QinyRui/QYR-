@@ -1,25 +1,18 @@
 {
-  "id": "ninebot.sign.single",
-  "name": "九号智能电动车·单号自动签到（自动写入）",
-  "author": "QinyRui & ❥﹒﹏非我不可",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot/logo.png",
-  "repo": "https://t.me/JiuHaoAPP",
-  "apps": [
+  "title": "九号智能电动车 · 自动写入数据",
+  "icon": "📱",
+  "author": "QinyRui",
+  "version": "2.6",
+  "homepage": "https://t.me/JiuHaoAPP",
+  "type": "cron",
+  "script": "Ninebot_Sign_Single_v2.6.js",
+  "cron": "0 0 * * *",
+  "settings": [
     {
-      "id": "Ninebot_Sign_Single",
-      "name": "九号自动签到（单账号）",
-      "keys": [
-        "NINEBOT_ACCOUNT"
-      ],
-      "settings": [
-        {
-          "id": "tips",
-          "name": "📌 使用说明",
-          "val": "",
-          "type": "textarea",
-          "placeholder": "此 BoxJS 仅负责自动写入 Authorization / DeviceId / User-Agent。\n无需在 BoxJS 中开启任何开关。\n抓包一次即可自动写入。"
-        }
-      ]
+      "id": "capture",
+      "name": "抓包写入开关",
+      "type": "bool",
+      "default": true
     }
   ]
 }
