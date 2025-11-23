@@ -1,102 +1,83 @@
-# 九号智能电动车 · 单号自动签到 v2.6
+九号智能电动车自动签到 v2.6
 
-📱 **插件类型**：Loon/iOS Cron Script  
-👤 **作者**：QinyRui & ❥﹒﹏非我不可  
-🔗 **主页 / Telegram**：[https://t.me/JiuHaoAPP](https://t.me/JiuHaoAPP)  
-🆕 **版本**：2.6  
-📅 **更新时间**：2025-11-23  
+文件名：Ninebot_Sign_Single_v2.6.js
+版本：v2.6
+更新日期：2025/11/24
+作者：QinyRui
+功能说明
+	•	自动查询签到状态，避免重复签到
+	•	自动发送签到请求
+	•	自动完成分享任务并统计今日积分
+	•	显示今日签到/分享获得的 N币与积分
+	•	显示当前经验值、等级及升级所需经验
+	•	连续签到天数、补签卡数量显示
+	•	7天/666天盲盒进度条显示
+	•	自动抓包写入 Authorization / DeviceId / User-Agent 到 BoxJS
+	•	日志带时间戳，开始/结束明显分隔
+	•	网络异常自动重试
+	•	支持开启/关闭通知、自动开盲盒、自动修复等功能
+BoxJS 配置说明
+	•	抓包匹配：仅匹配 /portal/api/user-sign/v2/status 链接
+	•	写入内容：
+	•	Authorization → ninebot.authorization
+	•	DeviceId → ninebot.deviceId
+	•	User-Agent → ninebot.userAgent
+	•	通知：抓包成功会推送“Authorization / DeviceId / User-Agent 已写入 BoxJS”
+	•	自动开盲盒、自动修复、通知失败提醒 等功能可在 BoxJS 开关控制
+配置参数说明
+参数
+类型
+默认
+说明
+notify
+Boolean
+true
+是否发送签到通知
+autoOpenBox
+Boolean
+true
+是否自动开启盲盒
+autoRepair
+Boolean
+true
+是否自动修复
+notifyFail
+Boolean
+true
+签到失败是否发送通知
+titlePrefix
+String
+“九号签到”
+通知标题前缀
+Authorization
+String
+“”
+抓包写入，必填
+DeviceId
+String
+“”
+抓包写入，必填
+userAgent
+String
+“”
+抓包写入，可选
 
----
+任务统计说明
+	•	签到奖励：N币 + 积分
+	•	分享任务：自动完成，积分统计在“今日总积分”中
+	•	经验值 / 等级：从接口获取当前经验及升级需求
+	•	盲盒进度条：
+	•	7天盲盒 → 默认 5格
+	•	666天盲盒 → 默认 12格
+	•	连续签到 & 补签卡：显示最新状态
+文件说明
+	•	Ninebot_Sign_Single_v2.6.js → 主脚本
+	•	README.md → 功能说明文档
+	•	版本 v2.6 是最终增强版，整合自动分享任务及积分统计
+使用方法
+	1.	在 Loon / Quantumult X / Surge 等 iOS 自动化平台导入脚本
+	2.	打开九号 APP 并操作签到页面
+	3.	抓包写入 Authorization / DeviceId / User-Agent 至 BoxJS
+	4.	配置 BoxJS 开关（通知、自动开盲盒等）
+	5.	定时执行脚本即可
 
-## 功能
-
-- ✅ 自动签到、补签、盲盒领取  
-- ✅ 内测资格检测 + 自动申请  
-- ✅ 支持抓包自动写入 Authorization、DeviceId、User-Agent  
-- ✅ CRON 定时执行签到  
-- ✅ 控制台日志打印，带时间戳和日志等级  
-- ✅ BoxJS 配置读取，支持自定义通知标题和通知开关  
-
----
-
-## 插件安装与订阅
-
-- **Loon 插件**  
-  - 文件名：`Ninebot_Sign_Single_v2.6.plugin`  
-  - 订阅地址：`https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.plugin`  
-  - 插件包含：
-    1. 抓包写入（可选，只抓指定链接）
-    2. 自动签到（由用户 CRON 控制）
-  - **插件配置**：
-    - `notify`：通知开关  
-    - `capture`：抓包写入开关  
-    - `titlePrefix`：自定义通知标题（BoxJS 主控）  
-    - `cron_time`：签到时间 CRON  
-
-- **BoxJS 配置**  
-  - 文件名：`Ninebot_BoxJS_Single_v2.6.json`  
-  - 订阅地址：`https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_BoxJS_Single_v2.6.json`  
-  - BoxJS 仅保留自动写入数据功能（Authorization / DeviceId / User-Agent）  
-  - 可修改自定义通知标题和通知开关，控制最终通知显示  
-
----
-
-## 抓包写入说明
-
-- **触发条件**：访问九号 App →我的→签到中心- **写入 BoxJS**：
-- Authorization  
-- DeviceId  
-- User-Agent  
-- **抓包通知**：
-- 成功写入时会弹出通知：“抓包成功 ✓ Authorization / DeviceId / User-Agent 已写入 BoxJS”  
-- 不会执行签到，避免全局抓包通知过多  
-
----
-
-## 使用方法
-
-1. 打开 Loon，导入插件 `Ninebot_Sign_Single_v2.6.plugin`  
-2. 在 BoxJS 中导入 `Ninebot_BoxJS_Single_v2.6.json`  
-3. 确认 BoxJS 中写入了 Authorization / DeviceId / User-Agent  
-4. 在插件中设置：
- - 是否启用通知  
- - 是否启用抓包写入  
- - CRON 定时  
-5. 打开抓包开关，访问指定接口完成抓包写入  
-6. CRON 定时将自动执行签到任务  
-
----
-
-## 日志输出
-
-- **开始与结束标记**：---
-
-## 注意事项
-
-- **通知控制**：
-- 插件内通知开关只控制抓包写入和日志通知  
-- 自定义通知标题请在 BoxJS 中设置（插件内修改无效）  
-- **抓包限制**：
-- 请仅抓取指定接口，避免全局抓包导致上百条通知  
-- **签到失败**：
-- 如出现“系统错误”或“未获得内测资格”，可查看日志或手动重试  
-- **BoxJS 缓存**：
-- BoxJS 可清除指定 Key 以重写 Authorization / DeviceId / User-Agent  
-
----
-
-## 文件列表
-
-| 文件名 | 说明 |
-|--------|------|
-| `Ninebot_Sign_Single_v2.6.plugin` | Loon 插件，包含抓包与自动签到脚本 |
-| `Ninebot_BoxJS_Single_v2.6.json` | BoxJS 配置，仅用于自动写入数据 |
-| `README.md` | 使用说明文档 |
-
----
-
-## 联系与更新
-
-- Telegram 群：[https://t.me/JiuHaoAPP](https://t.me/JiuHaoAPP)  
-- 最新版本可在 GitHub 根目录 `jiuhao` 查看  
-- 保持 BoxJS 与插件同步更新，确保抓包和自动签到正常执行  
