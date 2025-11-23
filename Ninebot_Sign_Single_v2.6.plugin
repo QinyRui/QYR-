@@ -12,7 +12,7 @@
 #!system = {{'system'}}
 #!date = {{now "yyyy-MM-dd HH:mm:ss"}}
 #!version = {{'version'}}
-#!system_version = {{ 'systemVersion'}}
+#!system_version = {{'systemVersion'}}
 📆 功能：
   - 自动签到、补签、盲盒领取
   - 内测资格检测 + 自动申请
