@@ -1,81 +1,67 @@
 /*
  * 九号智能电动车 · 自动签到（单账号）
- * Version: v2.6
- * Author: QinyRui
- * Telegram: https://t.me/JiuHaoAPP
+ * Version: v2.6 精准抓包增强版
  */
 
 const scriptName = "九号签到";
 const STORAGE_KEY = "NINEBOT_ACCOUNT";
+
 const SIGN_URL = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign";
 const INFO_URL = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/index";
 const TEST_URL = "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/inner-test";
 
-// ========== 工具函数 ==========
-function now() {
-  return new Date().toLocaleString("zh-CN", { hour12: false });
-}
+function now() { return new Date().toLocaleString("zh-CN", { hour12: false }); }
+function log(t) { console.log(`[${now()}] ${t}`); }
+function notify(t, b) { $notification.post(t, "", b); }
 
-function log(msg) {
-  console.log(`[${now()}] ${msg}`);
-}
-
-function notify(title, body) {
-  $notification.post(title, "", body);
-}
-
-// ========== 读取 / 保存账号 ==========
-function loadAccount() {
-  const raw = $persistentStore.read(STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch (e) {
-    log("账号解析失败：" + e);
-    return null;
-  }
-}
-
-function saveAccount(data) {
-  $persistentStore.write(JSON.stringify(data), STORAGE_KEY);
-}
-
-// ========== 抓包自动写入 ==========
+// ======================================================
+// 精准抓包：只接受 cn-cbu-gateway.ninebot.com 域名的数据
+// ======================================================
 if (typeof $request !== "undefined") {
-  log("进入抓包写入流程…");
+  const url = $request.url || "";
 
-  const headers = $request.headers;
-  if (!headers) {
-    log("抓包异常：未获取到 headers");
-    notify(scriptName, "自动写入失败：未获取到请求头");
-    $done({});
+  // 1. 过滤所有不相关的域名（snssdk、埋点、日志通通忽略）
+  if (!url.includes("cn-cbu-gateway.ninebot.com")) {
+    log(`忽略非 Gateway 请求：${url}`);
+    return $done({});
   }
 
+  log(`捕获到九号主接口：${url}`);
+
+  const headers = $request.headers || {};
   const authorization = headers["Authorization"] || headers["authorization"];
   const deviceId = headers["DeviceId"] || headers["deviceid"];
   const userAgent = headers["User-Agent"] || headers["user-agent"];
 
+  // 2. 检查是否完整
   if (authorization && deviceId && userAgent) {
     const data = { authorization, deviceId, userAgent };
-    saveAccount(data);
-    log("抓包自动写入成功！");
-    notify(scriptName, "抓包成功：已自动写入 Authorization / DeviceId / User-Agent");
+    $persistentStore.write(JSON.stringify(data), STORAGE_KEY);
+    log("自动写入成功！");
+    notify(scriptName, "抓包成功：已写入 Authorization / DeviceId / User-Agent");
   } else {
-    log("抓包失败：字段不完整");
-    notify(scriptName, "自动写入失败：未捕获完整参数");
+    log("字段不完整，继续等待更关键接口…");
   }
 
   return $done({});
 }
 
-// ========== 主流程 ==========
+// ======================================================
+// 主签到流程
+// ======================================================
 !(async () => {
   log("======== 九号自动签到开始 ========");
 
-  const account = loadAccount();
-  if (!account || !account.authorization) {
-    notify(scriptName, "未配置 Token\n请在插件 UI 填写 Authorization / Deviceld / User-Agent");
+  const raw = $persistentStore.read(STORAGE_KEY);
+  if (!raw) {
+    notify(scriptName, "未配置 Token\n请先前往九号 App 任意页面并开启抓包自动写入");
     log("终止：未读取到账号信息");
+    return;
+  }
+
+  let account;
+  try { account = JSON.parse(raw); } catch {
+    notify(scriptName, "账号解析失败，请重新抓包");
     return;
   }
 
@@ -86,9 +72,8 @@ if (typeof $request !== "undefined") {
     "Content-Type": "application/json"
   };
 
-  // ======= 调用签到 =======
-  log("开始执行签到请求…");
-
+  // ===== 执行签到 =====
+  log("开始执行签到…");
   const signResp = await httpPost(SIGN_URL, headers, "{}");
 
   if (!signResp.success) {
@@ -97,56 +82,51 @@ if (typeof $request !== "undefined") {
     return;
   }
 
-  const signData = signResp.data;
-  log("签到响应：" + JSON.stringify(signData, null, 2));
+  log("签到返回：" + JSON.stringify(signResp.data, null, 2));
 
-  // ====== 获取签到信息 ======
-  log("获取最新签到状态…");
+  // ===== 拉取签到信息 =====
   const infoResp = await httpGet(INFO_URL, headers);
-
   if (!infoResp.success) {
-    notify(scriptName, `签到完成但查询失败：${infoResp.error}`);
+    notify(scriptName, "签到完成但查询失败：" + infoResp.error);
     return;
   }
 
   const info = infoResp.data.data;
 
-  // ====== 内测资格 ======
-  log("检测内测资格…");
+  // ===== 内测资格 =====
   const testResp = await httpGet(TEST_URL, headers);
-
   let testMsg = "";
   if (testResp.success) {
     testMsg = testResp.data.data?.isQualified ? "已获得内测资格 ✔" : "未获得内测资格 — 自动申请失败 ✘";
-  } else {
-    testMsg = "内测检测异常";
   }
 
-  // ====== 输出通知 ======
-  let msg =
-    `签到结果：${signData?.message || "未知"}\n` +
-    `连续：${info?.signContinuity || 0} 天\n\n` +
-    `盲盒：\n- ${info?.mallSignIn?.day || "--"} 天盲盒\n` +
-    `余额：${info?.userPoint || "--"} N币\n\n` +
+  // ===== 输出通知 =====
+  const msg =
+    `签到结果：${signResp.data?.message || "未知"}\n` +
+    `连续签到：${info?.signContinuity || 0} 天\n` +
+    `盲盒：${info?.mallSignIn?.day || "--"} 天\n` +
+    `我的积分：${info?.userPoint || "--"} N币\n\n` +
     `${testMsg}`;
 
   notify(scriptName, msg);
-
   log("======== 九号签到结束 ========");
 
 })();
 
-// ========== HTTP ==========
+
+// ======================================================
+// HTTP 封装
+// ======================================================
 function httpGet(url, headers) {
   return new Promise(resolve => {
     $httpClient.get({ url, headers }, (err, resp, data) => {
       if (err) {
-        log("GET 请求异常：" + JSON.stringify(err));
+        log("GET异常：" + JSON.stringify(err));
         return resolve({ success: false, error: err.error || err });
       }
       try {
         resolve({ success: true, data: JSON.parse(data) });
-      } catch (e) {
+      } catch {
         resolve({ success: false, error: "JSON 解析失败" });
       }
     });
@@ -157,12 +137,12 @@ function httpPost(url, headers, body) {
   return new Promise(resolve => {
     $httpClient.post({ url, headers, body }, (err, resp, data) => {
       if (err) {
-        log("POST 请求异常：" + JSON.stringify(err));
+        log("POST异常：" + JSON.stringify(err));
         return resolve({ success: false, error: err.error || err });
       }
       try {
         resolve({ success: true, data: JSON.parse(data) });
-      } catch (e) {
+      } catch {
         resolve({ success: false, error: "JSON 解析失败" });
       }
     });
