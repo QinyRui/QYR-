@@ -1,92 +1,102 @@
-# 📱 九号智能电动车 · 单号自动签到（Single Account）
+# 九号智能电动车 · 单号自动签到 v2.6
 
-![九号 Logo](https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png)
-
-## 👤 作者
-- ❥﹒﹏非我不可  
-- QinyRui  
-- Telegram 群：[https://t.me/JiuHaoAPP](https://t.me/JiuHaoAPP)
-
-## 📆 版本
-- v2.3 (2025/11/18)
-
-## 🧰 功能
-- 自动签到、查询状态、N币余额  
-- 自动补签（可关闭）  
-- 自动开启 & 自动领取盲盒奖励（可关闭）  
-- 完整日志输出（控制台 + 通知）  
-- 支持 BoxJS 配置读取写入（抓包信息）  
-- Loon 插件支持 Cron 和 http-request 自动触发  
+📱 **插件类型**：Loon/iOS Cron Script  
+👤 **作者**：QinyRui & ❥﹒﹏非我不可  
+🔗 **主页 / Telegram**：[https://t.me/JiuHaoAPP](https://t.me/JiuHaoAPP)  
+🆕 **版本**：2.6  
+📅 **更新时间**：2025-11-23  
 
 ---
 
-## 🔗 文件 & 订阅链接
+## 功能
 
-| 类型 | 文件名 | Raw 链接 |
-| ---- | ---- | ---- |
-| JS 脚本（主体） | `Ninebot_Sign_Single_v2.3.js` | [Raw 链接](https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.3.js) |
-| Loon 插件 | `Ninebot_Sign_Single_v2.3.plugin` | [Raw 链接](https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.3.plugin) |
-| BoxJS 配置 JSON | `Ninebot_Loon_BoxJS_single.json` | [Raw 链接](https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Loon_BoxJS_single.json) |
+- ✅ 自动签到、补签、盲盒领取  
+- ✅ 内测资格检测 + 自动申请  
+- ✅ 支持抓包自动写入 Authorization、DeviceId、User-Agent  
+- ✅ CRON 定时执行签到  
+- ✅ 控制台日志打印，带时间戳和日志等级  
+- ✅ BoxJS 配置读取，支持自定义通知标题和通知开关  
 
 ---
 
-## ⚙️ 安装方法
+## 插件安装与订阅
 
-### 1️⃣ BoxJS 订阅
-1. 打开 BoxJS  
-2. 点击 **添加订阅**  
-3. 填入 JSON Raw 链接：  https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Loon_BoxJS_single.json
-4. 配置抓包信息：
+- **Loon 插件**  
+  - 文件名：`Ninebot_Sign_Single_v2.6.plugin`  
+  - 订阅地址：`https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.plugin`  
+  - 插件包含：
+    1. 抓包写入（可选，只抓指定链接）
+    2. 自动签到（由用户 CRON 控制）
+  - **插件配置**：
+    - `notify`：通知开关  
+    - `capture`：抓包写入开关  
+    - `titlePrefix`：自定义通知标题（BoxJS 主控）  
+    - `cron_time`：签到时间 CRON  
+
+- **BoxJS 配置**  
+  - 文件名：`Ninebot_BoxJS_Single_v2.6.json`  
+  - 订阅地址：`https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_BoxJS_Single_v2.6.json`  
+  - BoxJS 仅保留自动写入数据功能（Authorization / DeviceId / User-Agent）  
+  - 可修改自定义通知标题和通知开关，控制最终通知显示  
+
+---
+
+## 抓包写入说明
+
+- **触发条件**：访问九号 App 签到状态接口  https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status?t=xxx- **写入 BoxJS**：
 - Authorization  
 - DeviceId  
-- User-Agent（可自动写入）
-
-### 2️⃣ Loon 插件安装
-1. 打开 Loon  
-2. 添加插件订阅：  https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.3.plugin
-3. 插件 Cron 和 http-request 已配置，脚本会自动执行  
+- User-Agent  
+- **抓包通知**：
+- 成功写入时会弹出通知：“抓包成功 ✓ Authorization / DeviceId / User-Agent 已写入 BoxJS”  
+- 不会执行签到，避免全局抓包通知过多  
 
 ---
 
-## 📦 功能示意
+## 使用方法
 
-| 功能 | 描述 |
-| ---- | ---- |
-| 自动签到 | 每天自动签到 N币 |
-| 自动补签 | 有补签卡时自动使用（可关闭） |
-| 自动开启盲盒 | 满足条件自动领取盲盒奖励（可关闭） |
-| 日志输出 | 控制台 + 通知完整显示 |
-| BoxJS 配置 | 可修改开关、抓包信息、通知标题 |
-
----
-
-## 🔍 抓包说明
-1. 打开九号智能电动车 App  
-2. 进行签到操作  
-3. 使用抓包工具（Quantumult X / Surge / Loon 等）抓取请求  
-4. BoxJS 会自动写入 **Authorization / DeviceId / User-Agent**  
-5. 成功抓包后，BoxJS 会弹出通知  
+1. 打开 Loon，导入插件 `Ninebot_Sign_Single_v2.6.plugin`  
+2. 在 BoxJS 中导入 `Ninebot_BoxJS_Single_v2.6.json`  
+3. 确认 BoxJS 中写入了 Authorization / DeviceId / User-Agent  
+4. 在插件中设置：
+ - 是否启用通知  
+ - 是否启用抓包写入  
+ - CRON 定时  
+5. 打开抓包开关，访问指定接口完成抓包写入  
+6. CRON 定时将自动执行签到任务  
 
 ---
 
-## 📊 图标库
+## 日志输出
 
-| 尺寸 | 图标 |
-| ---- | ---- |
-| 64×64 | ![九号 Logo 64](https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_64.png) |
-| 128×128 | ![九号 Logo 128](https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png) |
-| 256×256 | ![九号 Logo 256](https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_256.png) |
+- **开始与结束标记**：---
+
+## 注意事项
+
+- **通知控制**：
+- 插件内通知开关只控制抓包写入和日志通知  
+- 自定义通知标题请在 BoxJS 中设置（插件内修改无效）  
+- **抓包限制**：
+- 请仅抓取指定接口，避免全局抓包导致上百条通知  
+- **签到失败**：
+- 如出现“系统错误”或“未获得内测资格”，可查看日志或手动重试  
+- **BoxJS 缓存**：
+- BoxJS 可清除指定 Key 以重写 Authorization / DeviceId / User-Agent  
 
 ---
 
-## 💬 联系与支持
+## 文件列表
+
+| 文件名 | 说明 |
+|--------|------|
+| `Ninebot_Sign_Single_v2.6.plugin` | Loon 插件，包含抓包与自动签到脚本 |
+| `Ninebot_BoxJS_Single_v2.6.json` | BoxJS 配置，仅用于自动写入数据 |
+| `README.md` | 使用说明文档 |
+
+---
+
+## 联系与更新
+
 - Telegram 群：[https://t.me/JiuHaoAPP](https://t.me/JiuHaoAPP)  
-- 任何问题可以在群里讨论或提交 Issue  
-
----
-
-## ⚠️ 注意事项
-- BoxJS 配置必须是 **Apps JSON 格式**  
-- 布尔开关为 true/false  
-- JS 脚本不要直接写入插件文件，插件只引用 Raw 链接  
-- 确保抓包信息写入 BoxJS 后再执行签到脚本
+- 最新版本可在 GitHub 根目录 `jiuhao` 查看  
+- 保持 BoxJS 与插件同步更新，确保抓包和自动签到正常执行  
