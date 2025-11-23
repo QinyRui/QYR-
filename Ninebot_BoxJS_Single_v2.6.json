@@ -5,5 +5,24 @@
   "version": "2.6",
   "homepage": "https://t.me/JiuHaoAPP",
   "type": "store",
-  "settings": []
+  "settings": [
+    {
+      "id": "ninebot.authorization",
+      "name": "Authorization",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "id": "ninebot.deviceId",
+      "name": "DeviceId",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "id": "ninebot.userAgent",
+      "name": "User-Agent",
+      "type": "text",
+      "value": ""
+    }
+  ]
 }
