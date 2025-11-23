@@ -1,7 +1,19 @@
+/*
+📱 九号智能电动车 · 全功能签到（单号版 v2.6）
+👤 作者：QinyRui
+📆 版本日期: 2025-11-23 12:00:00
+ 功能：
+  - 自动签到、补签、盲盒领取
+  - 控制台日志 + 通知
+  - BoxJS 配置读取
+  - 时间戳 + 日志等级输出
+  - 删除内测资格检测
+*/
+
 const isReq = typeof $request !== "undefined" && $request.url && $request.url.includes("user-sign/v2/status");
-const read = (k: string): string | null => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-const write = (v: string, k: string): boolean => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
-const notify = (title: string, sub: string, body: string): void => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
+const read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
+const write = (v, k) => { if (typeof $persistentStore !== "undefined") return $persistentStore.write(v, k); return false; };
+const notify = (title, sub, body) => { if (typeof $notification !== "undefined") $notification.post(title, sub, body); };
 
 // ---------- BoxJS keys ----------
 const KEY_AUTH = "ninebot.authorization";
@@ -33,26 +45,14 @@ if (isReq) {
     } else {
       console.info(`[${new Date().toLocaleString()}] 抓包未发生变化`);
     }
-  } catch (e: unknown) {
+  } catch (e) {
     console.error(`[${new Date().toLocaleString()}] 抓包写入异常：`, e);
   }
   $done({});
 }
 
 // ---------- 读取配置 ----------
-interface Config {
-  Authorization: string;
-  DeviceId: string;
-  userAgent: string;
-  debug: boolean;
-  notify: boolean;
-  autoOpenBox: boolean;
-  autoRepair: boolean;
-  notifyFail: boolean;
-  titlePrefix: string;
-}
-
-const cfg: Config = {
+const cfg = {
   Authorization: read(KEY_AUTH) || "",
   DeviceId: read(KEY_DEV) || "",
   userAgent: read(KEY_UA) || "",
@@ -71,16 +71,9 @@ if (!cfg.Authorization || !cfg.DeviceId) {
 }
 
 // ---------- HTTP helpers ----------
-interface HttpResponse {
-  code?: number;
-  msg?: string;
-  data?: any;
-  raw?: string;
-}
-
-function httpPost({ url, headers, body = "{}" }: { url: string; headers: Record<string, string>; body?: string }): Promise<HttpResponse> {
+function httpPost({ url, headers, body = "{}" }) {
   return new Promise((resolve, reject) => {
-    $httpClient.post({ url, headers, body }, (err: Error | null, resp: unknown, data: string) => {
+    $httpClient.post({ url, headers, body }, (err, resp, data) => {
       if (err) reject(err);
       else {
         try { resolve(JSON.parse(data || "{}")); }
@@ -89,10 +82,9 @@ function httpPost({ url, headers, body = "{}" }: { url: string; headers: Record<
     });
   });
 }
-
-function httpGet({ url, headers }: { url: string; headers: Record<string, string> }): Promise<HttpResponse> {
+function httpGet({ url, headers }) {
   return new Promise((resolve, reject) => {
-    $httpClient.get({ url, headers }, (err: Error | null, resp: unknown, data: string) => {
+    $httpClient.get({ url, headers }, (err, resp, data) => {
       if (err) reject(err);
       else {
         try { resolve(JSON.parse(data || "{}")); }
@@ -103,7 +95,7 @@ function httpGet({ url, headers }: { url: string; headers: Record<string, string
 }
 
 // ---------- Endpoints ----------
-const headers: Record<string, string> = {
+const headers = {
   "Authorization": cfg.Authorization,
   "Content-Type": "application/json",
   "device_id": cfg.DeviceId,
@@ -123,19 +115,15 @@ const END = {
 };
 
 // ---------- 辅助函数 ----------
-type LogLevel = "info" | "warn" | "error";
-
-function log(level: LogLevel, ...args: unknown[]): void {
+function log(level, ...args) {
   const time = new Date().toLocaleString();
-  console[level](`[${time}] ${level}`, ...args.map(safeStr));
+  console[level](`[${time}] ${level}`, ...args);
 }
-
-function logStart(msg: string): void { console.log(`[${new Date().toLocaleString()}] ======== ${msg} ========`); }
-
-function safeStr(v: unknown): string { try { return JSON.stringify(v); } catch { return String(v); } }
+function logStart(msg){ console.log(`[${new Date().toLocaleString()}] ======== ${msg} ========`); }
+function safeStr(v){ try { return JSON.stringify(v); } catch { return String(v); } }
 
 // ---------- 主流程 ----------
-(async (): Promise<void> => {
+!(async () => {
   logStart("九号自动签到开始");
   let notifyBody = "";
 
@@ -172,14 +160,14 @@ function safeStr(v: unknown): string { try { return JSON.stringify(v); } catch {
     const notOpened = box?.data?.notOpenedBoxes || box?.data || [];
     if (Array.isArray(notOpened) && notOpened.length > 0) {
       notifyBody += `\n\n📦 盲盒任务：`;
-      notOpened.forEach((b: any) => {
+      notOpened.forEach(b => {
         const days = b.awardDays || b.boxDays || b.days || "?";
         const left = b.leftDaysToOpen || b.diffDays || "?";
         notifyBody += `\n- ${days}天盲盒，还需 ${left} 天`;
       });
 
       if (cfg.autoOpenBox) {
-        const ready = notOpened.filter((b: any) => (b.leftDaysToOpen === 0 || b.diffDays === 0) && (b.rewardStatus === 2 || b.status === 2));
+        const ready = notOpened.filter(b => (b.leftDaysToOpen === 0 || b.diffDays === 0) && (b.rewardStatus === 2 || b.status === 2));
         if (ready.length > 0) {
           notifyBody += `\n\n🎉 今日盲盒奖励：`;
           for (const b of ready) {
@@ -187,7 +175,7 @@ function safeStr(v: unknown): string { try { return JSON.stringify(v); } catch {
               const r = await httpPost({ url: END.blindBoxReceive, headers, body: "{}" });
               log("info", "盲盒领取返回：", r);
               if (r && r.code === 0) notifyBody += `\n- ${b.awardDays || b.boxDays}天盲盒获得：${r.data?.rewardValue || r.data?.score || "未知"}`;
-            } catch (e: unknown) { log("error", "盲盒领取异常：", e); }
+            } catch (e) { log("error", "盲盒领取异常：", e); }
           }
         }
       }
@@ -207,13 +195,13 @@ function safeStr(v: unknown): string { try { return JSON.stringify(v); } catch {
             else notifyBody += `\n🔧 自动补签失败：${rep && rep.msg ? rep.msg : "未知"}`;
           }
         }
-      } catch (e: unknown) { log("error", "自动补签异常：", e); }
+      } catch (e) { log("error", "自动补签异常：", e); }
     }
 
     // ✅ 最终通知
     if(cfg.notify) notify(cfg.titlePrefix,"签到结果",notifyBody);
 
-  } catch (e: unknown) {
+  } catch (e) {
     log("error", "主流程异常：", e);
     if(cfg.notify) notify(cfg.titlePrefix,"脚本异常",String(e));
   }
