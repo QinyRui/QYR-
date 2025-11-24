@@ -1,7 +1,7 @@
 /*
 Ninebot_Sign_Single_v2.6.js
 最终版（增强 + 自动分享任务 + 今日已签到优化）
-更新日期：2025/11/24 04:30
+更新日期：2025/11/24 04:30 -> 2025/11/24 04:40 (集成 /web/credit/get-msg)
 - 自动重试（网络异常重试）
 - 签到前查询状态（避免重复签到）
 - 积分流水统计（今日积分变化，含分享任务）
@@ -51,7 +51,7 @@ const END={
   status:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
   blindBoxList:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
   balance:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-  creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/my-detail",
+  creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/get-msg", // 已更新为你提供的接口
   creditList:"https://api5-h5-app-bj.ninebot.com/web/credit/list",
   shareTask:"https://snssdk.ninebot.com/service/2/app_log/?aid=10000004"
 };
@@ -185,6 +185,7 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
     // 3) 自动分享任务（完成并统计积分）
     let shareGain=0, shareTaskLine="";
     try{
+      // POST body fixed as you provided earlier
       const shareResp = await httpPost(END.shareTask, headers, JSON.stringify({page:1,size:10,tranType:1}));
       if(shareResp?.code===0 && Array.isArray(shareResp.data?.list)){
         const today=todayKey();
@@ -192,20 +193,55 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
         todayShares.forEach(it=>{ shareGain+=Number(it.count??0); });
         if(todayShares.length>0) shareTaskLine=`🎁 今日分享任务获得 积分: ${shareGain}`;
         todayGainExp+=shareGain;
+      } else if(shareResp?.code===0 && Array.isArray(shareResp.data)){ // some variants
+        const today=todayKey();
+        const todayShares=shareResp.data.filter(item=>toDateKeyFromSec(Number(item.occurrenceTime))===today);
+        todayShares.forEach(it=>{ shareGain+=Number(it.count??0); });
+        if(todayShares.length>0) shareTaskLine=`🎁 今日分享任务获得 积分: ${shareGain}`;
+        todayGainExp+=shareGain;
+      } else {
+        // not critical
+        log("info","每日分享任务接口返回非标准格式或无数据：", shareResp && (shareResp.code!==undefined?`code:${shareResp.code}`:shareResp));
       }
     }catch(e){log("warn","分享任务查询异常：",String(e));}
 
-    // 4) 积分/经验信息
+    // 4) 积分/经验信息（使用 /web/credit/get-msg）
     let upgradeLine="";
     try{
       const creditInfo = await httpGet(END.creditInfo, headers);
-      if(creditInfo?.code===1 && creditInfo.data){
-        const credit = Number(creditInfo.data.my_credits ?? 0);
-        const level = creditInfo.data.level ?? null;
-        const range = creditInfo.data.level_list?.find(l=>l.level===level)?.credit_range ?? [];
-        let need = 0;
-        if(range.length===2) need=range[1]-credit;
-        upgradeLine=`📈 当前经验：${credit}${level?`（LV.${level}）`:''}，\n距离升级还需 ${need}`;
+      if(creditInfo && creditInfo.code !== undefined){
+        // Your provided /web/credit/get-msg returns code:1 on success and data contains credit, level, credit_range etc.
+        const data = creditInfo.data || {};
+        // prefer official credit_upgrade text if present
+        if(data.credit_upgrade){
+          // attempt to extract numeric "还需" from text
+          const m = String(data.credit_upgrade).match(/还需\s*([0-9]+)\s*/);
+          let need = null;
+          if(m && m[1]) need = Number(m[1]);
+          const credit = Number(data.credit ?? data.credit || 0);
+          const level = data.level ?? null;
+          if(credit || credit===0){
+            if(need!==null) upgradeLine = `📈 当前经验：${credit}${level?`（LV.${level}）`:''}，\n距离升级还需 ${need}`;
+            else upgradeLine = `📈 当前经验：${credit}${level?`（LV.${level}）`:''}`;
+          } else if(data.credit_range && Array.isArray(data.credit_range)) {
+            // fallback compute
+            const creditVal = Number(data.credit ?? 0);
+            const range = data.credit_range;
+            const needCalc = (Array.isArray(range) && range.length>=2) ? (range[1] - creditVal) : 0;
+            upgradeLine = `📈 当前经验：${creditVal}${level?`（LV.${level}）`:''}，\n距离升级还需 ${needCalc}`;
+          }
+        } else if(creditInfo.data && creditInfo.data.credit !== undefined){
+          const credit = Number(creditInfo.data.credit || 0);
+          const level = creditInfo.data.level ?? null;
+          const range = creditInfo.data.credit_range ?? creditInfo.data.creditRange ?? [];
+          let need = 0;
+          if(Array.isArray(range) && range.length>=2) need = Number(range[1]) - Number(credit);
+          upgradeLine = `📈 当前经验：${credit}${level?`（LV.${level}）`:''}，\n距离升级还需 ${need}`;
+        } else {
+          log("info","经验接口返回但未包含预期字段：", creditInfo);
+        }
+      } else {
+        log("warn","经验接口返回异常或无数据：", creditInfo);
       }
     }catch(e){log("warn","经验信息查询异常：",String(e));}
 
@@ -234,19 +270,27 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
     // 7) 连续签到 & 补签卡
     const consecutiveLine = `🗓 连续签到：${consecutiveDays} 天\n🎫 补签卡：${signCards} 张`;
 
-    // 8) 汇总通知
-    let notifyBody=[signMsg];
-    if(shareTaskLine) notifyBody.push(shareTaskLine);
-    if(upgradeLine) notifyBody.push(upgradeLine);
-    if(balMsg) notifyBody.push(balMsg);
-    notifyBody.push(consecutiveLine);
-    if(blindMsg) notifyBody.push(blindMsg);
-    if(todayGainExp) notifyBody.push(`🎯 今日总积分（签到 + 分享）：${todayGainExp}`);
-    if(todayGainNcoin) notifyBody.push(`🎯 今日获得 N币（签到）：${todayGainNcoin}`);
+    // 8) 汇总通知（按你要求的顺序）
+    // signMsg may be empty if notifyFail disabled and failure occurred.
+    let notifyBodyArr = [];
+    if(signMsg) notifyBodyArr.push(signMsg);
+    // 今日分享 line already pushed as shareTaskLine earlier (it is in same format)
+    if(shareTaskLine) notifyBodyArr.push(shareTaskLine);
+    if(upgradeLine) notifyBodyArr.push(upgradeLine);
+    if(balMsg) notifyBodyArr.push(balMsg);
+    notifyBodyArr.push(consecutiveLine);
+    // place today's share/task above blind boxes (you asked blind boxes last)
+    if(blindMsg) notifyBodyArr.push(blindMsg);
+    // Totals at bottom
+    if(todayGainExp) notifyBodyArr.push(`🎯 今日总积分（签到 + 分享）：${todayGainExp}`);
+    if(todayGainNcoin) notifyBodyArr.push(`🎯 今日获得 N币（签到）：${todayGainNcoin}`);
 
-    if(cfg.notify && notifyBody.length>0){
-      notify(cfg.titlePrefix||"九号签到","签到结果",notifyBody.join("\n"));
-      log("info","发送通知：",cfg.titlePrefix,notifyBody.join(" | "));
+    // If user chose to hide zero-lines when already signed with no gains, remove those 0 lines:
+    // signMsg is already concise; shareTaskLine absent if no shares; todayGainExp/todayGainNcoin lines only added if >0.
+
+    if(cfg.notify && notifyBodyArr.length>0){
+      notify(cfg.titlePrefix||"九号签到","签到结果",notifyBodyArr.join("\n"));
+      log("info","发送通知：",cfg.titlePrefix,notifyBodyArr.join(" | "));
     } else log("info","通知已禁用或无内容，跳过发送。");
 
   }catch(e){
