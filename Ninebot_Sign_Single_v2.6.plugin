@@ -1,5 +1,5 @@
 #!name = 九号智能电动车 · 单号自动签到
-#!desc = 支持抓包自动写入 Authorization、DeviceId、User-Agent；调试日志、通知、盲盒、补签、内测开关；自动签到 + CRON 控制
+#!desc = 抓包自动写入教程→打开 loon 工具抓包开关→开启抓包→打开九号 APP→我的点击签到页，会自动写入抓包数据，成功后记得关掉 loon 抓包开关！！！
 #!openUrl = https://t.me/JiuHaoAPP
 #!author = QinyRui
 #!homepage = https://t.me/JiuHaoAPP
