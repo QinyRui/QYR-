@@ -3,11 +3,9 @@
     const notify = $argument.notify !== 'false';
     const titlePrefix = $argument.titlePrefix || "九号签到助手";
 
-    // 工具函数
     const log = (...args) => console.log(...args);
     const notifySend = (msg) => notify && $notification.post(titlePrefix, "", msg);
 
-    // 获取本地抓包存储的 Authorization / DeviceId / User-Agent
     const Authorization = $persistentStore.read("ninebot.authorization") || "";
     const DeviceId = $persistentStore.read("ninebot.deviceId") || "";
     const UserAgent = $persistentStore.read("ninebot.userAgent") || "";
@@ -24,7 +22,6 @@
         "Content-Type": "application/json;charset=UTF-8"
     };
 
-    // 1️⃣ 查询签到状态
     const status = await $httpClient.get({
         url: `https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status?t=${Date.now()}`,
         headers
@@ -36,7 +33,6 @@
     }
 
     if (status.data.currentSignStatus === 0) {
-        // 2️⃣ 自动签到
         const sign = await $httpClient.post({
             url: `https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign`,
             headers
@@ -51,7 +47,6 @@
         log("今日已签到");
     }
 
-    // 3️⃣ 自动完成分享任务
     const taskList = await $httpClient.get({
         url: `https://cn-cbu-gateway.ninebot.com/portal/api/task-center/task/v3/list?typeCode=2&appVersion=609103606&platformType=iOS`,
         headers
@@ -60,7 +55,6 @@
     if (taskList && taskList.data) {
         for (let task of taskList.data) {
             if (!task.finished) {
-                // 自动领取分享奖励
                 await $httpClient.post({
                     url: `https://cn-cbu-gateway.ninebot.com/portal/self-service/task/reward`,
                     headers,
@@ -70,7 +64,6 @@
         }
     }
 
-    // 4️⃣ 自动开启盲盒
     const blindBox = await $httpClient.get({
         url: `https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blindBox?t=${Date.now()}`,
         headers
@@ -87,7 +80,6 @@
         }
     }
 
-    // 5️⃣ 输出签到状态
     notifySend(`签到完成！当前连续签到：${status.data.consecutiveDays}天，补签卡：${status.data.signCardsNum}张`);
 })();
 $done();
