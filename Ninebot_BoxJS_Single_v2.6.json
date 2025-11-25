@@ -30,7 +30,7 @@
         {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
         {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
         {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
-        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL","type":"text","val":""}
+        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""}
       ]
     }
   ]
