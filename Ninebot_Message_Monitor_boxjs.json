@@ -2,7 +2,7 @@
   "id": "ninebot.message.monitor",
   "name": "九号消息监控",
   "author": "QinyRui & ❥﹒﹏非我不可",
-  "version": "1.0",
+  "version": "1.1",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon/ninebot_128.png",
   "apps": [
     {
@@ -17,7 +17,8 @@
         "ninebot.msg_notify_reward",
         "ninebot.msg_debug",
         "ninebot.msg_poll_interval",
-        "ninebot.msg_last_id"
+        "ninebot.msg_last_id",
+        "ninebot.msg_auto_capture"
       ],
       "settings": [
         {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
@@ -27,7 +28,8 @@
         {"id":"ninebot.msg_notify_alert","name":"车辆异常通知","type":"boolean","val":true},
         {"id":"ninebot.msg_notify_reward","name":"奖励到账通知","type":"boolean","val":true},
         {"id":"ninebot.msg_debug","name":"调试日志","type":"boolean","val":false},
-        {"id":"ninebot.msg_poll_interval","name":"轮询间隔（秒）","type":"number","val":60}
+        {"id":"ninebot.msg_poll_interval","name":"轮询间隔（秒）","type":"number","val":60},
+        {"id":"ninebot.msg_auto_capture","name":"抓包开关","type":"boolean","val":true,"desc":"开启后自动抓包写入 Authorization/DeviceId/User-Agent"}
       ]
     }
   ]
