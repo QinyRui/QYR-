@@ -17,7 +17,8 @@
         "ninebot.autoOpenBox",
         "ninebot.autoRepair",
         "ninebot.notifyFail",
-        "ninebot.titlePrefix"
+        "ninebot.titlePrefix",
+        "ninebot.shareTaskUrl"
       ],
       "settings": [
         {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
@@ -28,7 +29,8 @@
         {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
         {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
         {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
-        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"}
+        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
+        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL","type":"text","val":""}
       ]
     }
   ]
