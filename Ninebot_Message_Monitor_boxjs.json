@@ -1,43 +1,34 @@
 {
+  "id": "ninebot.message.monitor",
   "name": "九号消息监控",
+  "author": "QinyRui & ❥﹒﹏非我不可",
   "version": "1.0",
-  "author": "❥﹒﹏非我不可 & QinyRui",
-  "description": "控制九号消息监控脚本开关与通知分类",
-  "items": [
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon/ninebot_128.png",
+  "apps": [
     {
-      "id": "ninebot.msg_notify",
-      "name": "总开关",
-      "type": "boolean",
-      "value": true,
-      "desc": "开启/关闭所有消息通知"
-    },
-    {
-      "id": "ninebot.msg_notify_alert",
-      "name": "车辆异常通知",
-      "type": "boolean",
-      "value": true,
-      "desc": "开启/关闭车辆异常类消息通知"
-    },
-    {
-      "id": "ninebot.msg_notify_reward",
-      "name": "奖励到账通知",
-      "type": "boolean",
-      "value": true,
-      "desc": "开启/关闭奖励到账消息通知"
-    },
-    {
-      "id": "ninebot.msg_debug",
-      "name": "调试日志",
-      "type": "boolean",
-      "value": false,
-      "desc": "开启后控制台会打印详细日志，便于排查问题"
-    },
-    {
-      "id": "ninebot.msg_poll_interval",
-      "name": "轮询间隔（秒）",
-      "type": "number",
-      "value": 60,
-      "desc": "定时轮询消息接口的间隔时间，单位秒"
+      "id": "Ninebot_Message_Monitor",
+      "name": "九号消息监控",
+      "keys": [
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent",
+        "ninebot.msg_notify",
+        "ninebot.msg_notify_alert",
+        "ninebot.msg_notify_reward",
+        "ninebot.msg_debug",
+        "ninebot.msg_poll_interval",
+        "ninebot.msg_last_id"
+      ],
+      "settings": [
+        {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
+        {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
+        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""},
+        {"id":"ninebot.msg_notify","name":"总开关","type":"boolean","val":true},
+        {"id":"ninebot.msg_notify_alert","name":"车辆异常通知","type":"boolean","val":true},
+        {"id":"ninebot.msg_notify_reward","name":"奖励到账通知","type":"boolean","val":true},
+        {"id":"ninebot.msg_debug","name":"调试日志","type":"boolean","val":false},
+        {"id":"ninebot.msg_poll_interval","name":"轮询间隔（秒）","type":"number","val":60}
+      ]
     }
   ]
 }
