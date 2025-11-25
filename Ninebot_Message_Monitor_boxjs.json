@@ -1,7 +1,7 @@
 {
   "id": "ninebot.message.monitor",
   "name": "九号消息监控",
-  "author": "QinyRui
+  "author": "QinyRui 非我不可
   "version": "1.0",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/icon/ninebot_128.png",
   "apps": [
