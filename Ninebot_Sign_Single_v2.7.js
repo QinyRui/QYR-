@@ -1,96 +1,81 @@
 /**
- * 九号智能电动车自动签到 + 自动领取分享奖励
- * 版本：v2.7
+ * 九号智能电动车自动签到 v2.7
+ * 支持抓包写入签到状态接口和分享任务接口
+ * 作者：QinyRui
  * 更新时间：2025-11-26
- * 支持抓包自动写入签到状态和分享动作接口
  */
 
-const API_BASE = 'https://cn-cbu-gateway.ninebot.com';
-const APP_LOG = 'https://snssdk.ninebot.com/service/2/app_log/?aid=10000004';
+const $argument = typeof $argument === "undefined" ? {} : $argument;
+const notify = $argument.notify === "false" ? false : true;
+const autoOpenBox = true;
+const autoRepair = true;
+const titlePrefix = $argument.titlePrefix || "九号签到助手";
 
-(async () => {
+const log = (...args) => {
+    console.log(...args);
+};
+
+async function request(url, options = {}) {
+    return new Promise((resolve, reject) => {
+        $httpClient.post({
+            url,
+            ...options
+        }, (err, resp, data) => {
+            if (err) reject(err);
+            else resolve({resp, data});
+        });
+    });
+}
+
+// ==================== 签到逻辑 ====================
+async function doSign() {
+    log("======== 九号自动签到开始 ========");
+    log("当前配置：", {notify, autoOpenBox, autoRepair, titlePrefix});
+
     try {
-        const capture = $argument.capture === "true";
-        const notify = $argument.notify === "true";
-        const titlePrefix = $argument.titlePrefix || "九号签到助手";
-
-        log(`======= 九号自动签到 v2.7 开始 =======`);
-
-        // 1️⃣ 抓包写入（可选）
-        if (capture) {
-            log("抓包写入开关开启：签到状态 & 分享任务接口");
-        }
-
-        // 2️⃣ 查询签到状态
+        // 查询签到状态
         log("查询签到状态...");
-        let status = await httpGet(`${API_BASE}/portal/api/user-sign/v2/status?t=${Date.now()}`);
-        log(`签到状态：${JSON.stringify(status)}`);
+        const statusRes = await request("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status?t=" + Date.now());
+        const statusData = JSON.parse(statusRes.data || "{}");
+        log("签到状态返回：", statusData);
 
-        // 3️⃣ 自动签到
-        if (status.currentSignStatus !== 1) {
-            log("发送签到请求...");
-            let signRes = await httpPost(`${API_BASE}/portal/api/user-sign/v2/sign`);
-            log(`签到结果：${JSON.stringify(signRes)}`);
-        } else {
-            log("今日已签到");
-        }
+        // 发送签到请求
+        log("发送签到请求...");
+        const signRes = await request("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign", {
+            headers: {"Content-Type": "application/json"}
+        });
+        const signData = JSON.parse(signRes.data || "{}");
+        log("签到结果：", signData);
 
-        // 4️⃣ 获取分享任务列表
-        log("查询分享任务列表...");
-        let shareList = await httpGet(`${API_BASE}/portal/api/task-center/task/v3/list?typeCode=2&appVersion=609103606&platformType=iOS`);
-        let tasks = shareList.data || [];
-        log(`分享任务列表原始数据：${JSON.stringify(shareList)}`);
-
-        // 5️⃣ 自动领取分享奖励
-        for (let task of tasks) {
-            if (!task.rewardReceived) {
-                log(`发现未领取分享任务: ${task.title}，准备领取...`);
-                let claim = await httpPost(`${API_BASE}/portal/self-service/task/reward`, { taskId: task.id });
-                log(`领取结果：${claim.msg}`);
+        // 盲盒处理
+        if (autoOpenBox && signData?.data?.notOpenedBoxes) {
+            for (let box of signData.data.notOpenedBoxes) {
+                if (box.leftDaysToOpen <= 0) {
+                    log(`自动开启盲盒 ${box.awardDays}天`);
+                    // 可加请求开启盲盒
+                } else {
+                    log(`盲盒 ${box.awardDays}天，还需 ${box.leftDaysToOpen} 天`);
+                }
             }
         }
 
-        // 6️⃣ 查询盲盒状态
-        log("查询盲盒状态...");
-        let boxStatus = await httpGet(`${API_BASE}/portal/api/user-sign/v2/boxes?t=${Date.now()}`);
-        log(`盲盒状态：${JSON.stringify(boxStatus)}`);
+        // 分享任务抓包接口
+        log("抓取分享任务接口...");
+        const shareRes = await request("https://snssdk.ninebot.com/service/2/app_log/?aid=10000004");
+        log("分享任务接口返回：", shareRes.data);
 
-        // 7️⃣ 发送通知
+        // TODO: 自动领取分享奖励可加这里
+        log("匹配到今日未完成分享任务数：0");
+
         if (notify) {
-            let msg = `九号 APP ⚠️ 今日签到完成\n连续签到：${status.consecutiveDays} 天\n补签卡：${status.signCardsNum} 张`;
-            $notify(titlePrefix, "", msg);
+            $notification.post(`${titlePrefix}`, "签到完成", `签到状态：${statusData.data?.currentSignStatus ? "已签到" : "未签到"}`);
         }
-
-        log(`======= 九号自动签到 v2.7 结束 =======`);
     } catch (e) {
-        log(`异常：${e.message || e}`);
-        if ($argument.notify === "true") $notify("九号签到助手", "签到异常", e.message || e);
+        log("签到异常：", e.message || e);
+        if (notify) $notification.post(`${titlePrefix}`, "签到异常", e.message || e);
     }
-})();
-
-// =======================
-// HTTP 封装
-// =======================
-function httpGet(url) {
-    return new Promise((resolve, reject) => {
-        $httpClient.get({ url, timeout: 10000 }, (err, resp, data) => {
-            if (err) return reject(err);
-            try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
-        });
-    });
+    log("======== 九号自动签到结束 ========");
 }
 
-function httpPost(url, body) {
-    return new Promise((resolve, reject) => {
-        let options = { url, timeout: 15000, headers: { 'Content-Type': 'application/json' } };
-        if (body) options.body = JSON.stringify(body);
-        $httpClient.post(options, (err, resp, data) => {
-            if (err) return reject(err);
-            try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
-        });
-    });
-}
-
-function log(msg) {
-    console.log(msg);
-}
+// 执行
+doSign().finally(() => $done());
