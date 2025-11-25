@@ -1,6 +1,6 @@
 /*
-Ninebot_Sign_Single_v2.6_AutoShare_Debug.js
-最终版（增强 + 自动分享任务 + 今日已签到优化 + 自动完成分享 + 分享任务调试日志）
+Ninebot_Sign_Single_v2.6_AutoShare_GrabConfig.js
+最终版（增强 + 可配置分享任务接口 + 自动抓包写入分享接口 Header）
 更新日期：2025/11/25
 */
 
@@ -24,6 +24,7 @@ const KEY_AUTOBOX="ninebot.autoOpenBox";
 const KEY_AUTOREPAIR="ninebot.autoRepair";
 const KEY_NOTIFYFAIL="ninebot.notifyFail";
 const KEY_TITLE="ninebot.titlePrefix";
+const KEY_SHARE_URL="ninebot.shareTaskUrl";
 
 // Endpoints
 const END={
@@ -31,9 +32,7 @@ const END={
   status:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
   blindBoxList:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
   balance:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-  creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/get-msg",
-  creditList:"https://api5-h5-app-bj.ninebot.com/web/credit/list",
-  shareTask:"https://snssdk.ninebot.com/service/2/app_log/?aid=10000004"
+  creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/get-msg"
 };
 
 // ---------- 网络请求 ----------
@@ -76,11 +75,28 @@ function log(level,...args){
 }
 function logStart(msg){console.log(`[${nowStr()}] ======== ${msg} ========`);}
 
-// ---------- 抓包写入 ----------
-const captureOnlyStatus=isRequest&&$request.url&&$request.url.includes("/portal/api/user-sign/v2/status");
-if(captureOnlyStatus){
+// ---------- 抓包写入（支持 status 和分享接口） ----------
+const cfg={
+  Authorization: read(KEY_AUTH)||"",
+  DeviceId: read(KEY_DEV)||"",
+  userAgent: read(KEY_UA)||"",
+  debug: read(KEY_DEBUG)==="false"?false:true,
+  notify: read(KEY_NOTIFY)==="false"?false:true,
+  autoOpenBox: read(KEY_AUTOBOX)==="true",
+  autoRepair: read(KEY_AUTOREPAIR)==="true",
+  notifyFail: read(KEY_NOTIFYFAIL)==="false"?false:true,
+  titlePrefix: read(KEY_TITLE)||"九号签到",
+  shareTaskUrl: read(KEY_SHARE_URL) || ""
+};
+
+const captureShareOrStatus = isRequest && $request.url && (
+    $request.url.includes("/portal/api/user-sign/v2/status") ||
+    (cfg.shareTaskUrl && $request.url.includes(cfg.shareTaskUrl))
+);
+
+if(captureShareOrStatus){
   try{
-    logStart("进入抓包写入流程");
+    logStart("进入抓包写入流程（支持分享任务接口）");
     const h=$request.headers||{};
     const auth=h["Authorization"]||h["authorization"]||"";
     const dev=h["DeviceId"]||h["deviceid"]||h["device_id"]||"";
@@ -97,21 +113,9 @@ if(captureOnlyStatus){
   $done({});
 }
 
-// ---------- 读取配置 ----------
-const cfg={
-  Authorization: read(KEY_AUTH)||"",
-  DeviceId: read(KEY_DEV)||"",
-  userAgent: read(KEY_UA)||"",
-  debug: read(KEY_DEBUG)==="false"?false:true,
-  notify: read(KEY_NOTIFY)==="false"?false:true,
-  autoOpenBox: read(KEY_AUTOBOX)==="true",
-  autoRepair: read(KEY_AUTOREPAIR)==="true",
-  notifyFail: read(KEY_NOTIFYFAIL)==="false"?false:true,
-  titlePrefix: read(KEY_TITLE)||"九号签到"
-};
-
+// ---------- 基本检查 ----------
 logStart("九号自动签到开始");
-log("info","当前配置：",{notify:cfg.notify,autoOpenBox:cfg.autoOpenBox,autoRepair:cfg.autoRepair,titlePrefix:cfg.titlePrefix});
+log("info","当前配置：",{notify:cfg.notify,autoOpenBox:cfg.autoOpenBox,autoRepair:cfg.autoRepair,titlePrefix:cfg.titlePrefix, shareTaskUrl:cfg.shareTaskUrl});
 
 if(!cfg.Authorization||!cfg.DeviceId){
   notify(cfg.titlePrefix,"未配置 Token","请先抓包写入 Authorization / DeviceId / User-Agent");
@@ -138,14 +142,14 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
       "language": "zh"
     };
 
-    // 查询状态
+    // 1. 查询状态
     log("info","查询签到状态...");
     let st=null;
     try{st=await httpGet(`${END.status}?t=${Date.now()}`,headers);}catch(e){log("warn","状态请求异常：",String(e));}
     const consecutiveDays = (st?.data?.consecutiveDays ?? st?.data?.continuousDays) ?? 0;
     const signCards = (st?.data?.signCardsNum ?? st?.data?.remedyCard) ?? 0;
 
-    // 签到
+    // 2. 签到
     log("info","发送签到请求...");
     let signResp=null, signMsg="", todayGainExp=0, todayGainNcoin=0;
     try{signResp=await httpPost(END.sign,headers,JSON.stringify({deviceId:cfg.DeviceId}));}catch(e){log("warn","签到请求异常：",String(e));}
@@ -160,38 +164,43 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
       }else{ signMsg=`❌ 签到失败：${signResp.msg??JSON.stringify(signResp)}`; if(!cfg.notifyFail) signMsg=""; }
     }else{ signMsg=`❌ 签到请求异常（网络/超时）`; if(!cfg.notifyFail) signMsg=""; }
 
-    // 自动完成分享任务（调试 + 修正过滤）
+    // 3. 自动完成分享任务（可配置接口）
     let shareGain=0, shareTaskLine="";
-    try{
-      const shareListResp = await httpGet(END.creditList, headers);
-      log("info","分享任务列表原始数据：",shareListResp);
-      const listArr = Array.isArray(shareListResp.data?.list) ? shareListResp.data.list : [];
-      const today=todayKey();
-      const todayUnfinished = listArr.filter(item=>{
-        const taskType = String(item?.type||"").toLowerCase();
-        const taskDate = toDateKeyFromSec(Number(item.occurrenceTime||0));
-        const completed = (item?.completed===0 || item?.completed===false) ? false : true;
-        return taskType.includes("share") && taskDate===today && !completed;
-      });
-      log("info","匹配到今日未完成分享任务数：", todayUnfinished.length);
+    if(cfg.shareTaskUrl){
+      try{
+        const shareListResp = await httpPost(cfg.shareTaskUrl, headers, JSON.stringify({page:1,size:20}));
+        log("info","分享任务列表原始数据：",shareListResp);
 
-      for(const t of todayUnfinished){
-        try{
-          const taskId = t.id;
-          if(!taskId) continue;
-          const resp = await httpPost(END.shareTask, headers, JSON.stringify({taskId, action:"complete"}));
-          if(resp?.code===0){
-            shareGain += Number(t.score || 0);
-            log("info","自动完成分享任务成功",t.id,t.score);
-          } else log("warn","自动完成分享任务失败",resp);
-        }catch(e){ log("warn","自动分享请求异常",e); }
-      }
-      if(shareGain>0) shareTaskLine=`🎁 今日分享任务获得 积分: ${shareGain}`;
-      todayGainExp += shareGain;
+        const listArr = Array.isArray(shareListResp.data?.list) ? shareListResp.data.list : [];
+        const today=todayKey();
 
-    }catch(e){ log("warn","分享任务自动完成异常：",String(e)); }
+        const todayUnfinished = listArr.filter(item=>{
+          const taskType = String(item?.type||"").toLowerCase();
+          const taskDate = toDateKeyFromSec(Number(item.occurrenceTime||0));
+          const completed = (item?.completed===0 || item?.completed===false) ? false : true;
+          return taskType.includes("share") && taskDate===today && !completed;
+        });
 
-    // 积分/经验
+        log("info","匹配到今日未完成分享任务数：", todayUnfinished.length);
+
+        for(const t of todayUnfinished){
+          try{
+            const taskId = t.id;
+            if(!taskId) continue;
+            const resp = await httpPost(cfg.shareTaskUrl, headers, JSON.stringify({taskId, action:"complete"}));
+            if(resp?.code===0){
+              shareGain += Number(t.score || 0);
+              log("info","自动完成分享任务成功",t.id,t.score);
+            } else log("warn","自动完成分享任务失败",resp);
+          }catch(e){ log("warn","自动分享请求异常",e); }
+        }
+        if(shareGain>0) shareTaskLine=`🎁 今日分享任务获得 积分: ${shareGain}`;
+        todayGainExp += shareGain;
+
+      }catch(e){ log("warn","分享任务自动完成异常：",String(e)); }
+    } else log("warn","未配置分享任务接口 URL，跳过自动分享。");
+
+    // 4. 积分/经验
     let upgradeLine="";
     try{
       const creditInfo = await httpGet(END.creditInfo, headers);
@@ -210,11 +219,11 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
       }
     }catch(e){log("warn","经验信息查询异常：",String(e));}
 
-    // 余额
+    // 5. 余额
     let balMsg="";
     try{ const bal = await httpGet(END.balance, headers); if(bal?.code===0) balMsg=`💰 N币余额：${bal.data?.balance??bal.data?.coin??0}`; }catch(e){log("warn","余额查询异常：",String(e));}
 
-    // 盲盒
+    // 6. 盲盒
     let blindMsg="", blindProgressInfo=[];
     try{
       const box = await httpGet(END.blindBoxList, headers);
