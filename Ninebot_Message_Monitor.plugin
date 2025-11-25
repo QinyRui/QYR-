@@ -1,0 +1,17 @@
+#!name=九号消息监控
+#!desc=自动监控未读消息、奖励通知、系统公告；自动写入 Token/DeviceId/UA；支持详细日志控制
+#!author=❥﹒﹏非我不可 & QinyRui
+#!version=1.0
+#!update=2025-11-25
+#!icon=https://raw.githubusercontent.com/QinyRui/QYR-/main/icon/ninebot_128.png
+#!homepage=https://t.me/JiuHaoAPP
+
+[Script]
+# 自动写入 Token / DeviceId / User-Agent
+http-request ^https:\/\/api-jhcx-v6-bj\.ninebot\.com\/ user-agent=Mozilla script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Message_Monitor.js, timeout=30, tag=九号消息监控 · 自动写入
+
+# 主动轮询消息（定时器）
+cron "0 */1 * * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Message_Monitor.js, timeout=30, tag=九号消息监控 · 定时检查
+
+[MITM]
+hostname = api-jhcx-v6-bj.ninebot.com
