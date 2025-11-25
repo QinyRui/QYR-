@@ -1,26 +1,23 @@
 /*
-Ninebot_Sign_Single_v2.6.js
-最终版（增强 + 自动分享任务 + 今日已签到优化）
-更新日期：2025/11/24 04:40 修正版（修复 ?? 与 || 混用语法错误）
+Ninebot_Sign_Single_v2.6_AutoShare.js
+最终版（增强 + 自动分享任务 + 今日已签到优化 + 自动完成分享）
+更新日期：2025/11/25
 - 自动重试（网络异常重试）
 - 签到前查询状态（避免重复签到）
-- 积分流水统计（今日积分变化，含分享任务）
-- 自动完成分享任务
+- 积分流水统计（今日积分变化，含自动分享任务）
 - 今日已签到时隐藏无新增奖励
 - 显示今日获得经验/积分/盲盒奖励
 - N币余额显示（只显示签到所得 N 币）
-- 7天 / 666天 盲盒进度条（默认：7天用5格，666天用12格）
+- 7天 / 666天 盲盒进度条
 - 抓包写入仅匹配 status 链接，写入 Authorization/DeviceId/User-Agent 到 BoxJS
-- 删除内测逻辑
 - 日志带时间戳与等级，开始/结束分隔
-- 文件名保持：Ninebot_Sign_Single_v2.6.js
 - 通知顺序：
   1. 签到结果
   2. 今日积分变动
   3. 当前经验/升级信息
   4. N币余额
   5. 连续签到 & 补签卡
-  6. 今日分享任务
+  6. 今日分享任务（自动完成）
   7. 盲盒进度条
 */
 
@@ -51,7 +48,7 @@ const END={
   status:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
   blindBoxList:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
   balance:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-  creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/get-msg", // 已更新为你提供的接口
+  creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/get-msg",
   creditList:"https://api5-h5-app-bj.ninebot.com/web/credit/list",
   shareTask:"https://snssdk.ninebot.com/service/2/app_log/?aid=10000004"
 };
@@ -169,8 +166,8 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
     // 2) 签到
     log("info","发送签到请求...");
     let signResp=null;
-    try{signResp=await httpPost(END.sign,headers,JSON.stringify({deviceId:cfg.DeviceId}));}catch(e){log("warn","签到请求异常：",String(e));}
     let signMsg="", todayGainExp=0, todayGainNcoin=0;
+    try{signResp=await httpPost(END.sign,headers,JSON.stringify({deviceId:cfg.DeviceId}));}catch(e){log("warn","签到请求异常：",String(e));}
     if(signResp){
       if(signResp.code===0||signResp.code===1){
         const nCoin = Number((signResp.data?.nCoin ?? signResp.data?.coin) ?? 0);
@@ -182,21 +179,37 @@ function progressBarSimple(progress,total,width){const pct=total>0?progress/tota
       }else{ signMsg=`❌ 签到失败：${signResp.msg??JSON.stringify(signResp)}`; if(!cfg.notifyFail) signMsg=""; }
     }else{ signMsg=`❌ 签到请求异常（网络/超时）`; if(!cfg.notifyFail) signMsg=""; }
 
-    // 3) 自动分享任务（完成并统计积分）
+    // 3) 自动完成分享任务（查询 + 完成 + 统计积分）
     let shareGain=0, shareTaskLine="";
     try{
-      const shareResp = await httpPost(END.shareTask, headers, JSON.stringify({page:1,size:10,tranType:1}));
-      if(shareResp?.code===0){
-        const listArr = Array.isArray(shareResp.data?.list) ? shareResp.data.list : Array.isArray(shareResp.data) ? shareResp.data : [];
-        const today=todayKey();
-        const todayShares=listArr.filter(item=>toDateKeyFromSec(Number(item.occurrenceTime))===today);
-        todayShares.forEach(it=>{ shareGain+=Number(it.count ?? 0); });
-        if(todayShares.length>0) shareTaskLine=`🎁 今日分享任务获得 积分: ${shareGain}`;
-        todayGainExp+=shareGain;
-      }
-    }catch(e){log("warn","分享任务查询异常：",String(e));}
+      const shareListResp = await httpGet(END.creditList, headers);
+      const listArr = Array.isArray(shareListResp.data?.list) ? shareListResp.data.list : [];
+      const today=todayKey();
+      const todayUnfinished = listArr.filter(item=>{
+        const taskType = item?.type || "";
+        const taskDate = toDateKeyFromSec(Number(item.occurrenceTime||0));
+        const completed = item?.completed || false;
+        return taskType.includes("share") && taskDate===today && !completed;
+      });
 
-    // 4) 积分/经验信息（使用 /web/credit/get-msg）
+      for(const t of todayUnfinished){
+        try{
+          const taskId = t.id;
+          if(!taskId) continue;
+          const resp = await httpPost(END.shareTask, headers, JSON.stringify({taskId, action:"complete"}));
+          if(resp?.code===0){
+            shareGain += Number(t.score || 0);
+            log("info","自动完成分享任务成功",t.id,t.score);
+          } else log("warn","自动完成分享任务失败",resp);
+        }catch(e){ log("warn","自动分享请求异常",e); }
+      }
+
+      if(shareGain>0) shareTaskLine=`🎁 今日分享任务获得 积分: ${shareGain}`;
+      todayGainExp += shareGain;
+
+    }catch(e){ log("warn","分享任务自动完成异常：",String(e)); }
+
+    // 4) 积分/经验信息
     let upgradeLine="";
     try{
       const creditInfo = await httpGet(END.creditInfo, headers);
