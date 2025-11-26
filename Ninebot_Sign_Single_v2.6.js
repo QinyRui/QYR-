@@ -3,13 +3,9 @@ Ninebot_Sign_Single_v2.6.js
 最终整合版（含 8 种进度条样式切换 + 美化通知）
 更新：2025-11-26
 
-功能要点：
-- 抓包写入（/status, /sign, /service/2/app_log/）
-- 自动签到、盲盒查询、余额/经验查询
-- 可重放分享（若你有 share body 存储）
-- 8 种进度条样式可切换（通过 BoxJS key `ninebot.progressStyle` 或 Loon 插件参数）
-- 通知为美化版（去掉分享动作显示）
-- 兼容 Loon/Surge/QuanX 环境（尽量避免 $argument 依赖导致错误）
+说明：
+- 进度条样式由 Loon 插件 UI 的 barStyle 参数控制（1~8）
+- BoxJS 不包含进度条设置，BoxJS 仅存储抓包写入的 Authorization/DeviceId/UA/分享链接等
 */
 
 const MAX_RETRY = 3;
@@ -22,7 +18,7 @@ const write = (v,k) => { if(typeof $persistentStore!=="undefined") return $persi
 const notify = (title,sub,body) => { if(typeof $notification!=="undefined") $notification.post(title,sub,body); };
 const nowStr = () => new Date().toLocaleString();
 
-// BoxJS keys (增加 progressStyle)
+// BoxJS keys (不包含进度条)
 const KEY_AUTH="ninebot.authorization";
 const KEY_DEV="ninebot.deviceId";
 const KEY_UA="ninebot.userAgent";
@@ -33,7 +29,6 @@ const KEY_AUTOREPAIR="ninebot.autoRepair";
 const KEY_NOTIFYFAIL="ninebot.notifyFail";
 const KEY_TITLE="ninebot.titlePrefix";
 const KEY_SHARE_URL="ninebot.shareTaskUrl";
-const KEY_PROGRESS="ninebot.progressStyle";
 
 // Endpoints
 const END={
@@ -144,13 +139,11 @@ const cfg={
   autoOpenBox: read(KEY_AUTOBOX)==="true",
   autoRepair: read(KEY_AUTOREPAIR)==="true",
   notifyFail: read(KEY_NOTIFYFAIL)==="false"?false:true,
-  titlePrefix: read(KEY_TITLE)||"九号签到",
-  // progress style from BoxJS if set
-  boxjsProgress: read(KEY_PROGRESS) || ""
+  titlePrefix: read(KEY_TITLE)||"九号签到"
 };
 
 logStart("九号自动签到开始");
-log("info","当前配置：", { notify: cfg.notify, autoOpenBox: cfg.autoOpenBox, titlePrefix: cfg.titlePrefix, progressStyleBox: cfg.boxjsProgress });
+log("info","当前配置：", { notify: cfg.notify, autoOpenBox: cfg.autoOpenBox, titlePrefix: cfg.titlePrefix });
 
 // 基本检查
 if(!cfg.Authorization || !cfg.DeviceId){
@@ -165,45 +158,37 @@ function toDateKeyFromSec(sec){ const d=new Date(sec*1000); return `${d.getFullY
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 // ---------- 进度条渲染模块（8 种样式） ----------
-function renderProgressByStyle(opened, total, style){
+function renderProgressByStyle(opened, total, styleIndex){
   const pct = total>0? (opened/total) : 0;
   const percent = Math.round(pct*100);
-  // map style labels to keys (allow either Chinese label or index)
-  const s = (style||"①条形").toString();
-
-  // choose visual length depending on total: but keep stable length for notifications
   const LEN = 20;
-
   const filledCount = Math.round(pct*LEN);
   const emptyCount = Math.max(0, LEN-filledCount);
 
-  switch(true){
-    // ① 标准条形
-    case /①|条形/.test(s):
+  switch(Number(styleIndex || 1)){
+    // 1 标准方块
+    case 1:
       return `[${'█'.repeat(filledCount)}${'░'.repeat(emptyCount)}] ${opened} / ${total} 天`;
-    // ② 圆角条形
-    case /②|圆角/.test(s):
-      return `⟦${'█'.repeat(filledCount)}${'─'.repeat(emptyCount)}⟧ ${opened} / ${total} 天`;
-    // ③ 斜纹条形
-    case /③|斜纹/.test(s):
-      // interleave slashes to give slanted effect
-      return `[${'█'.repeat(Math.ceil(filledCount/2))}${'/'.repeat(Math.floor(filledCount/2))}${'-'.repeat(emptyCount)}] ${opened} / ${total} 天`;
-    // ④ 渐变风格
-    case /④|渐变/.test(s):
-      return `[${'■'.repeat(Math.round(filledCount*1.2))}${'▒'.repeat(Math.max(0, LEN-Math.round(filledCount*1.2)))}] ${opened} / ${total} 天`;
-    // ⑤ Emoji 条形
-    case /⑤|Emoji|表情/.test(s):
-      const emojiFilled = '🍀'.repeat(Math.round(filledCount/2));
-      const emojiEmpty = '⬜'.repeat(Math.round(emptyCount/2));
-      return `${emojiFilled}${emojiEmpty} ${opened} / ${total} 天`;
-    // ⑥ 块状等宽
-    case /⑥|块状|等宽/.test(s):
-      return `${'█ '.repeat(filledCount)}${'░ '.repeat(emptyCount)} ${opened} / ${total} 天`;
-    // ⑦ 超细极简
-    case /⑦|超细|极简/.test(s):
-      return `${'|'.repeat(filledCount)}${'.'.repeat(emptyCount)} ${percent}%`;
-    // ⑧ 双层进度
-    case /⑧|双层/.test(s):
+    // 2 细线
+    case 2:
+      return `⟦${'━'.repeat(filledCount)}${'─'.repeat(emptyCount)}⟧ ${opened} / ${total} 天`;
+    // 3 分段条
+    case 3:
+      return `[${'█'.repeat(filledCount)}${'-'.repeat(emptyCount)}] ${opened} / ${total} 天`;
+    // 4 粗条
+    case 4:
+      return `[${'▓'.repeat(filledCount)}${'░'.repeat(emptyCount)}] ${opened} / ${total} 天`;
+    // 5 Emoji
+    case 5:
+      return `${'🍀'.repeat(Math.round(filledCount/2))}${'⬜'.repeat(Math.round(emptyCount/2))} ${opened} / ${total} 天`;
+    // 6 圆角
+    case 6:
+      return `▏${'█'.repeat(filledCount)}${' '.repeat(emptyCount)}▕ ${opened} / ${total} 天`;
+    // 7 边框
+    case 7:
+      return `┏${'■'.repeat(filledCount)}${' '.repeat(emptyCount)}┛ ${opened} / ${total} 天`;
+    // 8 双层
+    case 8:
       return `［${'■'.repeat(filledCount)}${'□'.repeat(emptyCount)}］ ${opened} / ${total} 天`;
     default:
       return `[${'█'.repeat(filledCount)}${'░'.repeat(emptyCount)}] ${opened} / ${total} 天`;
@@ -213,6 +198,14 @@ function renderProgressByStyle(opened, total, style){
 // ---------- 主流程 ----------
 (async()=>{
   try{
+    // read barStyle from Loon plugin arguments if present
+    let barStyle = 1;
+    try{
+      if(typeof $argument !== "undefined" && $argument && $argument.barStyle) barStyle = Number($argument.barStyle);
+      else if(typeof $arguments !== "undefined" && $arguments && $arguments.barStyle) barStyle = Number($arguments.barStyle);
+    }catch(e){}
+    log("info","进度条样式（来自插件 barStyle）：", barStyle);
+
     const headers={
       "Authorization": cfg.Authorization,
       "Content-Type": "application/json;charset=UTF-8",
@@ -223,20 +216,7 @@ function renderProgressByStyle(opened, total, style){
       "language": "zh"
     };
 
-    // Attempt obtain progress style from multiple sources:
-    // 1) Loon plugin argument (if present)
-    // 2) global variable $argument.progressStyle (some runtimes)
-    // 3) BoxJS stored key (cfg.boxjsProgress)
-    let progressStyle = "①条形";
-    try{
-      if(typeof $argument !== "undefined" && $argument && $argument.progressStyle) progressStyle = $argument.progressStyle;
-      else if(typeof $arguments !== "undefined" && $arguments && $arguments.progressStyle) progressStyle = $arguments.progressStyle;
-    }catch(e){}
-    if(cfg.boxjsProgress) progressStyle = cfg.boxjsProgress || progressStyle;
-
-    log("info","选用进度条样式：", progressStyle);
-
-    // 1) 查询状态（先查，避免重复签到）
+    // 1) 查询状态
     log("info","查询签到状态...");
     let stResp = null;
     try{ stResp = await httpGet(`${END.status}?t=${Date.now()}`, headers); }catch(e){ log("warn","状态请求异常：", String(e)); }
@@ -245,10 +225,9 @@ function renderProgressByStyle(opened, total, style){
     const signCards = statusData?.signCardsNum ?? statusData?.remedyCard ?? 0;
     const currentSignStatus = statusData?.currentSignStatus ?? null;
 
-    // 2) 执行签到（若未签到）
+    // 2) 签到
     let signMsg = "", todayGainExp = 0, todayGainNcoin = 0;
     if(currentSignStatus === 0 || currentSignStatus === undefined || currentSignStatus === null){
-      log("info","检测到今日未签到，尝试执行签到...");
       try{
         const signResp = await httpPost(END.sign, headers, JSON.stringify({ deviceId: cfg.DeviceId }));
         if(signResp?.code===0 || signResp?.code===1){
@@ -259,17 +238,13 @@ function renderProgressByStyle(opened, total, style){
           signMsg = `✨ 今日签到：成功\n🎁 奖励领取：未领取\n+${score} 经验\n+${nCoin} N 币`;
         } else if(signResp?.code===540004 || (signResp?.msg && /已签到/.test(signResp.msg))){
           signMsg = `✨ 今日签到：已签到\n🎁 奖励领取：未领取`;
-          log("info","签到接口返回：已签到");
         } else {
           signMsg = `❌ 今日签到失败`;
-          log("warn","签到返回：", signResp);
         }
-      }catch(e){ log("warn","签到请求异常：", String(e)); signMsg = `❌ 签到异常`; }
-    } else {
-      signMsg = `✨ 今日签到：已签到\n🎁 奖励领取：未领取`;
-    }
+      }catch(e){ signMsg = `❌ 签到异常`; log("warn","签到异常：", String(e)); }
+    } else signMsg = `✨ 今日签到：已签到\n🎁 奖励领取：未领取`;
 
-    // 3) 查询经验/等级
+    // 3) 经验/等级
     let exp=0, level=0, needExp=0;
     try{
       const creditInfo = await httpGet(END.creditInfo, headers);
@@ -287,9 +262,8 @@ function renderProgressByStyle(opened, total, style){
     // 5) 盲盒 & 进度条
     let blindLines = [];
     try{
-      let box = await httpGet(END.blindBoxList, headers);
+      const box = await httpGet(END.blindBoxList, headers);
       const notOpened = box?.data?.notOpenedBoxes ?? [];
-      // standard cycles prefer 7/30/66 else include all
       const cycles = [7,30,66];
       cycles.forEach(cycle=>{
         const b = (notOpened||[]).find(x=>Number(x.awardDays)===cycle);
@@ -297,25 +271,23 @@ function renderProgressByStyle(opened, total, style){
           const target = Number(b.awardDays);
           const left = Number(b.leftDaysToOpen);
           const opened = Math.max(0, target - left);
-          blindLines.push(`${target} 天盲盒：\n${renderProgressByStyle(opened, target, progressStyle)}`);
+          blindLines.push(`${target} 天盲盒：\n${renderProgressByStyle(opened, target, barStyle)}`);
         }
       });
-      // other boxes
       (notOpened||[]).forEach(b=>{
         const target = Number(b.awardDays);
         if(![7,30,66].includes(target)){
           const left = Number(b.leftDaysToOpen);
           const opened = Math.max(0, target - left);
-          blindLines.push(`${target} 天盲盒：\n${renderProgressByStyle(opened, target, progressStyle)}`);
+          blindLines.push(`${target} 天盲盒：\n${renderProgressByStyle(opened, target, barStyle)}`);
         }
       });
     }catch(e){ log("warn","盲盒查询异常：", String(e)); }
 
-    // 6) 汇总通知（美化版，去掉分享动作）
+    // 6) 汇总通知（美化版）
     const title = `${cfg.titlePrefix || "九号智能电动车"} · 今日签到结果`;
     const notifyLines = [];
     notifyLines.push(signMsg);
-    // rewards line was embedded in signMsg; if none, we still allow separate reward placeholder
     notifyLines.push("");
     notifyLines.push("📊 账户状态");
     notifyLines.push(`- 当前经验：${exp}（LV.${level}）`);
@@ -328,10 +300,9 @@ function renderProgressByStyle(opened, total, style){
       notifyLines.push("📦 盲盒进度");
       notifyLines.push(...blindLines);
     }
-
     const body = notifyLines.join("\n");
 
-    if(cfg.notify) {
+    if(cfg.notify){
       notify(title, "", body);
       log("info","发送通知：", title, body);
     } else log("info","通知已禁用，跳过发送。");
