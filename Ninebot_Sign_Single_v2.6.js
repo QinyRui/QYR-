@@ -1,6 +1,6 @@
 /*
 Ninebot_Sign_Single_v2.6.js
-最终整合版（自动抓包写入 shareTaskUrl + 自动签到 + 自动完成分享 + 自动盲盒开启 + 进度条样式 8 种）
+最终整合版（自动抓包写入 shareTaskUrl + 自动签到 + 自动完成分享 + 自动盲盒开启
 更新：2025-11-26
 说明：
 - 抓包写入匹配：/status, /sign, /service/2/app_log/
