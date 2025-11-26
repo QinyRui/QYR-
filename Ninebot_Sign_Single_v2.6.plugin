@@ -1,5 +1,5 @@
 #!name = 九号智能电动车 · 单号自动签到（含分享奖励）
-#!desc = 抓包自动写入教程→打开 Loon 抓包开关→打开九号 APP 签到页或分享动作，会自动写入 BoxJS；插件 UI 可选择盲盒进度条样式（8 种）。
+#!desc = 抓包自动写入教程→打开 Loon 抓包开关→打开九号 APP 签到页或分享动作，会自动写入 BoxJS
 #!openUrl = https://t.me/JiuHaoAPP
 #!author = QinyRui
 #!homepage = https://t.me/JiuHaoAPP
@@ -14,7 +14,6 @@ notify = switch, "true", "false", tag=通知开关
 capture = switch, "false", "true", tag=抓包写入开关
 titlePrefix = input, "九号签到助手", tag=自定义通知标题
 cron_time = input, "1 0 * * *", tag=签到时间（CRON）
-progressStyle = selector, "0", "1", "2", "3", "4", "5", "6", "7", tag=盲盒进度条样式
 
 [Script]
 #（1）抓包写入：签到状态 + 分享动作 app_log
