@@ -18,8 +18,7 @@
         "ninebot.autoRepair",
         "ninebot.notifyFail",
         "ninebot.titlePrefix",
-        "ninebot.shareTaskUrl",
-        "ninebot.progressStyle"
+        "ninebot.shareTaskUrl"
       ],
       "settings": [
         {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
@@ -31,8 +30,7 @@
         {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
         {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
         {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
-        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""},
-        {"id":"ninebot.progressStyle","name":"盲盒进度条样式","type":"select","vals":["①条形","②圆角条形","③斜纹条形","④渐变条形","⑤Emoji 条形","⑥等宽块状","⑦超细极简","⑧双层进度"],"val":"①条形"}
+        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""}
       ]
     }
   ]
