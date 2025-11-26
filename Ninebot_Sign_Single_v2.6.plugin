@@ -14,6 +14,7 @@ notify = switch, "true", "false", tag=通知开关
 capture = switch, "false", "true", tag=抓包写入开关
 titlePrefix = input, "九号签到助手", tag=自定义通知标题
 cron_time = input, "1 0 * * *", tag=签到时间（CRON）
+progressStyle = select:①条形 | ②圆角条形 | ③斜纹条形 | ④渐变条形 | ⑤Emoji 条形 | ⑥等宽块状 | ⑦超细极简 | ⑧双层进度, default=①条形, tag=盲盒进度条样式
 
 [Script]
 #（1）抓包写入：签到状态 + 分享动作 app_log
