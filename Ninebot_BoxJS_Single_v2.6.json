@@ -34,7 +34,7 @@
         {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""},
         {"id":"ninebot.progressStyle","name":"盲盒进度条样式","type":"select","val":0,"options":[0,1,2,3,4,5,6,7]}
       ],
-      "script": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot_Sign_Single_v2.6.js"
+      "script": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js"
     }
   ]
 }
