@@ -322,25 +322,36 @@ function makeHeaders(){
           const left = Number(b.leftDaysToOpen);
           const opened = Math.max(0, target - left);
           blindInfo.push({ target, left, opened });
+
+          // 检查是否为第七天盲盒，且剩余天数为0（已到期）
+          if (target === 7 && left === 0 && cfg.autoOpenBox) {
+            logInfo("检测到第七天盲盒到期，尝试自动开启...");
+            try {
+              const openResp = await httpPost(END_OPEN.openSeven, headers, JSON.stringify({}));
+              if (openResp?.code === 0) {
+                blindInfo.push({ opened: opened + 1 });
+                notify(cfg.titlePrefix, "第七天盲盒开启", `自动开启第七天盲盒成功！`);
+              }
+            } catch (e) { logWarn("开启第七天盲盒失败：", String(e)); }
+          }
         });
       }
-      logInfo("盲盒状态：", blindInfo);
-    } catch (e) { logWarn("盲盒查询异常：", String(e)); }
+    } catch (e) { logWarn("盲盒列表查询失败：", String(e)); }
 
-    // 拼接通知消息
-    let notificationMessage = `${signMsg}\n\n${shareTaskLine}\n${upgradeLine}\n${balLine}\n`;
+    // 总结通知
+    let summary = `${signMsg}\n${shareTaskLine}\n${upgradeLine}\n${balLine}`;
     if (blindInfo.length > 0) {
-      blindInfo.forEach(box => {
-        notificationMessage += `盲盒进度：${box.opened}/${box.target}（剩余${box.left}天）\n`;
-      });
+      let boxText = "\n🔲 盲盒情况：";
+      blindInfo.forEach(info => boxText += `\n  第${info.target}天：已开启：${info.opened}, 剩余：${info.left}`);
+      summary += boxText;
     }
 
-    if (cfg.notify) {
-      notify(cfg.titlePrefix, "签到完成", notificationMessage);
-    }
+    if (cfg.notify) notify(cfg.titlePrefix, "签到完成", summary);
 
-    logInfo("脚本执行完成");
   } catch (e) {
-    logErr("脚本执行异常：", String(e));
+    logErr("主流程异常：", String(e));
+    notify(cfg.titlePrefix, "签到失败", `发生未知错误：${String(e)}`);
+  } finally {
+    $done();
   }
 })();
