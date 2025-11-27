@@ -1,6 +1,6 @@
 {
-  "id": "ninebot.sign.single",
-  "name": "九号智能电动车签到",
+  "id": "ninebot.auto.sign",
+  "name": "九号智能电动车自动签到（单账号）",
   "author": "QinyRui",
   "version": "2.6",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
@@ -18,80 +18,21 @@
         "ninebot.autoRepair",
         "ninebot.notifyFail",
         "ninebot.titlePrefix",
+        "ninebot.shareTaskUrl",
         "ninebot.progressStyle"
       ],
       "settings": [
-        {
-          "id": "ninebot.authorization",
-          "name": "Authorization",
-          "type": "text",
-          "val": ""
-        },
-        {
-          "id": "ninebot.deviceId",
-          "name": "DeviceId",
-          "type": "text",
-          "val": ""
-        },
-        {
-          "id": "ninebot.userAgent",
-          "name": "User-Agent（自动写入）",
-          "type": "text",
-          "val": ""
-        },
-        {
-          "id": "ninebot.debug",
-          "name": "调试日志",
-          "type": "boolean",
-          "val": true
-        },
-        {
-          "id": "ninebot.notify",
-          "name": "通知开关",
-          "type": "boolean",
-          "val": true
-        },
-        {
-          "id": "ninebot.autoOpenBox",
-          "name": "自动开启盲盒",
-          "type": "boolean",
-          "val": true
-        },
-        {
-          "id": "ninebot.autoRepair",
-          "name": "自动修复分享任务",
-          "type": "boolean",
-          "val": true
-        },
-        {
-          "id": "ninebot.notifyFail",
-          "name": "签到失败也通知",
-          "type": "boolean",
-          "val": true
-        },
-        {
-          "id": "ninebot.titlePrefix",
-          "name": "自定义通知标题",
-          "type": "text",
-          "val": "九号签到"
-        },
-        {
-          "id": "ninebot.progressStyle",
-          "name": "盲盒进度条样式",
-          "type": "select",
-          "val": 0,
-          "desc": "0~7 共8种样式",
-          "options": [
-            {"label":"█/░ 风格","value":0},
-            {"label":"▓/░ 风格","value":1},
-            {"label":"■/□ 风格","value":2},
-            {"label":"▇/▁ 风格","value":3},
-            {"label":"▉/▏ 风格","value":4},
-            {"label":"■/- 风格","value":5},
-            {"label":"#/– 风格","value":6},
-            {"label":"⣿/░ 风格","value":7}
-          ]
-        }
+        {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
+        {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
+        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""},
+        {"id":"ninebot.debug","name":"调试日志","type":"boolean","val":true},
+        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
+        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
+        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
+        {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
+        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
+        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""},
+        {"id":"ninebot.progressStyle","name":"盲盒进度条样式","type":"select","val":0,"options":[0,1,2,3,4,5,6,7]}
       ]
     }
   ]
