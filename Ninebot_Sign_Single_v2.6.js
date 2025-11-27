@@ -1,6 +1,6 @@
 /***********************************************
- Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版）
- 2025-11-27 修复版（增强调试、8 种进度条、插件优先）
+ Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版修复）
+ 2025-11-28 修复版（签到/分享奖励正确显示，经验/N币累计显示）
  功能：抓包写入、自动签到、分享任务重放/领取、盲盒开箱、经验/N币查询、通知美化
  说明：优先读取 $argument.progressStyle -> 回退到 BoxJS ninebot.progressStyle
 ***********************************************/
@@ -274,31 +274,9 @@ function makeHeaders(){
             } catch (e) { return false; }
           });
           todayArr.forEach(it => { shareGain += Number(it.count ?? it.score ?? 0); });
-          if (shareGain > 0) shareTaskLine = `🎁 今日分享奖励：+${shareGain} 积分（流水）`;
-          todayGainExp += shareGain;
+          if (shareGain > 0) shareTaskLine = `🎁 今日分享奖励：+${shareGain} N 币（流水）`;
+          todayGainNcoin += shareGain;
           logInfo("分享流水统计：", shareGain);
-        } else {
-          // 尝试 tasks 结构并自动领取
-          const tasks = Array.isArray(shareResp?.data?.tasks) ? shareResp.data.tasks : (Array.isArray(shareResp?.data) ? shareResp.data : []);
-          const unfinished = (tasks || []).filter(item => {
-            const type = String(item?.type || item?.taskType || "").toLowerCase();
-            const completed = (item?.completed===0 || item?.completed===false) ? false : Boolean(item?.completed);
-            return type.includes("share") && !completed;
-          });
-          logInfo("匹配到未完成分享任务数：", unfinished.length);
-          for (const t of unfinished) {
-            try {
-              const taskId = t.id || t.taskId || t.task_id;
-              if (!taskId) continue;
-              const claim = await httpPost(END.reward, headers, JSON.stringify({ taskId }));
-              logInfo("尝试领取任务返回：", claim);
-              if (claim?.code === 0) {
-                shareGain += Number(t.score || t.reward || 0);
-                logInfo("领取成功：", taskId);
-              }
-            } catch (e) { logWarn("自动领取单项异常：", String(e)); }
-          }
-          if (shareGain > 0) { shareTaskLine = `🎁 今日分享奖励：+${shareGain} 积分（已领取）`; todayGainExp += shareGain; }
         }
       } catch (e) {
         logWarn("分享任务处理异常：", String(e));
