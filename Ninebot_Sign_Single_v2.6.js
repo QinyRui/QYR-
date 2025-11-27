@@ -1,5 +1,5 @@
 /***********************************************
- Ninebot_Sign_Single_v2.6.js  （版本 a· 最终整合版修复）
+ Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版修复）
  2025-11-28 修复版（签到/分享奖励正确显示，经验/N币累计显示）
  功能：抓包写入、自动签到、分享任务重放/领取、盲盒开箱、经验/N币查询、通知美化
  说明：优先读取 $argument.progressStyle -> 回退到 BoxJS ninebot.progressStyle
@@ -331,31 +331,56 @@ function makeHeaders(){
     if (cfg.autoOpenBox && blindInfo.length>0) {
       for (const b of blindInfo) {
         try {
-          if (Number(b.left) === 0 && b.opened < b.target) {
-            const openBoxResp = await httpPost(END_OPEN.openSeven, headers);
-            logInfo("自动开启盲盒：", openBoxResp);
+          if (Number(b.left) === 0 && Number(b.target) === 7) {
+            logInfo("检测到7天盲盒可开，尝试开箱...");
+            try {
+              const openR = await httpPost(END_OPEN.openSeven, headers, JSON.stringify({}));
+              logInfo("开箱返回：", openR);
+              if (openR?.code === 0) notify(cfg.titlePrefix, "盲盒开启", "7天盲盒已自动开启并领取奖励");
+            } catch (e) { logWarn("7天开箱异常：", String(e)); }
           }
-        } catch (e) { logWarn("自动开启盲盒失败：", e); }
+        } catch (e) { logWarn("盲盒自动开启单项异常：", String(e)); }
       }
     }
 
-    // 8) 输出通知
-    let msg = `${cfg.titlePrefix}（自动签到）\n${signMsg}`;
-    if (shareTaskLine) msg += "\n" + shareTaskLine;
-    if (upgradeLine) msg += "\n" + upgradeLine;
-    if (balLine) msg += "\n" + balLine;
-    if (blindInfo.length>0) {
-      const left = blindInfo.filter(b => b.left > 0);
-      if (left.length>0) {
-        msg += `\n🛍️ 盲盒可开：${left.length} 个（尚未开启）`;
-      }
+    // 8) 组织通知（美化，不显示分享动作）
+    let notifyLines = [];
+    if (signMsg) notifyLines.push(signMsg);
+    if (shareTaskLine) notifyLines.push(shareTaskLine);
+    if (upgradeLine) { notifyLines.push(""); notifyLines.push("📊 账户状态"); notifyLines.push(upgradeLine); }
+    if (balLine) notifyLines.push(balLine);
+    notifyLines.push(`- 补签卡：${signCards} 张`);
+    notifyLines.push(`- 连续签到：${consecutiveDays} 天`);
+
+    if (blindInfo.length > 0) {
+      notifyLines.push("");
+      notifyLines.push("📦 盲盒进度");
+      blindInfo.forEach(info => {
+        const width = info.target === 7 ? 18 : (info.target === 666 ? 30 : 22);
+        const bar = renderProgressBar(info.opened, info.target, cfg.progressStyle, width);
+        notifyLines.push(`${info.target} 天盲盒：`);
+        notifyLines.push(`[${bar}] ${info.opened} / ${info.target} 天`);
+      });
     }
-    if (msg) notify(cfg.titlePrefix, "签到任务完成", msg);
-    logInfo("结果：", msg);
-    $done();
+
+    if (todayGainExp || todayGainNcoin) {
+      notifyLines.push("");
+      notifyLines.push(`🎯 今日获得： 积分 ${todayGainExp} / N币 ${todayGainNcoin}`);
+    }
+
+    const title = `${cfg.titlePrefix || "九号智能电动车"} · 今日签到结果`;
+    const body = notifyLines.join("\n");
+
+    if (cfg.notify && body) {
+      notify(title, "", body);
+      logInfo("发送通知：", body.replace(/\n/g," | "));
+    } else logInfo("通知已禁用或无内容，跳过发送。");
+
   } catch (e) {
-    logErr("整体任务异常：", e);
-    notify(cfg.titlePrefix, "签到任务异常", String(e));
+    logErr("主流程未捕获异常：", e);
+    if (cfg.notify) notify(cfg.titlePrefix || "九号签到", "脚本异常", String(e));
+  } finally {
+    logInfo("九号自动签到结束");
     $done();
   }
 })();
