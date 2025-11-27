@@ -322,36 +322,65 @@ function makeHeaders(){
           const left = Number(b.leftDaysToOpen);
           const opened = Math.max(0, target - left);
           blindInfo.push({ target, left, opened });
-
-          // 检查是否为第七天盲盒，且剩余天数为0（已到期）
-          if (target === 7 && left === 0 && cfg.autoOpenBox) {
-            logInfo("检测到第七天盲盒到期，尝试自动开启...");
-            try {
-              const openResp = await httpPost(END_OPEN.openSeven, headers, JSON.stringify({}));
-              if (openResp?.code === 0) {
-                blindInfo.push({ opened: opened + 1 });
-                notify(cfg.titlePrefix, "第七天盲盒开启", `自动开启第七天盲盒成功！`);
-              }
-            } catch (e) { logWarn("开启第七天盲盒失败：", String(e)); }
-          }
         });
       }
-    } catch (e) { logWarn("盲盒列表查询失败：", String(e)); }
+      logInfo("盲盒列表：", blindInfo);
+    } catch (e) { logWarn("盲盒查询异常：", String(e)); }
 
-    // 总结通知
-    let summary = `${signMsg}\n${shareTaskLine}\n${upgradeLine}\n${balLine}`;
-    if (blindInfo.length > 0) {
-      let boxText = "\n🔲 盲盒情况：";
-      blindInfo.forEach(info => boxText += `\n  第${info.target}天：已开启：${info.opened}, 剩余：${info.left}`);
-      summary += boxText;
+    // 7) 自动开启盲盒（若到期且配置开启）
+    if (cfg.autoOpenBox && blindInfo.length>0) {
+      for (const b of blindInfo) {
+        try {
+          if (Number(b.left) === 0 && Number(b.target) === 7) {
+            logInfo("检测到7天盲盒可开，尝试开箱...");
+            try {
+              const openR = await httpPost(END_OPEN.openSeven, headers, JSON.stringify({}));
+              logInfo("开箱返回：", openR);
+              if (openR?.code === 0) notify(cfg.titlePrefix, "盲盒开启", "7天盲盒已自动开启并领取奖励");
+            } catch (e) { logWarn("7天开箱异常：", String(e)); }
+          }
+        } catch (e) { logWarn("盲盒自动开启单项异常：", String(e)); }
+      }
     }
 
-    if (cfg.notify) notify(cfg.titlePrefix, "签到完成", summary);
+    // 8) 组织通知（美化，不显示分享动作）
+    let notifyLines = [];
+    if (signMsg) notifyLines.push(signMsg);
+    if (shareTaskLine) notifyLines.push(shareTaskLine);
+    if (upgradeLine) { notifyLines.push(""); notifyLines.push("📊 账户状态"); notifyLines.push(upgradeLine); }
+    if (balLine) notifyLines.push(balLine);
+    notifyLines.push(`- 补签卡：${signCards} 张`);
+    notifyLines.push(`- 连续签到：${consecutiveDays} 天`);
+
+    if (blindInfo.length > 0) {
+      notifyLines.push("");
+      notifyLines.push("📦 盲盒进度");
+      blindInfo.forEach(info => {
+        const width = info.target === 7 ? 18 : (info.target === 666 ? 30 : 22);
+        const bar = renderProgressBar(info.opened, info.target, cfg.progressStyle, width);
+        notifyLines.push(`${info.target} 天盲盒：`);
+        notifyLines.push(`[${bar}] ${info.opened} / ${info.target} 天`);
+      });
+    }
+
+    if (todayGainExp || todayGainNcoin) {
+      notifyLines.push("");
+      notifyLines.push(`🎯 今日获得： 积分 ${todayGainExp} / N币 ${todayGainNcoin}`);
+    }
+
+    const title = `${cfg.titlePrefix || "九号智能电动车"} · 今日签到结果`;
+    const body = notifyLines.join("\n");
+
+    if (cfg.notify && body) {
+      notify(title, "", body);
+      logInfo("发送通知：", body.replace(/\n/g," | "));
+    } else logInfo("通知已禁用或无内容，跳过发送。");
 
   } catch (e) {
-    logErr("主流程异常：", String(e));
-    notify(cfg.titlePrefix, "签到失败", `发生未知错误：${String(e)}`);
+    logErr("主流程未捕获异常：", e);
+    if (cfg.notify) notify(cfg.titlePrefix || "九号签到", "脚本异常", String(e));
   } finally {
+    logInfo("九号自动签到结束");
     $done();
   }
 })();
