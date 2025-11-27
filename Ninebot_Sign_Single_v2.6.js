@@ -1,5 +1,5 @@
 /***********************************************
- Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版修复）
+ Ninebot_Sign_Single_v2.6.js  （版本 a· 最终整合版修复）
  2025-11-28 修复版（签到/分享奖励正确显示，经验/N币累计显示）
  功能：抓包写入、自动签到、分享任务重放/领取、盲盒开箱、经验/N币查询、通知美化
  说明：优先读取 $argument.progressStyle -> 回退到 BoxJS ninebot.progressStyle
