@@ -5,12 +5,13 @@
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
-#!date = 2025-11-26 10:00:00
+#!date = 2025-11-29 10:00:00
 #!version = 2.6
 #!system_version = 15
 
 [Argument]
 notify = switch, "true", "false", tag=通知开关
+debugLevel = select, "1", "0|关闭日志", "1|信息级日志", "2|警告级日志", "3|详细调试日志", tag=日志等级
 capture = switch, "false", "true", tag=抓包写入开关
 titlePrefix = input, "九号签到助手", tag=自定义通知标题
 cron_time = input, "1 0 * * *", tag=签到时间（CRON）
