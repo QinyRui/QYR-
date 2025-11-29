@@ -1,52 +1,28 @@
 #!name = 九号智能电动车 · 单号自动签到（含分享奖励）
-#!desc = 支持抓包自动写入 Authorization / DeviceId / User-Agent；可调日志等级、通知标题、盲盒进度条样式；支持 CRON 自动签到
+#!desc = 支持抓包自动写入 Authorization / DeviceId / User-Agent，日志等级可选，盲盒进度条样式可选，通知美化显示
 #!openUrl = https://t.me/JiuHaoAPP
 #!author = QinyRui
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
-#!system_version = 15
+#!date = 2025-11-29 12:30:00
 #!version = 2.6
-#!date = 2025-11-29 11:00
+#!system_version = 15
 
-# ========================
-# Argument（插件 UI 配置）
-# ========================
 [Argument]
-notify = switch, true, false, tag=通知开关
-capture = switch, false, true, tag=抓包写入开关
+notify = switch, "true", "false", tag=通知开关
+debugLevel = select, "1", "0|关闭日志", "1|信息级日志", "2|警告级日志", "3|详细调试日志", tag=日志等级
+capture = switch, "false", "true", tag=抓包写入开关
+titlePrefix = input, "九号签到助手", tag=自定义通知标题
+cron_time = input, "1 0 * * *", tag=签到时间（CRON）
+barStyle = select, "1", "0|样式①（标准方块）", "1|样式②（细线）", "2|样式③（分段条）", "3|样式④（粗条）", "4|样式⑤（Emoji）", "5|样式⑥（圆角）", "6|样式⑦（边框）", "7|样式⑧（双层）", tag=盲盒进度条样式
 
-debugLevel = select, 1, \
-0:关闭日志, \
-1:信息级日志, \
-2:警告级日志, \
-3:详细调试日志, \
-tag=日志等级
-
-titlePrefix = text, 九号签到助手, tag=自定义通知标题
-
-cron_time = text, 1 0 * * *, tag=签到时间（CRON）
-
-barStyle = select, 1, \
-0:样式①（标准方块）, \
-1:样式②（细线）, \
-2:样式③（分段条）, \
-3:样式④（粗条）, \
-4:样式⑤（Emoji）, \
-5:样式⑥（圆角）, \
-6:样式⑦（边框）, \
-7:样式⑧（双层）, \
-tag=盲盒进度条样式
-
-# ========================
-# Script
-# ========================
-
+[Script]
 #（1）抓包写入：签到状态 + 分享动作 app_log
 http-request ^https:\/\/(cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status|snssdk\.ninebot\.com\/service\/2\/app_log\/) \
 script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, \
 timeout=10, tag=九号-抓包写入, enable={capture}
 
-#（2）自动签到任务（含：签到 + 自动领任务 + 分享奖励 + 盲盒进度 + 今日积分）
+#（2）自动签到任务（含：签到 + 自动领任务 + 分享奖励 + 盲盒进度 + 今日积分 + 通知）
 cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, \
 timeout=120, tag=九号-自动签到
