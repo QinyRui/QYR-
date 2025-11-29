@@ -25,14 +25,14 @@
         {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
         {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
         {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""},
-        {"id":"ninebot.debugLevel","name":"日志等级","type":"select","val":1,"options":[0,1,2,3,4,5]},
+        {"id":"ninebot.debugLevel","name":"调试日志等级（0-WARN 1-ERROR 2-INFO 3-DEBUG）","type":"number","val":1},
         {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
         {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
         {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
         {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
         {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
         {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""},
-        {"id":"ninebot.progressStyle","name":"盲盒进度条样式","type":"select","val":0,"options":[0,1,2,3,4,5,6,7]}
+        {"id":"ninebot.progressStyle","name":"盲盒进度条样式（0-7）","type":"number","val":0}
       ]
     }
   ]
