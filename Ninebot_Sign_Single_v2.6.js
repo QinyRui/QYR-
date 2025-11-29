@@ -1,6 +1,6 @@
 /***********************************************
  Ninebot_Sign_Single_v2.6.js  —— ES5 完全兼容版（A）
- 2025-11-30 完整修复版
+ 2025-11-29 14:00 完整修复版
  功能：抓包写入、自动签到、分享任务领取、盲盒开箱、经验/N币查询、通知美化
  说明：严格使用 ES5 语法，兼容旧版 Loon/Surge/QuanX JS 引擎
 ***********************************************/
@@ -306,7 +306,6 @@ if (isCaptureRequest) {
           var score = safeNum((signResp.data && signResp.data.score) ? signResp.data.score : 0, 0);
           var nCoin = safeNum((signResp.data && (signResp.data.nCoin || signResp.data.coin)) ? (signResp.data.nCoin || signResp.data.coin) : 0, 0);
           todayGainExp += score;
-          // note: daily sign -> experience; shares -> N币（但仍记录 sign 返回的 coin 若有）
           todayGainNcoin += nCoin;
           signMsg = "🎉 今日签到：成功\n+" + score + " 经验（签到奖励）";
           logInfo("签到成功：", signResp);
@@ -350,7 +349,7 @@ if (isCaptureRequest) {
               if (!occ) continue;
               var dkey = toDateKeyFromSec(Number(occ));
               if (dkey === today) {
-                var shareGain = safeNum(item.count || item.credit || item.credit || item.score || 0, 0);
+                shareGain = safeNum(item.count || item.credit || item.score || 0, 0);
                 todayGainNcoin += shareGain;
               }
             } catch (e) { continue; }
