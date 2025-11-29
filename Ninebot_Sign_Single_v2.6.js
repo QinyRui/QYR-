@@ -1,13 +1,8 @@
 /***********************************************
- Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版修复）
- 2025-11-28 修复版（签到/分享奖励正确显示，经验/N币累计显示）
- 功能：抓包写入、自动签到、分享任务重放/领取、盲盒进箱、
-       经验/N币查询、通知美化
- 说明：优先读取 $argument.progressStyle -> 回退到 BoxJS ninebot.progressStyle
- 修复：★ 签到后连续签到天数不更新（自动刷新 status）
+ Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版修复 · 美化通知）
 ***********************************************/
 
-/* ENV wrapper (keeps compatibility with Loon/QuanX/Surge) */
+/* ENV wrapper (Loon/QuanX/Surge) */
 const IS_REQUEST = typeof $request !== "undefined";
 const IS_ARG = typeof $argument !== "undefined";
 const HAS_PERSIST = typeof $persistentStore !== "undefined";
@@ -16,7 +11,7 @@ const HAS_HTTP = typeof $httpClient !== "undefined";
 
 function readPS(key) { try { if (HAS_PERSIST) return $persistentStore.read(key); } catch (e) {} return null; }
 function writePS(val, key) { try { if (HAS_PERSIST) return $persistentStore.write(val, key); } catch (e) {} return false; }
-function notify(title, sub, body) { if (HAS_NOTIFY) $notification.post(title, sub, body); }
+function notify(body) { if (HAS_NOTIFY && cfg.notify) $notification.post("", "", body); }
 function nowStr() { return new Date().toLocaleString(); }
 
 /* BoxJS keys */
@@ -52,12 +47,10 @@ const REQUEST_TIMEOUT = 12000;
 function requestWithRetry({method="GET", url, headers={}, body=null, timeout=REQUEST_TIMEOUT}) {
   return new Promise((resolve, reject) => {
     let attempts = 0;
-
     const once = () => {
       attempts++;
       const opts = { url, headers, timeout };
       if (method === "POST") opts.body = body === null ? "{}" : body;
-
       const cb = (err, resp, data) => {
         if (err) {
           const msg = String(err?.error || err?.message || err);
@@ -68,11 +61,9 @@ function requestWithRetry({method="GET", url, headers={}, body=null, timeout=REQ
         try { resolve(JSON.parse(data || "{}")); }
         catch (e) { resolve({ raw: data }); }
       };
-
       if (method === "GET") $httpClient.get(opts, cb);
       else $httpClient.post(opts, cb);
     };
-
     once();
   });
 }
@@ -121,7 +112,9 @@ if (isCaptureRequest) {
       if(readPS(KEY_SHARE)!==base){ writePS(base,KEY_SHARE); changed=true; }
     }
 
-    if(changed) notify("九号智能电动车","抓包成功 ✓","Authorization / DeviceId / User-Agent / shareTaskUrl 已写入");
+    if(changed && readPS(KEY_NOTIFY)!=="false")
+      notify("抓包成功 ✓\nAuthorization / DeviceId / User-Agent / shareTaskUrl 已写入");
+
   } catch(e){ logErr("抓包异常", e); }
   return $done({});
 }
@@ -146,10 +139,11 @@ const cfg = {
 };
 
 if(!cfg.Authorization||!cfg.DeviceId){
-  notify(cfg.titlePrefix,"未配置 Token","请先开启抓包并执行签到/分享动作写入数据");
+  notify("未配置 Token\n请先开启抓包并执行签到/分享动作写入数据");
   return $done();
 }
 
+/* Headers */
 function makeHeaders(){
   return {
     "Authorization": cfg.Authorization,
@@ -159,7 +153,6 @@ function makeHeaders(){
     "platform":"h5","Origin":"https://h5-bj.ninebot.com","language":"zh"
   };
 }
-
 function todayKey(){
   const d=new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -174,7 +167,7 @@ function toDate(sec){
   try {
     const headers = makeHeaders();
 
-    /* 1) 查询签到状态 */
+    /* 查询签到状态 */
     let statusResp = await httpGet(`${END.status}?t=${Date.now()}`, headers);
     let statusData = statusResp?.data||{};
     let consecutiveDays = statusData.consecutiveDays ?? statusData.continuousDays ?? 0;
@@ -183,19 +176,15 @@ function toDate(sec){
 
     let signMsg="", todayGainExp=0, todayGainNcoin=0;
 
-    /* 2) 执行签到（若未签到） */
+    /* 执行签到 */
     if(currentSignStatus===0||currentSignStatus==null){
       const signResp = await httpPost(END.sign, headers, JSON.stringify({deviceId:cfg.DeviceId}));
-
       if(signResp?.code===0 || signResp?.code===1){
         const nCoin = Number(signResp.data?.nCoin ?? signResp.data?.coin ?? 0);
         const score = Number(signResp.data?.score ?? 0);
         todayGainNcoin += nCoin;
         todayGainExp += score;
-
-        signMsg=`✨ 今日签到：成功\n🎁 奖励：+${score} 经验 +${nCoin} N 币`;
-
-        /* ★★★ 修复：签到后刷新最新连续签到天数 ★★★ */
+        signMsg=`🎉 今日签到：成功`;
         try {
           const newStatus = await httpGet(`${END.status}?t=${Date.now()}`, headers);
           if(newStatus?.data?.consecutiveDays){
@@ -205,39 +194,30 @@ function toDate(sec){
             signCards = statusData.signCardsNum;
           }
         } catch(e){ logWarn("刷新状态失败", e); }
-
-      } else signMsg = `❌ 签到失败：${signResp?.msg||"未知错误"}`;
+      } else signMsg = `🎉 今日签到：失败`;
     } else {
-      signMsg = "✨ 今日签到：已签到";
+      signMsg = "🎉 今日签到：已签到";
     }
 
-    /* 3) 分享奖励（统计今日流水） */
+    /* 分享奖励 */
     let shareTaskLine="", shareGain=0;
     if(cfg.shareTaskUrl){
       let share = null;
-      try{
-        share = await httpPost(cfg.shareTaskUrl, headers, JSON.stringify({page:1,size:20}));
-      }catch(e){
-        try{ share = await httpGet(cfg.shareTaskUrl, headers); }catch(e2){}
-      }
-
+      try{ share = await httpPost(cfg.shareTaskUrl, headers, JSON.stringify({page:1,size:20})); }
+      catch(e){ try{ share = await httpGet(cfg.shareTaskUrl, headers); }catch(e2){} }
       const list = Array.isArray(share?.data?.list) ? share.data.list : [];
       const today = todayKey();
-
       list.forEach(it=>{
         const t=Number(it.occurrenceTime||it.time||it.ts||0);
-        if(t && toDate(t)===today){
-          shareGain += Number(it.count ?? it.score ?? 0);
-        }
+        if(t && toDate(t)===today){ shareGain += Number(it.count ?? it.score ?? 0); }
       });
-
       if(shareGain>0){
         todayGainNcoin += shareGain;
-        shareTaskLine = `🎁 今日分享奖励：+${shareGain} N 币`;
+        shareTaskLine = `🎁 今日分享奖励：+${shareGain} N币（分享任务）`;
       }
     }
 
-    /* 4) 经验 */
+    /* 经验 */
     let upgradeLine="";
     try{
       const cr=await httpGet(END.creditInfo, headers);
@@ -249,17 +229,17 @@ function toDate(sec){
         const m=String(d.credit_upgrade).match(/([0-9]+)/);
         if(m) need=Number(m[1]);
       }
-      upgradeLine=`- 当前经验：${credit}（LV.${level}）\n- 距离升级：${need} 经验`;
+      upgradeLine=`等级：LV.${level}\n- 当前经验：${credit}\n- 距离升级：${need} 经验`;
     }catch(e){}
 
-    /* 5) N 币 */
+    /* N币 */
     let balLine="";
     try{
       const b=await httpGet(END.balance, headers);
       if(b?.code===0) balLine=`- 当前 N 币：${b.data?.balance ?? b.data?.coin ?? 0}`;
     }catch(e){}
 
-    /* 6) 盲盒 */
+    /* 盲盒 */
     let blindInfo=[];
     try{
       const box=await httpGet(END.blindBoxList, headers);
@@ -277,18 +257,18 @@ function toDate(sec){
         if(b.target===7 && b.left===0){
           try{
             const r=await httpPost(END_OPEN.openSeven, headers, JSON.stringify({}));
-            if(r?.code===0) notify(cfg.titlePrefix,"盲盒开启","7天盲盒奖励已领取");
+            if(r?.code===0 && cfg.notify) notify("7天盲盒奖励已领取");
           }catch(e){}
         }
       }
     }
 
-    /* 7) 通知输出 */
+    /* 构建通知内容 */
     let lines = [];
     if(signMsg) lines.push(signMsg);
     if(shareTaskLine) lines.push(shareTaskLine);
 
-    lines.push(""); 
+    lines.push("");
     lines.push("📊 账户状态");
     if(upgradeLine) lines.push(upgradeLine);
     if(balLine) lines.push(balLine);
@@ -296,25 +276,27 @@ function toDate(sec){
     lines.push(`- 连续签到：${consecutiveDays} 天`);
 
     if(blindInfo.length>0){
-      lines.push(""); 
-      lines.push("📦 盲盒进度");
-      for(const b of blindInfo){
+      lines.push("");
+      blindInfo.forEach(b=>{
         const w=b.target===7?18:22;
         const bar=renderProgressBar(b.opened,b.target,cfg.progressStyle,w);
-        lines.push(`${b.target} 天盲盒：`);
-        lines.push(`[${bar}] ${b.opened} / ${b.target} 天`);
-      }
+        lines.push(`${b.target}天盲盒：`);
+        lines.push(`${bar} ${b.opened}/${b.target} 天`);
+      });
     }
 
     if(todayGainExp||todayGainNcoin){
-      lines.push(""); 
-      lines.push(`🎯 今日获得：经验 ${todayGainExp} / N币 ${todayGainNcoin}`);
+      lines.push("");
+      lines.push(`🎯 今日获得：`);
+      lines.push(`- 积分 ${todayGainExp}`);
+      lines.push(`- N币 ${todayGainNcoin}${shareGain>0?"（分享任务）":""}`);
     }
 
-    if(cfg.notify) notify(`${cfg.titlePrefix} · 今日签到结果`,"",lines.join("\n"));
+    /* 发送通知 */
+    if(cfg.notify) notify(lines.join("\n"));
 
   }catch(e){
-    notify(cfg.titlePrefix,"脚本异常",String(e));
+    if(cfg.notify) notify("脚本异常\n"+String(e));
   }finally{
     $done();
   }
