@@ -32,7 +32,29 @@
         {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
         {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
         {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""},
-        {"id":"ninebot.progressStyle","name":"盲盒进度条样式","type":"select","val":0,"options":[0,1,2,3,4,5,6,7]}
+        {
+          "id":"ninebot.progressStyle",
+          "name":"盲盒进度条样式",
+          "type":"select",
+          "val":0,
+          "options":[
+            {"val":0,"name":"█░ (默认)"},
+            {"val":1,"name":"▓░"},
+            {"val":2,"name":"▰▱"},
+            {"val":3,"name":"●○"},
+            {"val":4,"name":"■□"},
+            {"val":5,"name":"➤·"},
+            {"val":6,"name":"▮▯"},
+            {"val":7,"name":"⣿⣀"},
+            {"val":8,"name":"1 天：[⣿░]"},
+            {"val":9,"name":"2 天：[⣿⣿░]"},
+            {"val":10,"name":"3 天：[⣿⣿⣿░]"},
+            {"val":11,"name":"4 天：[⣿⣿⣿⣿░]"},
+            {"val":12,"name":"5 天：[⣿⣿⣿⣿⣿░]"},
+            {"val":13,"name":"6 天：[⣿⣿⣿⣿⣿⣿░]"},
+            {"val":14,"name":"7 天：[⣿⣿⣿⣿⣿⣿⣿░]"}
+          ]
+        }
       ]
     }
   ]
