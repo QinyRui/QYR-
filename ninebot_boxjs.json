@@ -1,0 +1,82 @@
+{
+  "id": "ninebot.sign.single",
+  "name": "九号智能电动车签到",
+  "author": "QinyRui",
+  "repo": "QinyRui/QYR-/jiuhao",
+  "version": "2.6",
+  "items": [
+    {
+      "id": "authorization",
+      "name": "Authorization",
+      "type": "input",
+      "value": "",
+      "tips": "抓包写入"
+    },
+    {
+      "id": "deviceId",
+      "name": "DeviceId",
+      "type": "input",
+      "value": "",
+      "tips": "抓包写入"
+    },
+    {
+      "id": "userAgent",
+      "name": "User-Agent",
+      "type": "input",
+      "value": "",
+      "tips": "抓包写入"
+    },
+    {
+      "id": "debug",
+      "name": "调试日志",
+      "type": "switch",
+      "value": true,
+      "tips": "控制控制台输出日志"
+    },
+    {
+      "id": "notify",
+      "name": "通知开关",
+      "type": "switch",
+      "value": true,
+      "tips": "控制签到/分享/抓包成功通知"
+    },
+    {
+      "id": "autoOpenBox",
+      "name": "自动开盲盒",
+      "type": "switch",
+      "value": true,
+      "tips": "自动领取7天盲盒奖励"
+    },
+    {
+      "id": "titlePrefix",
+      "name": "通知标题前缀",
+      "type": "input",
+      "value": "QinyRui",
+      "tips": "通知显示标题前缀"
+    },
+    {
+      "id": "shareTaskUrl",
+      "name": "分享任务接口",
+      "type": "input",
+      "value": "https://snssdk.ninebot.com/service/2/app_log/",
+      "tips": "抓取分享任务数据"
+    },
+    {
+      "id": "progressStyle",
+      "name": "进度条样式",
+      "type": "select",
+      "value": 5,
+      "options": [
+        {"name":"█/░","value":0},
+        {"name":"▓/░","value":1},
+        {"name":"▰/▱","value":2},
+        {"name":"●/○","value":3},
+        {"name":"■/□","value":4},
+        {"name":"➤/·","value":5},
+        {"name":"▮/▯","value":6},
+        {"name":"⣿/⣀","value":7}
+      ],
+      "tips": "签到/盲盒进度条样式"
+    }
+  ]
+}
