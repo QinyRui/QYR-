@@ -1,43 +1,49 @@
 {
-  "id": "Ninebot_Single",
-  "name": "九号智能电动车 · 单号配置",
-  "author": "QinyRui & ChatGPT",
+  "id": "ninebot.sign.single",
+  "name": "九号智能电动车 · 单号自动签到",
+  "author": "QinyRui",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Ninebot/logo.png",
+  "repo": "https://t.me/JiuHaoAPP",
+  "keys": [
+    "ninebot.authorization",
+    "ninebot.deviceId",
+    "ninebot.userAgent",
+    "ninebot.debug",
+    "ninebot.notify",
+    "ninebot.notifyFail",
+    "ninebot.autoOpenBox",
+    "ninebot.titlePrefix",
+    "ninebot.progressStyle",
+    "ninebot.shareTaskUrl"
+  ],
   "settings": [
     {
       "id": "ninebot.authorization",
       "name": "Authorization",
       "val": "",
       "type": "text",
-      "desc": "抓包自动写入，无需手动输入"
+      "desc": "抓包自动写入，不要手填"
     },
     {
       "id": "ninebot.deviceId",
       "name": "DeviceId",
       "val": "",
       "type": "text",
-      "desc": "抓包自动写入，无需手动输入"
+      "desc": "抓包自动写入"
     },
     {
       "id": "ninebot.userAgent",
       "name": "User-Agent",
       "val": "",
       "type": "text",
-      "desc": "抓包自动写入，无需手动输入"
+      "desc": "抓包自动写入"
     },
-    {
-      "id": "ninebot.shareTaskUrl",
-      "name": "分享任务 URL",
-      "val": "",
-      "type": "text",
-      "desc": "抓包自动写入，无需手动修改"
-    },
-
     {
       "id": "ninebot.debug",
       "name": "调试日志（控制台输出）",
-      "val": true,
-      "type": "boolean"
+      "val": false,
+      "type": "boolean",
+      "desc": "开启后输出全部接口日志"
     },
     {
       "id": "ninebot.notify",
@@ -47,38 +53,34 @@
     },
     {
       "id": "ninebot.notifyFail",
-      "name": "异常通知（错误提醒）",
+      "name": "签到失败通知",
       "val": true,
       "type": "boolean"
     },
-
     {
       "id": "ninebot.autoOpenBox",
       "name": "自动开启 7 天盲盒",
-      "val": false,
+      "val": true,
       "type": "boolean"
     },
     {
-      "id": "ninebot.autoUseSignCard",
-      "name": "自动使用补签卡",
-      "val": true,
-      "type": "boolean",
-      "desc": "若今日未签到且有补签卡，将自动补签"
-    },
-
-    {
       "id": "ninebot.titlePrefix",
       "name": "通知标题前缀",
-      "val": "九号签到",
+      "val": "九号智能电动车",
       "type": "text"
     },
-
     {
       "id": "ninebot.progressStyle",
       "name": "盲盒进度条样式",
-      "val": "0",
+      "val": "default",
       "type": "text",
-      "desc": "0~7：█░ / ▇▫ / ●○ 等风格"
+      "desc": "可选：default / slim / block"
+    },
+    {
+      "id": "ninebot.shareTaskUrl",
+      "name": "分享任务接口 URL",
+      "val": "",
+      "type": "text"
     }
   ]
 }
