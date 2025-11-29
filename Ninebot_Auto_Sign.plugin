@@ -1,0 +1,18 @@
+#!name = 九号智能电动车 · 单号自动签到（演示版）
+#!desc = 演示插件，UI 可调日志等级、盲盒进度条样式、通知标题
+#!openUrl = https://t.me/JiuHaoAPP
+#!author = QinyRui
+#!homepage = https://t.me/JiuHaoAPP
+#!tag = 九号智能电动车
+#!system = iOS,iPadOS,macOS
+#!version = 1.0
+#!system_version = 15
+
+[Argument]
+debugLevel = select, "0", "1", "2", "3", "4", "5", "6", "7", tag=日志等级
+progressStyle = select, "0", "1", "2", "3", "4", "5", "6", "7", tag=盲盒进度条样式
+titlePrefix = input, "九号签到", tag=通知标题
+
+[Script]
+# 定时执行脚本，并传入参数
+cron 0 11 * * * script-path=https://raw.githubusercontent.com/yourrepo/Ninebot_Sign_ArgDemo.js,timeout=60,tag=九号-自动签到,argument=[{debugLevel},{progressStyle},{titlePrefix}]
