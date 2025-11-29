@@ -1,89 +1,39 @@
 {
   "id": "ninebot.auto.sign",
-  "version": "2.6",
-  "description": "抓包自动写入 + 自动签到 + 分享任务重放/领取 + 盲盒自动开",
+  "name": "九号智能电动车自动签到（单账号）",
   "author": "QinyRui",
-  "homepage": "https://t.me/JiuHaoAPP",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/main/assets/ninebot.png",
-  "items": [
+  "version": "2.6",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
+  "apps": [
     {
-      "title": "Authorization",
-      "key": "ninebot.authorization",
-      "type": "text",
-      "value": "",
-      "desc": "抓包写入 Authorization"
-    },
-    {
-      "title": "DeviceId",
-      "key": "ninebot.deviceId",
-      "type": "text",
-      "value": "",
-      "desc": "抓包写入 DeviceId"
-    },
-    {
-      "title": "User-Agent",
-      "key": "ninebot.userAgent",
-      "type": "text",
-      "value": "",
-      "desc": "抓包写入 User-Agent"
-    },
-    {
-      "title": "Share Task URL",
-      "key": "ninebot.shareTaskUrl",
-      "type": "text",
-      "value": "",
-      "desc": "抓包写入分享任务 URL"
-    },
-    {
-      "title": "通知开关",
-      "key": "ninebot.notify",
-      "type": "switch",
-      "value": true,
-      "desc": "插件 UI 可开关通知"
-    },
-    {
-      "title": "自动开盲盒",
-      "key": "ninebot.autoOpenBox",
-      "type": "switch",
-      "value": true,
-      "desc": "插件自动开启 7 天盲盒"
-    },
-    {
-      "title": "自动修复分享任务",
-      "key": "ninebot.autoRepair",
-      "type": "switch",
-      "value": true,
-      "desc": "插件自动修复分享任务"
-    },
-    {
-      "title": "自定义通知标题",
-      "key": "ninebot.titlePrefix",
-      "type": "text",
-      "value": "九号签到助手",
-      "desc": "插件通知标题"
-    },
-    {
-      "title": "签到时间 CRON",
-      "key": "ninebot.cron_time",
-      "type": "text",
-      "value": "1 0 * * *",
-      "desc": "定时执行签到任务"
-    },
-    {
-      "title": "盲盒进度条样式",
-      "key": "ninebot.progressStyle",
-      "type": "select",
-      "value": "0",
-      "options": ["0","1","2","3","4","5","6","7"],
-      "desc": "插件 UI 可调盲盒进度条样式"
-    },
-    {
-      "title": "日志等级",
-      "key": "ninebot.logLevel",
-      "type": "select",
-      "value": "INFO",
-      "options": ["OFF","ERROR","WARN","INFO","DEBUG","ALL"],
-      "desc": "插件 UI 可调日志等级"
+      "id": "Ninebot_Auto_Sign",
+      "name": "九号签到",
+      "keys": [
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent",
+        "ninebot.debugLevel",
+        "ninebot.notify",
+        "ninebot.autoOpenBox",
+        "ninebot.autoRepair",
+        "ninebot.notifyFail",
+        "ninebot.titlePrefix",
+        "ninebot.shareTaskUrl",
+        "ninebot.progressStyle"
+      ],
+      "settings": [
+        {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
+        {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
+        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""},
+        {"id":"ninebot.debugLevel","name":"调试日志等级（0/1/2/3）","type":"number","val":1},
+        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
+        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
+        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
+        {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
+        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
+        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""},
+        {"id":"ninebot.progressStyle","name":"盲盒进度条样式（0-7）","type":"number","val":0}
+      ]
     }
   ]
 }
