@@ -1,39 +1,53 @@
 {
-  "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到（单账号）",
+  "id": "ninebot.boxjs.config",
+  "name": "九号智能电动车 · BoxJS 配置",
   "author": "QinyRui",
-  "version": "2.6",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
-  "apps": [
+  "version": "1.1",
+  "description": "日志等级、盲盒进度条样式、通知标题、自动开箱调节（插件保留其他功能）",
+  "icon": "🚲",
+  "items": [
     {
-      "id": "Ninebot_Auto_Sign",
-      "name": "九号签到",
-      "keys": [
-        "ninebot.authorization",
-        "ninebot.deviceId",
-        "ninebot.userAgent",
-        "ninebot.debugLevel",
-        "ninebot.notify",
-        "ninebot.autoOpenBox",
-        "ninebot.autoRepair",
-        "ninebot.notifyFail",
-        "ninebot.titlePrefix",
-        "ninebot.shareTaskUrl",
-        "ninebot.progressStyle"
+      "name": "通知标题",
+      "type": "input",
+      "key": "ninebot.titlePrefix",
+      "default": "九号签到",
+      "tag": "自定义通知标题",
+      "desc": "脚本通知显示的标题"
+    },
+    {
+      "name": "日志等级",
+      "type": "select",
+      "key": "ninebot.debugLevel",
+      "default": "INFO",
+      "options": ["OFF", "WARN", "ERROR", "INFO", "DEBUG", "ALL"],
+      "tag": "脚本日志等级",
+      "desc": "调节控制台输出日志等级"
+    },
+    {
+      "name": "盲盒进度条样式",
+      "type": "select",
+      "key": "ninebot.progressStyle",
+      "default": "0",
+      "options": [
+        "0 - █/░",
+        "1 - ▓/░",
+        "2 - ▰/▱",
+        "3 - ●/○",
+        "4 - ■/□",
+        "5 - ➤/·",
+        "6 - ▮/▯",
+        "7 - ⣿/⣀"
       ],
-      "settings": [
-        {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
-        {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
-        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""},
-        {"id":"ninebot.debugLevel","name":"调试日志等级（0/1/2/3）","type":"number","val":1},
-        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
-        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
-        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
-        {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
-        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
-        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""},
-        {"id":"ninebot.progressStyle","name":"盲盒进度条样式（0-7）","type":"number","val":0}
-      ]
+      "tag": "盲盒进度条样式",
+      "desc": "通知显示盲盒进度的图形样式"
+    },
+    {
+      "name": "自动开启盲盒",
+      "type": "boolean",
+      "key": "ninebot.autoOpenBox",
+      "default": true,
+      "tag": "开箱开关",
+      "desc": "是否自动开启 7 天盲盒"
     }
   ]
 }
