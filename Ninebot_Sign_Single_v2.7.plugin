@@ -1,13 +1,29 @@
-#!name = 九号智能电动车参数测试
-#!desc = 测试插件 UI 控制日志等级和盲盒样式
-#!author = Test
-#!version = 1.0
-#!system = iOS,iPadOS,macOS
-#!date = 2025-11-29 20:00:00
+#!name=九号智能电动车 · 自动签到助手
+#!desc=抓包写入 + 自动签到 + 分享任务 + 盲盒 + 经验/N币查询
+#!icon-color=#FF4500
+#!author=QinyRui
+#!openUrl=https://t.me/JiuHaoAPP
+#!homepage=https://t.me/JiuHaoAPP
 
-[Argument]
-logLevel = select,"OFF","WARN","ERROR","INFO","DEBUG","ALL",tag=日志等级,desc=选择控制台日志输出等级
-style = select,"0","1","2","3","4","5","6","7",tag=盲盒样式,desc=选择盲盒进度条样式
+[General]
+# 执行时间 CRON 支持
+cron=0 11 * * *
+enabled=true
 
 [Script]
-cron 0 12 * * * script-path=https://raw.githubusercontent.com/YourRepo/Ninebot_Sign_Single_v2.7.plugin, timeout=10, tag=九号-参数测试
+# 指向主体 JS 文件
+type=http-request
+url=.*cn-cbu-gateway\.ninebot\.com.*|.*snssdk\.ninebot\.com/service/2/app_log/.*
+script-path=Ninebot_Sign_Single_v2.6.js
+
+[UI]
+# 插件开关控制抓包和通知
+抓包写入开关=true
+通知开关=true
+自动开盲盒=true
+进度条样式=5
+
+[BoxJS]
+# BoxJS 订阅链接，可直接导入
+sub=https://raw.githubusercontent.com/QinyRui/QYR-/main/boxjs_ninebot.json
+avatar=https://avatar-cn.ninebot.com/passport-avatar/1249081814073610240/1718195408448.png
