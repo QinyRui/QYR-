@@ -18,7 +18,7 @@ cron_time = input, "1 0 * * *", tag=签到时间（CRON）
 
 [Script]
 #（1）抓包写入：签到状态 + 分享动作 app_log
-http-request ^https:\/\/(cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status|snssdk\.ninebot\.com\/service\/2\/app_log\/) script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, timeout=10, tag=九号-抓包写入, enable={capture}
+http-request ^https:\/\/(cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status|snssdk\.ninebot\.com\/service\/2\/app_log\/) script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.autoShare.js, timeout=10, tag=九号-抓包写入, enable={capture}
 
 #（2）自动签到 + 自动修复分享任务 + 自动领取奖励
-cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.js, timeout=120, tag=九号-自动签到
+cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.6.autoShare.js, timeout=120, tag=九号-自动签到
