@@ -1,85 +1,125 @@
-// ===== Ninebot_Sign_Single_v2.6.js（最终版） =====
+// 九号智能电动车自动签到主体脚本 v2.6
+// 作者：QinyRui
+// 更新时间：2025-11-29
+// 功能：签到、分享任务、盲盒进度、日志等级、通知
+// 适配：iOS/iPadOS/macOS
 
-// 插件参数读取
-const debugLevel = $argument.debugLevel || "1";  // 日志等级
-const barStyle = $argument.barStyle || "1";      // 盲盒进度条样式
-const notify = $argument.notify === "true";      // 通知开关
-const titlePrefix = $argument.titlePrefix || "九号签到助手";
+(async () => {
+    // 插件传参处理
+    const capture = $argument?.capture === 'true';
+    const notify = $argument?.notify !== 'false';
+    const debugLevel = $argument?.debugLevel || "1";
+    const barStyle = $argument?.barStyle || "1";
+    const titlePrefix = $argument?.titlePrefix || "九号签到助手";
 
-// ===== 日志函数 =====
-function logInfo(msg) { if (["1","2","3"].includes(debugLevel)) console.log(`[INFO] ${msg}`); }
-function logWarn(msg) { if (["2","3"].includes(debugLevel)) console.warn(`[WARN] ${msg}`); }
-function logDebug(msg) { if (debugLevel === "3") console.debug(`[DEBUG] ${msg}`); }
+    function log(level, msg) {
+        const levels = { "0": 0, "1": 1, "2": 2, "3": 3 };
+        if (levels[debugLevel] >= levels[level]) console.log(`[${level}] ${msg}`);
+    }
 
-// ===== 盲盒进度条渲染 =====
-function renderBlindBox(current, total) {
-    const styles = {
-        "0": "■",
-        "1": "─",
-        "2": "▌",
-        "3": "█",
-        "4": "🎁",
-        "5": "●",
-        "6": "▢",
-        "7": "▤"
-    };
-    const block = styles[barStyle] || "■";
-    const filled = block.repeat(current);
-    const empty = block.repeat(total - current).replace(/./g, '□');
-    return `[${filled}${empty}] ${current}/${total} 天`;
-}
+    // ---------- 查询签到状态 ----------
+    log("1", "查询签到状态...");
+    let status;
+    try {
+        status = await $http.get("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status");
+        status = status.data || {};
+        log("1", `签到状态：${JSON.stringify(status)}`);
+    } catch (e) {
+        log("2", `查询签到状态失败：${e.message}`);
+        status = {};
+    }
 
-// ===== 通知内容生成 =====
-function buildNotifyContent(signData, nCoin, exp) {
-    return `
-🎉 今日签到：${signData.currentSignStatus ? "成功" : "已签到"}
-+${exp} 经验（签到奖励）
-+${nCoin} N币（分享奖励）
+    // ---------- 判断今日是否已签到 ----------
+    const todaySigned = status.currentSignStatus === 1;
+    if (todaySigned) log("1", "今日已签到，跳过签到接口调用");
+    else {
+        log("1", "开始执行签到...");
+        try {
+            await $http.post("https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign", {});
+            log("1", "签到成功 +25 经验");
+        } catch (e) {
+            log("3", `签到失败：${e.message}`);
+        }
+    }
+
+    // ---------- 查询分享任务 ----------
+    log("1", "查询分享任务...");
+    let shareData = { count: 0, list: [] };
+    try {
+        const res = await $http.get("https://snssdk.ninebot.com/service/2/app_log/");
+        shareData = res.data || { count: 0, list: [] };
+        log("1", `分享任务返回：${JSON.stringify(shareData)}`);
+    } catch (e) {
+        log("2", `分享任务接口错误：${e.message}`);
+    }
+
+    // ---------- 查询账户经验与N币 ----------
+    log("1", "查询账户经验与余额...");
+    let account = { credit: 0, level: 0, balance: 0, signCards: 0, consecutiveDays: 0 };
+    try {
+        const res = await $http.get("https://cn-cbu-gateway.ninebot.com/portal/api/user/credit");
+        const d = res.data || {};
+        account.credit = d.credit || 0;
+        account.level = d.level || 0;
+        account.balance = d.balance || 0;
+        account.signCards = status.signCards || 0;
+        account.consecutiveDays = status.consecutiveDays || 0;
+    } catch (e) {
+        log("2", `查询账户失败：${e.message}`);
+    }
+
+    // ---------- 构建盲盒进度条 ----------
+    function renderProgress(current, total, style) {
+        const ratio = Math.min(current / total, 1);
+        let bar = "";
+        switch (style) {
+            case "0": // 标准方块
+                bar = "■".repeat(current) + "□".repeat(total - current);
+                break;
+            case "1": // 细线
+                bar = "─".repeat(current) + " ".repeat(total - current);
+                break;
+            case "2": // 分段条
+                bar = "▮".repeat(current) + "▯".repeat(total - current);
+                break;
+            case "3": // 粗条
+                bar = "█".repeat(current) + "░".repeat(total - current);
+                break;
+            case "4": // Emoji
+                bar = "🟩".repeat(current) + "⬜".repeat(total - current);
+                break;
+            case "5": // 圆角
+                bar = "●".repeat(current) + "○".repeat(total - current);
+                break;
+            case "6": // 边框
+                bar = "[" + "■".repeat(current) + "□".repeat(total - current) + "]";
+                break;
+            case "7": // 双层
+                bar = "⣿".repeat(current) + "⣀".repeat(total - current);
+                break;
+            default:
+                bar = "■".repeat(current) + "□".repeat(total - current);
+        }
+        return bar;
+    }
+
+    const progress7 = renderProgress(account.consecutiveDays % 7, 7, barStyle);
+    const progress666 = renderProgress(account.consecutiveDays, 666, barStyle);
+
+    // ---------- 构建通知内容 ----------
+    const title = `${titlePrefix} · 今日签到结果`;
+    const body = `
+🎉 今日签到：${todaySigned ? "已签到" : "成功 +25 经验"}
 
 📊 账户状态
-等级：LV.${signData.level}
-当前经验：${signData.currentExp}
-距离升级：${signData.nextExp}  
-当前 N币：${signData.nCoin}
-补签卡：${signData.signCard} 张
-连续签到：${signData.consecutiveDays} 天
+等级：LV.${account.level}
+当前经验：${account.credit}  
+距离升级：${account.credit_upgrade || "未知"}
+当前 N币：${account.balance}  
+补签卡：${account.signCards} 张  
+连续签到：${account.consecutiveDays} 天
 
 🎁 盲盒进度
-7天盲盒：  ${renderBlindBox(signData.blindBox7, 7)}
-666天盲盒：  ${renderBlindBox(signData.blindBox666, 666)}
-`.trim();
-}
-
-// ===== 示例数据（抓包或接口获取后实际替换） =====
-const signData = {
-    currentSignStatus: 1,
-    level: 13,
-    currentExp: 3583,
-    nextExp: 1417,
-    nCoin: 1108,
-    signCard: 5,
-    consecutiveDays: 424,
-    blindBox7: 1,
-    blindBox666: 424
-};
-const nCoinToday = 10; // 分享任务奖励
-const expToday = 25;   // 签到奖励
-
-// ===== 执行逻辑 =====
-logInfo(`当前日志等级: ${debugLevel}`);
-logInfo(`当前盲盒进度条样式: ${barStyle}`);
-logDebug(`签到状态数据: ${JSON.stringify(signData)}`);
-
-// ===== 发送通知 =====
-if (notify) {
-    $notification.post(titlePrefix, "", buildNotifyContent(signData, nCoinToday, expToday));
-}
-
-// ===== TODO: 添加实际抓包 / 接口调用逻辑 =====
-// 1. 查询签到状态
-// 2. 判断是否已签到
-// 3. 自动签到 + 分享任务领取
-// 4. 更新盲盒进度
-// 5. 输出日志，支持日志等级控制
-
-logInfo("九号自动签到脚本执行完成");
+7天盲盒：
+${progress7} ${account.consecutiveDays % 7}/7 天
+666天
