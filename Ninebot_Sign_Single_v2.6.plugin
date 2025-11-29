@@ -10,7 +10,7 @@
 #!system_version = 15
 
 [Argument]
-notify = switch, "true", "false", tag=抓包写入成功通知（控制抓包写入通知，仅影响抓包写入提示）
+notify = switch, "true", "false", tag=抓包写入成功通知
 debugLevel = select, "1", "0|关闭日志", "1|信息级日志", "2|警告级日志", "3|详细调试日志", tag=日志等级（控制控制台输出）
 capture = switch, "false", "true", tag=抓包写入开关（启用/禁用抓包写入触发）
 titlePrefix = input, "九号签到助手", tag=自定义通知标题（签到通知标题由 BoxJS ninebot.titlePrefix 覆盖）
