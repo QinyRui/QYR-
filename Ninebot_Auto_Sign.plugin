@@ -1,18 +1,15 @@
-#!name = 九号智能电动车 · 单号自动签到（演示版）
-#!desc = 演示插件，UI 可调日志等级、盲盒进度条样式、通知标题
-#!openUrl = https://t.me/JiuHaoAPP
+#!name = 九号智能电动车自动签到（单账号）
+#!desc = 抓包写入 + 自动签到 + 分享奖励 + 盲盒进箱 + 经验/N币查询
 #!author = QinyRui
-#!homepage = https://t.me/JiuHaoAPP
-#!tag = 九号智能电动车
+#!version = 2.6
 #!system = iOS,iPadOS,macOS
-#!version = 1.0
-#!system_version = 15
+#!openUrl = https://t.me/JiuHaoAPP
 
 [Argument]
-debugLevel = select, "0", "1", "2", "3", "4", "5", "6", "7", tag=日志等级
+logLevel = select, "DEBUG", "INFO", "WARN", "ERROR", tag=日志等级
 progressStyle = select, "0", "1", "2", "3", "4", "5", "6", "7", tag=盲盒进度条样式
-titlePrefix = input, "九号签到", tag=通知标题
+titlePrefix = input, "九号签到", tag=自定义通知标题
 
 [Script]
-# 定时执行脚本，并传入参数
-cron 0 11 * * * script-path=https://raw.githubusercontent.com/yourrepo/Ninebot_Sign_ArgDemo.js,timeout=60,tag=九号-自动签到,argument=[{debugLevel},{progressStyle},{titlePrefix}]
+cron 0 9 * * * script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_ArgDemo.js, timeout=120, tag=九号-自动签到, argument={"logLevel":"{logLevel}","progressStyle":"{progressStyle}","titlePrefix":"{titlePrefix}"}
+http-request ^https:\/\/(cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status|snssdk\.ninebot\.com\/service\/2\/app_log\/) script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_ArgDemo.js, timeout=10, tag=九号-抓包写入, enable=true
