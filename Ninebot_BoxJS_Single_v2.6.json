@@ -1,53 +1,47 @@
 {
-  "id": "ninebot.boxjs.config",
-  "name": "九号智能电动车 · BoxJS 配置",
+  "id": "ninebot.auto.sign",
+  "name": "九号智能电动车自动签到（单账号）",
   "author": "QinyRui",
-  "version": "1.1",
-  "description": "日志等级、盲盒进度条样式、通知标题、自动开箱调节（插件保留其他功能）",
-  "icon": "🚲",
-  "items": [
+  "version": "2.6",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
+  "apps": [
     {
-      "name": "通知标题",
-      "type": "input",
-      "key": "ninebot.titlePrefix",
-      "default": "九号签到",
-      "tag": "自定义通知标题",
-      "desc": "脚本通知显示的标题"
-    },
-    {
-      "name": "日志等级",
-      "type": "select",
-      "key": "ninebot.debugLevel",
-      "default": "INFO",
-      "options": ["OFF", "WARN", "ERROR", "INFO", "DEBUG", "ALL"],
-      "tag": "脚本日志等级",
-      "desc": "调节控制台输出日志等级"
-    },
-    {
-      "name": "盲盒进度条样式",
-      "type": "select",
-      "key": "ninebot.progressStyle",
-      "default": "0",
-      "options": [
-        "0 - █/░",
-        "1 - ▓/░",
-        "2 - ▰/▱",
-        "3 - ●/○",
-        "4 - ■/□",
-        "5 - ➤/·",
-        "6 - ▮/▯",
-        "7 - ⣿/⣀"
+      "id": "Ninebot_Auto_Sign",
+      "name": "九号签到 BoxJS 设置",
+      "keys": [
+        "ninebot.debugLevel",
+        "ninebot.progressStyle",
+        "ninebot.titlePrefix",
+        "ninebot.autoOpenBox"
       ],
-      "tag": "盲盒进度条样式",
-      "desc": "通知显示盲盒进度的图形样式"
-    },
-    {
-      "name": "自动开启盲盒",
-      "type": "boolean",
-      "key": "ninebot.autoOpenBox",
-      "default": true,
-      "tag": "开箱开关",
-      "desc": "是否自动开启 7 天盲盒"
+      "settings": [
+        {
+          "id": "ninebot.debugLevel",
+          "name": "调试日志等级",
+          "type": "select",
+          "val": "INFO",
+          "list": ["OFF", "WARN", "ERROR", "INFO", "DEBUG", "ALL"]
+        },
+        {
+          "id": "ninebot.progressStyle",
+          "name": "盲盒进度条样式",
+          "type": "select",
+          "val": "0",
+          "list": ["0","1","2","3","4","5","6","7"]
+        },
+        {
+          "id": "ninebot.titlePrefix",
+          "name": "自定义通知标题",
+          "type": "text",
+          "val": "九号签到"
+        },
+        {
+          "id": "ninebot.autoOpenBox",
+          "name": "自动开启7天盲盒",
+          "type": "boolean",
+          "val": true
+        }
+      ]
     }
   ]
 }
