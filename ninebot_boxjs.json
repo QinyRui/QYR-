@@ -13,7 +13,9 @@
         "ninebot.deviceId",
         "ninebot.userAgent",
         "ninebot.shareTaskUrl",
-        "ninebot.progressStyle"
+        "ninebot.progressStyle",
+        "ninebot.titlePrefix",
+        "ninebot.logLevel"
       ],
       "settings": [
         {
@@ -50,6 +52,26 @@
           "val": "7",
           "type": "text",
           "desc": "可指定盲盒进度条样式。优先使用插件传入的 $argument.progressStyle"
+        },
+        {
+          "id": "ninebot.titlePrefix",
+          "name": "自定义通知标题",
+          "val": "九号签到助手",
+          "type": "text",
+          "desc": "通知标题前缀，例如：九号签到助手"
+        },
+        {
+          "id": "ninebot.logLevel",
+          "name": "日志等级",
+          "val": "info",
+          "type": "select",
+          "items": [
+            { "key": "debug", "label": "调试（debug）" },
+            { "key": "info", "label": "信息（info）" },
+            { "key": "warn", "label": "警告（warn）" },
+            { "key": "error", "label": "错误（error）" }
+          ],
+          "desc": "日志输出级别，默认 info"
         }
       ]
     }
