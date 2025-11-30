@@ -6,7 +6,7 @@
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
 #!date = 2025-11-30 20:00:01
-#!version = 2.6
+#!version = 2.7
 #!system_version = 15
 
 [Argument]
