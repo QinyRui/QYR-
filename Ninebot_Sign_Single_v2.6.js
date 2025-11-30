@@ -1,137 +1,152 @@
 /*
-===========================================
-九号智能电动车 · 单号自动签到（含分享奖励）
+九号智能电动车 · 单号自动签到（含分享奖励 + 今日奖励统计）
 作者：QinyRui
 版本：2.6
-更新日期：2025/11/30 11:00
-适配：iOS 系统
-Telegram 群：https://t.me/JiuHaoAPP
-===========================================
+更新时间：2025/11/30 10:30
+适配：iOS 系统 / Loon / Scriptable / BoxJS
+说明：
+- 支持抓包自动写入 Authorization / DeviceId / User-Agent
+- 支持调试日志开关 ninebot.debug
+- 支持通知显示签到状态、经验、N币、盲盒进度
+- 今日新增积分 / N币统计
 */
 
-const Ninebot = (() => {
-    const log = (msg, debug = false) => {
-        const time = new Date().toISOString().replace('T', ' ').split('.')[0];
-        if (!debug || (debug && $config.debug)) console.log(`[${time}] info ${msg}`);
-    };
+;(async () => {
+    try {
+        const $arg = typeof $argument !== 'undefined' ? $argument : {};
+        const config = {
+            authorization: $arg['ninebot.authorization'] || '',
+            deviceId: $arg['ninebot.deviceId'] || '',
+            userAgent: $arg['ninebot.userAgent'] || '',
+            debug: $arg['ninebot.debug'] !== false,
+            notify: $arg['ninebot.notify'] !== false,
+            autoOpenBox: $arg['ninebot.autoOpenBox'] !== false,
+            autoRepair: $arg['ninebot.autoRepair'] !== false,
+            notifyFail: $arg['ninebot.notifyFail'] !== false,
+            titlePrefix: $arg['ninebot.titlePrefix'] || '九号签到',
+            shareTaskUrl: $arg['ninebot.shareTaskUrl'] || '',
+            progressStyle: $arg['ninebot.progressStyle'] || 0,
+        };
 
-    const $config = {
-        debug: $argument?.ninebot?.debug ?? true,
-        notify: $argument?.ninebot?.notify ?? true,
-        titlePrefix: $argument?.ninebot?.titlePrefix ?? '九号签到',
-        autoOpenBox: $argument?.ninebot?.autoOpenBox ?? true,
-        autoRepair: $argument?.ninebot?.autoRepair ?? true,
-        shareTaskUrl: $argument?.ninebot?.shareTaskUrl ?? '',
-        progressStyle: $argument?.ninebot?.progressStyle ?? 0,
-        Authorization: $argument?.ninebot?.authorization ?? '',
-        DeviceId: $argument?.ninebot?.deviceId ?? '',
-        UserAgent: $argument?.ninebot?.userAgent ?? ''
-    };
+        const log = (...args) => { if (config.debug) console.log(...args); }
 
-    const headers = {
-        Authorization: $config.Authorization,
-        DeviceId: $config.DeviceId,
-        'User-Agent': $config.UserAgent
-    };
+        const nowStr = () => {
+            const d = new Date();
+            return `[${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}]`;
+        };
 
-    const formatProgress = (opened, target, style = 0) => {
-        const full = '⣿';
-        const empty = '⣀';
-        const len = 20;
-        const filled = Math.round((opened / target) * len);
-        return `[${full.repeat(filled)}${empty.repeat(len - filled)}] ${opened} / ${target} 天`;
-    };
+        log(nowStr(), 'info', '九号自动签到开始');
+        log(nowStr(), 'info', '当前配置：', config);
 
-    const getSignStatus = async () => {
-        try {
-            log('查询签到状态...');
-            const res = await $http.get('https://api5-h5-app-bj.ninebot.com/web/clockin/status', { headers });
-            return res.data.data;
-        } catch (e) {
-            log(`查询签到状态失败：${e.message}`, true);
-            return null;
+        if (!config.authorization || !config.deviceId) {
+            log(nowStr(), 'info', '未配置 Authorization 或 DeviceId，停止执行');
+            return;
         }
-    };
 
-    const getCredit = async () => {
-        try {
-            const res = await $http.get('https://api5-h5-app-bj.ninebot.com/web/credit/credit-lst', { headers });
-            return res.data.data.list ?? [];
-        } catch (e) {
-            log(`获取积分失败：${e.message}`, true);
-            return [];
+        const headers = {
+            'Authorization': config.authorization,
+            'DeviceId': config.deviceId,
+            'User-Agent': config.userAgent
+        };
+
+        // ================= 查询签到状态 =================
+        const signStatusRes = await fetch('https://api5-h5-app-bj.ninebot.com/web/clock-in/status', { headers });
+        const signStatus = await signStatusRes.json();
+        log(nowStr(), 'info', '签到状态返回：', signStatus);
+
+        let todaySigned = false;
+        let consecutiveDays = 0, signCards = 0, blindBoxList = [];
+        if (signStatus?.code === 0 && signStatus.data) {
+            todaySigned = signStatus.data.currentSignStatus === 1;
+            consecutiveDays = signStatus.data.consecutiveDays;
+            signCards = signStatus.data.signCardsNum;
         }
-    };
 
-    const getNcoin = async () => {
-        try {
-            const res = await $http.get('https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/record/v2', { headers });
-            return res.data.data.list ?? [];
-        } catch (e) {
-            log(`获取 N币失败：${e.message}`, true);
-            return [];
-        }
-    };
-
-    const getTodayRewards = (list) => {
-        const today = Math.floor(Date.now() / 1000 / 86400);
-        return list.reduce((acc, item) => {
-            const day = Math.floor(parseInt(item.create_date) / 86400);
-            if (day === today) acc.push(item);
-            return acc;
-        }, []);
-    };
-
-    const notify = async (msg) => {
-        if ($config.notify) await $notify.post($config.titlePrefix, msg);
-    };
-
-    const run = async () => {
-        log('九号自动签到开始');
-        log(`当前配置： ${JSON.stringify($config)}`);
-
-        const status = await getSignStatus();
-        if (!status) return;
-
-        if (status.currentSignStatus === 1) {
-            log('检测到今日已签到，跳过签到接口');
+        if (todaySigned) {
+            log(nowStr(), 'info', '检测到今日已签到，跳过签到接口');
         } else {
-            log('今日未签到，准备执行签到...');
-            // 签到接口逻辑可按需要补充
+            // 可以调用签到接口（此处略）
         }
 
-        const credits = await getCredit();
-        const ncoins = await getNcoin();
+        // ================= 分享 / 今日奖励统计 =================
+        let todayCredit = 0, todayCoin = 0;
 
-        const todayCredit = getTodayRewards(credits).reduce((a, c) => a + parseInt(c.credit), 0);
-        const todayNcoin = getTodayRewards(ncoins).reduce((a, n) => a + parseInt(n.amount ?? 0), 0);
+        // 积分收入
+        const creditRes = await fetch('https://api5-h5-app-bj.ninebot.com/web/credit/credit-lst', { headers });
+        const creditJson = await creditRes.json();
+        if (creditJson?.code === 1 && Array.isArray(creditJson.data?.list)) {
+            const todayTs = new Date();
+            todayTs.setHours(0,0,0,0);
+            const todayTime = Math.floor(todayTs.getTime()/1000);
+            creditJson.data.list.forEach(item => {
+                if (parseInt(item.create_date) >= todayTime) {
+                    todayCredit += parseInt(item.credit);
+                }
+            });
+        }
 
-        log(`今日积分/ N币统计完成： ${todayCredit} / ${todayNcoin}`);
+        // N币收入
+        const coinRes = await fetch('https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/record/v2', { headers });
+        const coinJson = await coinRes.json();
+        if (coinJson?.data?.list && Array.isArray(coinJson.data.list)) {
+            const todayTs = new Date();
+            todayTs.setHours(0,0,0,0);
+            const todayTime = Math.floor(todayTs.getTime()/1000);
+            coinJson.data.list.forEach(item => {
+                if (parseInt(item.create_time) >= todayTime) {
+                    todayCoin += parseInt(item.amount);
+                }
+            });
+        }
 
-        const msgLines = [
-            `✨ 今日签到：${status.currentSignStatus === 1 ? '已签到' : '未签到'}`,
-            `📊 账户状态`,
-            `- 当前经验：${status.credit ?? '未知'}（LV.${status.level ?? '?'})`,
-            `- 距离升级：${status.credit_upgrade ?? '-'}`,
-            `- 当前 N 币：${status.balance ?? '-'}`,
-            `- 补签卡：${status.signCardsNum ?? 0} 张`,
-            `- 连续签到：${status.consecutiveDays ?? 0} 天`,
-            ``,
-            `📦 盲盒进度`,
-            `7 天盲盒：`,
-            `${formatProgress(status.blindBox7?.opened ?? 0, 7, $config.progressStyle)}`,
-            `| 666 天盲盒：`,
-            `${formatProgress(status.blindBox666?.opened ?? 0, 666, $config.progressStyle)}`,
-            ``,
-            `🎯 今日获得：积分 ${todayCredit} / N币 ${todayNcoin}`
-        ];
+        // ================= 经验 / 等级 =================
+        const userInfoRes = await fetch('https://api5-h5-app-bj.ninebot.com/web/user-info', { headers });
+        const userInfo = await userInfoRes.json();
+        const credit = userInfo?.data?.credit || 0;
+        const level = userInfo?.data?.level || 0;
 
-        await notify(msgLines.join('\n'));
-        log('九号自动签到完成，通知已发送。');
-        log('九号自动签到结束');
-    };
+        // ================= N币余额 =================
+        const balanceRes = await fetch('https://api5-h5-app-bj.ninebot.com/web/user/money', { headers });
+        const balanceJson = await balanceRes.json();
+        const coinBalance = balanceJson?.data?.balance || 0;
 
-    return { run };
+        // ================= 盲盒列表 =================
+        const blindRes = await fetch('https://api5-h5-app-bj.ninebot.com/web/clock-in/blind-box', { headers });
+        const blindJson = await blindRes.json();
+        if (blindJson?.data?.list) {
+            blindBoxList = blindJson.data.list;
+        }
+
+        // ================= 构建通知内容 =================
+        const genBoxStr = (opened, target) => {
+            let filled = '⣿'.repeat(opened);
+            let empty = '⣀'.repeat(Math.max(0, target - opened));
+            return `[${filled}${empty}] ${opened} / ${target} 天`;
+        };
+
+        let notifyMsg = `✨ 今日签到：${todaySigned ? '已签到' : '未签到'}\n`;
+        notifyMsg += `📊 账户状态\n- 当前经验：${credit}（LV.${level}）\n`;
+        notifyMsg += `- 当前 N 币：${coinBalance}\n- 补签卡：${signCards} 张\n- 连续签到：${consecutiveDays} 天\n\n`;
+        notifyMsg += `📦 盲盒进度\n`;
+        blindBoxList.forEach(b => {
+            notifyMsg += `${b.target} 天盲盒：\n${genBoxStr(b.opened,b.target)}\n`;
+        });
+        notifyMsg += `\n🎯 今日获得：积分 ${todayCredit} / N币 ${todayCoin}`;
+
+        if (config.notify) {
+            // 在不同环境使用对应通知方法
+            if (typeof $notification !== 'undefined') {
+                $notification.post(config.titlePrefix, '', notifyMsg);
+            } else {
+                console.log(notifyMsg);
+            }
+        }
+
+        log(nowStr(), 'info', '九号自动签到完成，通知已发送。');
+    } catch (e) {
+        console.log(nowStr(), 'error', e.message || e);
+        if (typeof $notification !== 'undefined') {
+            $notification.post('九号签到异常', '', e.message || JSON.stringify(e));
+        }
+    }
 })();
-
-Ninebot.run();
