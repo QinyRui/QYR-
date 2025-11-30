@@ -1,9 +1,9 @@
 /***********************************************
  Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版）
- 2025-11-30 10:49 更新版（积分/N币统计修复 + 通知显示）
+ 2025-11-30 16:49 更新版（积分/N币统计修复 + 通知显示）
  功能：抓包写入、自动签到、分享任务重放/领取、盲盒开箱、经验/N币查询、通知美化
  说明：优先读取 $argument.progressStyle -> 回退到 BoxJS ninebot.progressStyle
-***********************************************/
+ ***********************************************/
 
 /* ENV wrapper (keeps compatibility with Loon/QuanX/Surge) */
 const IS_REQUEST = typeof $request !== "undefined";
@@ -86,9 +86,30 @@ function httpGet(url, headers={}) { return requestWithRetry({method:"GET", url, 
 function httpPost(url, headers={}, body="{}") { return requestWithRetry({method:"POST", url, headers, body}); }
 
 /* Logging */
-function logInfo(...args) { const dbg = readPS(KEY_DEBUG); if (dbg === "false") return; console.log(`[${nowStr()}] info ${args.map(a => typeof a==="object"?JSON.stringify(a):String(a)).join(" ")}`); }
-function logWarn(...args){ console.warn(`[${nowStr()}] warn ${args.join(" ")}`); }
-function logErr(...args){ console.error(`[${nowStr()}] error ${args.join(" ")}`); }
+const LOG_LEVELS = { 'error': 3, 'warn': 2, 'info': 1, 'debug': 0 }; // 新增：定义日志级别映射
+
+// 辅助函数：确定当前有效的日志等级，优先使用 $argument
+function getCurrentLogLevel() {
+    if (IS_ARG && $argument && $argument.logLevel) {
+        return String($argument.logLevel).toLowerCase();
+    }
+    // 回退到 BoxJS 的 KEY_DEBUG 兼容模式
+    return readPS(KEY_DEBUG) === "false" ? 'warn' : 'debug'; 
+}
+
+function logInfo(...args) { 
+  const currentLevel = LOG_LEVELS[getCurrentLogLevel()];
+  if (currentLevel <= LOG_LEVELS['info']) {
+    console.log(`[${nowStr()}] info ${args.map(a => typeof a==="object"?JSON.stringify(a):String(a)).join(" ")}`); 
+  }
+}
+function logWarn(...args){ 
+  const currentLevel = LOG_LEVELS[getCurrentLogLevel()];
+  if (currentLevel <= LOG_LEVELS['warn']) {
+    console.warn(`[${nowStr()}] warn ${args.join(" ")}`); 
+  }
+}
+function logErr(...args){ console.error(`[${nowStr()}] error ${args.join(" ")}`); } // 错误日志始终输出
 
 /* Progress bar styles (8) */
 const PROGRESS_STYLES = [
@@ -136,6 +157,8 @@ if (isCaptureRequest) {
 
 /* Read config */
 const argProgressStyle = (IS_ARG && $argument && $argument.progressStyle !== undefined) ? Number($argument.progressStyle) : null;
+const argLogLevel = (IS_ARG && $argument && $argument.logLevel) ? String($argument.logLevel).toLowerCase() : null; // 新增：从 $argument 读取日志等级
+
 const boxProgressStyle = Number(readPS(KEY_PROGRESS) || readPS("progressStyle") || 0);
 const progressStyle = (argProgressStyle !== null) ? argProgressStyle : boxProgressStyle;
 
@@ -150,11 +173,12 @@ const cfg = {
   autoRepair: readPS(KEY_AUTOREPAIR) === "true",
   notifyFail: readPS(KEY_NOTIFYFAIL) !== "false",
   titlePrefix: readPS(KEY_TITLE) || "九号签到",
-  progressStyle: progressStyle
+  progressStyle: progressStyle,
+  logLevel: argLogLevel || (readPS(KEY_DEBUG) === "false" ? "warn" : "debug") // 新增：设置最终生效的日志等级
 };
 
 logInfo("九号自动签到开始");
-logInfo("当前配置：", { notify: cfg.notify, autoOpenBox: cfg.autoOpenBox, titlePrefix: cfg.titlePrefix, shareTaskUrl: cfg.shareTaskUrl, progressStyle: cfg.progressStyle });
+logInfo("当前配置：", { notify: cfg.notify, autoOpenBox: cfg.autoOpenBox, titlePrefix: cfg.titlePrefix, shareTaskUrl: cfg.shareTaskUrl, progressStyle: cfg.progressStyle, logLevel: cfg.logLevel });
 
 if (!cfg.Authorization || !cfg.DeviceId) {
   notify(cfg.titlePrefix, "未配置 Token", "请先开启抓包并在九号 APP 执行签到/分享动作以写入 Authorization / DeviceId / User-Agent");
@@ -167,7 +191,7 @@ function mask(s){ if(!s) return ""; return s.length>8 ? (s.slice(0,6)+"..."+s.sl
 function toDateKeyFromTs(ts){ 
   if(!ts) return null;
   ts = Number(ts);
-  if(ts.toString().length > 10) ts = Math.floor(ts/1000);
+  if (ts.toString().length > 10) ts = Math.floor(ts/1000);
   const d = new Date(ts*1000); 
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; 
 }
