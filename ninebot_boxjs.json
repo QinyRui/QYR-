@@ -1,38 +1,56 @@
 {
-  "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到（单账号）",
+  "id": "Ninebot.Sign.Single",
+  "name": "九号智能电动车 · 单号自动签到（BoxJS）",
   "author": "QinyRui",
-  "version": "2.6",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
+  "repo": "https://t.me/JiuHaoAPP",
   "apps": [
     {
-      "id": "Ninebot_Auto_Sign",
-      "name": "九号签到",
+      "id": "ninebot.single",
+      "name": "九号智能电动车（单号）",
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
         "ninebot.userAgent",
-        "ninebot.debugLevel",
-        "ninebot.notify",
-        "ninebot.autoOpenBox",
-        "ninebot.autoRepair",
-        "ninebot.notifyFail",
-        "ninebot.titlePrefix",
         "ninebot.shareTaskUrl",
         "ninebot.progressStyle"
       ],
       "settings": [
-        {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
-        {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
-        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""},
-        {"id":"ninebot.debugLevel","name":"调试日志等级（0/1/2/3）","type":"number","val":1},
-        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
-        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
-        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
-        {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
-        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
-        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""},
-        {"id":"ninebot.progressStyle","name":"盲盒进度条样式（0-7）","type":"number","val":0}
+        {
+          "id": "ninebot.authorization",
+          "name": "Authorization",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填"
+        },
+        {
+          "id": "ninebot.deviceId",
+          "name": "DeviceId",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填"
+        },
+        {
+          "id": "ninebot.userAgent",
+          "name": "User-Agent",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填"
+        },
+        {
+          "id": "ninebot.shareTaskUrl",
+          "name": "分享动作接口 baseURL",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入（仅在出现分享任务时会捕获）"
+        },
+        {
+          "id": "ninebot.progressStyle",
+          "name": "盲盒进度条样式（0~7）",
+          "val": "7",
+          "type": "text",
+          "desc": "可指定盲盒进度条样式。优先使用插件传入的 $argument.progressStyle"
+        }
       ]
     }
   ]
