@@ -1,9 +1,10 @@
 /***********************************************
  Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版）
- 2025-12-1 00:00 更新版（积分/N币统计修复 + 通知显示）
+ 2025-11-30 19:49 更新版（积分/N币统计修复 + 通知显示）
  功能：抓包写入、自动签到、分享任务重放/领取、盲盒开箱、经验/N币查询、通知美化
  [FIXED] 2025-12-01: 修复签到成功后，连续签到天数未在通知中递增的问题。
  [FIXED] 2025-12-01: 修复签到接口返回的 rewardList 奖励未被正确统计的问题。
+ [FIXED] 2025-12-01: 修复今日获得经验显示为 0 的问题，通过对比今日/昨日经验总额来计算增量。
 ***********************************************/
 
 /* ENV wrapper (keeps compatibility with Loon/QuanX/Surge) */
@@ -37,6 +38,7 @@ const KEY_TITLE = "ninebot.titlePrefix";
 const KEY_SHARE = "ninebot.shareTaskUrl";
 const KEY_PROGRESS = "ninebot.progressStyle";
 const KEY_LAST_CAPTURE = "ninebot.lastCaptureAt";
+const KEY_LAST_CREDIT = "ninebot.lastCredit"; // NEW: 用于存储上次经验值
 
 /* Endpoints */
 const END = {
@@ -238,7 +240,7 @@ function httpPost(url, headers={}, body={}) { return requestWithRetry({method:"P
     try { statusResp = await httpGet(`${END.status}?t=${Date.now()}`, headers); }
     catch(e){ logWarn("状态请求异常：", String(e)); }
     const statusData = statusResp?.data || {};
-    let consecutiveDays = statusData?.consecutiveDays ?? statusData?.continuousDays ?? 0; // FIX: 声明为 let 以便修改
+    let consecutiveDays = statusData?.consecutiveDays ?? statusData?.continuousDays ?? 0;
     const signCards = statusData?.signCardsNum ?? statusData?.remedyCard ?? 0;
     const currentSignStatus = statusData?.currentSignStatus ?? statusData?.currentSign ?? null;
     const blindBoxStatus = statusData?.blindBoxStatus ?? null;
@@ -270,7 +272,7 @@ function httpPost(url, headers={}, body={}) { return requestWithRetry({method:"P
             for (const reward of rewardList) {
               const value = Number(reward.rewardValue ?? 0);
               const type = Number(reward.rewardType ?? 0);
-              // 假设 Type 1 为经验/积分，其他为 N 币
+              // 假设 Type 1 为经验/积分，其他为 N 币 (根据日志推测)
               if (type === 1) {
                 newExp += value;
               } else {
@@ -304,7 +306,7 @@ function httpPost(url, headers={}, body={}) { return requestWithRetry({method:"P
       logInfo("检测到今日已签到，跳过签到接口");
     }
 
-    // 3) 查询积分/ N币收入（今天）
+    // 3) 查询积分/ N币收入（通过记录）
     try {
       // 积分（credit list）
       const creditResp = await httpPost(END.creditLst, headers, { page:1, size:100 });
@@ -314,7 +316,11 @@ function httpPost(url, headers={}, body={}) { return requestWithRetry({method:"P
         const t = it?.create_date ?? it?.createTime ?? it?.create_date_str ?? it?.create_time;
         const k = toDateKeyFromAny(t);
         if(k === today){
-          todayGainExp += Number(it.credit ?? it.amount ?? 0);
+          // 仅统计记录中的收入（避免重复计算签到奖励）
+          const amount = Number(it.credit ?? it.amount ?? 0);
+          if (amount > 0) {
+             todayGainExp += amount;
+          }
         }
       }
       // N币
@@ -324,29 +330,57 @@ function httpPost(url, headers={}, body={}) { return requestWithRetry({method:"P
         const t = it?.create_time ?? it?.createDate ?? it?.createTime ?? it?.create_date;
         const k = toDateKeyFromAny(t);
         if(k === today){
-          todayGainNcoin += Number(it.amount ?? it.coin ?? it.value ?? 0);
+          const amount = Number(it.amount ?? it.coin ?? it.value ?? 0);
+          if (amount > 0) {
+              todayGainNcoin += amount;
+          }
         }
       }
       logInfo(`今日积分/ N币统计完成：`, todayGainExp, todayGainNcoin);
     } catch(e){ logWarn("积分/N币统计异常：", String(e)); }
 
-    // 4) 查询经验信息
+    // 4) 查询经验信息 (并更新今日经验增量)
     let upgradeLine = "", creditData = {};
+    let currentCredit = 0;
+    const lastCreditStr = readPS(KEY_LAST_CREDIT);
+    const lastCredit = lastCreditStr ? Number(lastCreditStr) : null;
+    
     try {
       const cr = await httpGet(END.creditInfo, headers);
       creditData = cr?.data || {};
-      const credit = Number(creditData.credit ?? 0);
+      currentCredit = Number(creditData.credit ?? 0);
       const level = creditData.level ?? null;
       let need = 0;
+      
+      // *** FIX: 计算经验增量 ***
+      if (lastCredit !== null && currentCredit > lastCredit) {
+          // 如果本次总经验 > 上次总经验，则使用差值覆盖 todayGainExp
+          // 这能捕获到奖励 2 但记录查询失败的情况
+          const creditDiff = currentCredit - lastCredit;
+          if (creditDiff > todayGainExp) {
+              todayGainExp = creditDiff;
+          }
+      }
+      
+      // 更新上次经验值
+      writePS(String(currentCredit), KEY_LAST_CREDIT);
+      
+      // --------------------------
+      
       if (creditData.credit_upgrade) {
         const m = String(creditData.credit_upgrade).match(/还需\s*([0-9]+)\s*/);
         if (m && m[1]) need = Number(m[1]);
       } else if (creditData.credit_range && Array.isArray(creditData.credit_range) && creditData.credit_range.length >= 2) {
-        need = creditData.credit_range[1] - credit;
+        need = creditData.credit_range[1] - currentCredit;
       }
-      upgradeLine = `- 当前经验：${credit}${level?`（LV.${level}）`:''}\n- 距离升级：${need} 经验`;
+      upgradeLine = `- 当前经验：${currentCredit}${level?`（LV.${level}）`:''}\n- 距离升级：${need} 经验`;
       logInfo("经验信息：", creditData);
-    } catch (e) { logWarn("经验信息查询异常：", String(e)); }
+      logInfo("经验对比（本次/上次/增量）：", currentCredit, lastCredit, todayGainExp);
+    } catch (e) { 
+        logWarn("经验信息查询异常：", String(e)); 
+        // 即使查询失败，也要尝试写入上次经验，防止下次计算错误
+        if (currentCredit > 0) writePS(String(currentCredit), KEY_LAST_CREDIT);
+    }
 
     // 5) 余额查询
     let balLine = "";
@@ -404,7 +438,8 @@ function httpPost(url, headers={}, body={}) { return requestWithRetry({method:"P
       }
       
       // FIX: 如果签到成功，更新签到奖励信息到 SignMsg
-      if (signMsg.includes("成功")) {
+      // 避免重复显示奖励，如果 todayGainExp/Ncoin 是通过对比经验计算出来的，它应在“今日获得”字段中体现
+      if (signMsg.includes("成功") && todayGainExp > 0 || todayGainNcoin > 0) {
           // 重新生成 SignMsg，包含累计的今日奖励
           signMsg = `✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N 币`;
       }
