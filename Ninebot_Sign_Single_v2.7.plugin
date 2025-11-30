@@ -5,8 +5,8 @@
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
-#!date = 2025-11-27 17:25:00
-#!version = 2.7
+#!date = 2025-11-27 17:25:01
+#!version = 2.8
 #!system_version = 15
 
 [Argument]
@@ -18,10 +18,10 @@ cron_time = input, "1 0 * * *", tag=签到时间（CRON）
 autoOpenBox = switch, "true", "false", tag=自动开启盲盒
 notifyFail = switch, "true", "false", tag=失败时通知
 
-# 【最终修正】进度条样式：仅保留纯 ASCII 字符和数字
-progressStyle = select, 0, options=0-Style 0|1-Style 1|2-Style 2|3-Style 3|4-Style 4|5-Style 5|6-Style 6|7-Style 7, tag=进度条样式
+# 【最终修正】进度条样式：默认值 "0" 现在使用引号包裹
+progressStyle = select, "0", options=0-Style 0|1-Style 1|2-Style 2|3-Style 3|4-Style 4|5-Style 5|6-Style 6|7-Style 7, tag=进度条样式
 
-# 日志等级：已修正，保留
+# 日志等级：已工作，保留
 logLevel = select, "debug", options=debug-全部日志|info-重要信息|warn-警告和错误, tag=日志输出等级
 
 [Script]
