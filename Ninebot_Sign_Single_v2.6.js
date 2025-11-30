@@ -1,129 +1,250 @@
 /***********************************************
- Ninebot_Sign_Single_v2.6 C · 最终修复版
- 2025-12-01 00:30 更新版
- 功能：抓包写入、自动签到、分享任务、盲盒开箱、经验/N币查询、通知美化
- 修复：
- 1. 连续签到天数在通知中递增
- 2. 今日获得经验显示为 0 的问题
- 3. rewardList 奖励未被正确统计
+ Ninebot_Sign_Single_v2.6.js  （版本 D · 修复今日积分/N币显示）
+ 2025-12-01 01:00 更新版
+ 功能：抓包写入、自动签到、分享任务重放/领取、盲盒开箱、经验/N币查询、通知美化
+ [FIXED] 修复今日积分/N币显示为 0 的问题
 ***********************************************/
 
-/* 环境适配 */
+/* ENV wrapper */
 const IS_REQUEST = typeof $request !== "undefined";
 const IS_ARG = typeof $argument !== "undefined";
 const HAS_PERSIST = typeof $persistentStore !== "undefined";
 const HAS_NOTIFY = typeof $notification !== "undefined";
 const HAS_HTTP = typeof $httpClient !== "undefined";
 
-function readPS(key){ try{ return HAS_PERSIST?$persistentStore.read(key):null; }catch(e){return null;} }
-function writePS(val,key){ try{ return HAS_PERSIST?$persistentStore.write(val,key):false; }catch(e){return false;} }
+function readPS(key) { try { if (HAS_PERSIST) return $persistentStore.read(key); return null; } catch(e){ return null; } }
+function writePS(val,key){ try { if(HAS_PERSIST) return $persistentStore.write(val,key); return false; } catch(e){ return false; } }
 function notify(title,sub,body){ if(HAS_NOTIFY) $notification.post(title,sub,body); }
 function nowStr(){ return new Date().toLocaleString(); }
 
 /* BoxJS keys */
-const KEY_AUTH="ninebot.authorization";
-const KEY_DEV="ninebot.deviceId";
-const KEY_UA="ninebot.userAgent";
-const KEY_DEBUG="ninebot.debug";
-const KEY_NOTIFY="ninebot.notify";
-const KEY_AUTOBOX="ninebot.autoOpenBox";
-const KEY_TITLE="ninebot.titlePrefix";
-const KEY_SHARE="ninebot.shareTaskUrl";
-const KEY_PROGRESS="ninebot.progressStyle";
-const KEY_LAST_CREDIT="ninebot.lastCredit";
+const KEY_AUTH = "ninebot.authorization";
+const KEY_DEV = "ninebot.deviceId";
+const KEY_UA = "ninebot.userAgent";
+const KEY_DEBUG = "ninebot.debug";
+const KEY_NOTIFY = "ninebot.notify";
+const KEY_AUTOBOX = "ninebot.autoOpenBox";
+const KEY_AUTOREPAIR = "ninebot.autoRepair";
+const KEY_NOTIFYFAIL = "ninebot.notifyFail";
+const KEY_TITLE = "ninebot.titlePrefix";
+const KEY_SHARE = "ninebot.shareTaskUrl";
+const KEY_PROGRESS = "ninebot.progressStyle";
+const KEY_LAST_CAPTURE = "ninebot.lastCaptureAt";
+const KEY_LAST_CREDIT = "ninebot.lastCredit";
 
 /* Endpoints */
-const END={
-  sign:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
-  status:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
-  blindBoxList:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
-  balance:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-  creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/get-msg",
-  creditLst:"https://api5-h5-app-bj.ninebot.com/web/credit/credit-lst",
-  nCoinRecord:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/record/v2",
+const END = {
+  sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
+  status: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
+  blindBoxList: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
+  balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
+  creditInfo: "https://api5-h5-app-bj.ninebot.com/web/credit/get-msg",
+  creditLst: "https://api5-h5-app-bj.ninebot.com/web/credit/credit-lst",
+  nCoinRecord: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/record/v2",
+  reward: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/reward"
 };
-const END_OPEN={ openSeven:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-seven-box" };
+const END_OPEN = { openSeven: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-seven-box" };
 
-/* 网络请求封装 */
-const MAX_RETRY=3, RETRY_DELAY=1500, REQUEST_TIMEOUT=12000;
-function getDebugFlag(){ const v=readPS(KEY_DEBUG); return v===null||v===undefined?true:(v!=="false"); }
-function logInfo(...args){ if(!getDebugFlag())return; console.log(`[${nowStr()}] info ${args.map(a=>typeof a==="object"?JSON.stringify(a):String(a)).join(" ")}`); }
+/* Retry helper */
+const MAX_RETRY = 3;
+const RETRY_DELAY = 1500;
+const REQUEST_TIMEOUT = 12000;
 
-/* 工具函数 */
+/* Debug */
+function getDebugFlag() { const v=readPS(KEY_DEBUG); return v===null||v===undefined?true:(v!=="false"); }
+function logInfo(...args){ if(!getDebugFlag()) return; console.log(`[${nowStr()}] info ${args.map(a=>typeof a==="object"?JSON.stringify(a):String(a)).join(" ")}`); }
+function logWarn(...args){ console.warn(`[${nowStr()}] warn ${args.join(" ")}`); }
+function logErr(...args){ console.error(`[${nowStr()}] error ${args.join(" ")}`); }
+
+/* Progress bar styles (保持原样) */
+const PROGRESS_STYLES = [
+  ["█","░"], ["▓","░"], ["▰","▱"], ["●","○"], ["■","□"], ["➤","·"], ["▮","▯"], ["⣿","⣀"]
+];
+function renderProgressBar(current,total,styleIndex=0,length=20){
+  const [FULL,EMPTY]=PROGRESS_STYLES[styleIndex]||PROGRESS_STYLES[0];
+  const ratio = total>0?current/total:0;
+  const filled = Math.round(ratio*length);
+  return FULL.repeat(filled)+EMPTY.repeat(Math.max(0,length-filled));
+}
+
+/* 日期辅助 */
+function toDateKeyFromTs(ts){ ts=Number(ts); if(ts>1e12) ts=Math.floor(ts/1000); const d=new Date(ts*1000); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function toDateKeyFromAny(ts){ if(!ts && ts!==0) return null; if(typeof ts==="string"&&/^\d+$/.test(ts)) ts=Number(ts); if(typeof ts==="number") return toDateKeyFromTs(ts); if(typeof ts==="string") { const d=new Date(ts); if(!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; return null; } return null; }
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function toDateKeyFromTs(ts){ if(!ts) return null; ts=Number(ts); if(ts>1e12)ts=Math.floor(ts/1000); const d=new Date(ts*1000); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function makeHeaders(cfg){ return {"Authorization":cfg.Authorization,"Content-Type":"application/json;charset=UTF-8","device_id":cfg.DeviceId,"User-Agent":cfg.userAgent||"Mozilla/5.0 (iPhone; CPU iPhone OS) Segway v6","platform":"h5","Origin":"https://h5-bj.ninebot.com","language":"zh"}; }
-function requestWithRetry({method="GET",url,headers={},body=null,timeout=REQUEST_TIMEOUT}){ return new Promise((resolve,reject)=>{ let attempts=0; const once=()=>{ attempts++; const opts={url,headers,timeout}; if(method==="POST") opts.body=typeof body==='string'?body:JSON.stringify(body===null?{}:body); const cb=(err,resp,data)=>{ if(err){ const msg=String(err&&(err.error||err.message||err)); const shouldRetry=/(Socket closed|ECONNRESET|network|timed out|timeout|failed)/i.test(msg); if(attempts<MAX_RETRY&&shouldRetry){ setTimeout(once,RETRY_DELAY); return;}else{reject(err);return;} } if(resp&&resp.status&&resp.status>=500&&attempts<MAX_RETRY){ setTimeout(once,RETRY_DELAY); return; } try{ resolve(JSON.parse(data||"{}")); }catch(e){ resolve({raw:data}); } }; if(method==="GET") $httpClient.get(opts,cb); else $httpClient.post(opts,cb); }; once(); }); }
+
+/* Headers */
+function makeHeaders(){ return { "Authorization": cfg.Authorization, "Content-Type":"application/json;charset=UTF-8", "device_id":cfg.DeviceId, "User-Agent":cfg.userAgent||"Mozilla/5.0 (iPhone; CPU iPhone OS) Segway v6", "platform":"h5", "Origin":"https://h5-bj.ninebot.com", "language":"zh" }; }
+
+/* HTTP with retry */
+function requestWithRetry({method="GET",url,headers={},body=null,timeout=REQUEST_TIMEOUT}){
+  return new Promise((resolve,reject)=>{
+    let attempts=0;
+    const once=()=>{
+      attempts++;
+      const opts={url,headers,timeout};
+      if(method==="POST") opts.body=typeof body==="string"?body:JSON.stringify(body===null?{}:body);
+      const cb=(err,resp,data)=>{
+        if(err){
+          const msg=String(err&&(err.error||err.message||err));
+          const shouldRetry=/(Socket closed|ECONNRESET|network|timed out|timeout|failed)/i.test(msg);
+          if(attempts<MAX_RETRY && shouldRetry){ setTimeout(once,RETRY_DELAY); return; } else { reject(err); return; }
+        }
+        if(resp && resp.status && resp.status>=500 && attempts<MAX_RETRY){ setTimeout(once,RETRY_DELAY); return; }
+        try{ resolve(JSON.parse(data||"{}")); }catch(e){ resolve({raw:data}); }
+      };
+      method==="GET"?$httpClient.get(opts,cb):$httpClient.post(opts,cb);
+    };
+    once();
+  });
+}
 function httpGet(url,headers={}){ return requestWithRetry({method:"GET",url,headers}); }
 function httpPost(url,headers={},body={}){ return requestWithRetry({method:"POST",url,headers,body}); }
 
 /* 主流程 */
 (async()=>{
   try{
-    const cfg={ Authorization:readPS(KEY_AUTH)||"", DeviceId:readPS(KEY_DEV)||"", userAgent:readPS(KEY_UA)||"", shareTaskUrl:readPS(KEY_SHARE)||"", debug:getDebugFlag(), notify:readPS(KEY_NOTIFY)!=="false", autoOpenBox:readPS(KEY_AUTOBOX)==="true", titlePrefix:readPS(KEY_TITLE)||"九号签到", progressStyle:Number(readPS(KEY_PROGRESS)||0) };
-    logInfo("九号自动签到开始",cfg);
-    if(!cfg.Authorization||!cfg.DeviceId){ notify(cfg.titlePrefix,"未配置 Token","请抓包写入 Authorization/DeviceId"); return; }
+    const argProgressStyle=(IS_ARG&&$argument&&$argument.progressStyle!==undefined)?Number($argument.progressStyle):null;
+    const boxProgressStyle=Number(readPS(KEY_PROGRESS)||0);
+    const progressStyle=(argProgressStyle!==null)?argProgressStyle:boxProgressStyle;
 
-    const headers=makeHeaders(cfg);
+    const cfg={
+      Authorization: readPS(KEY_AUTH)||"",
+      DeviceId: readPS(KEY_DEV)||"",
+      userAgent: readPS(KEY_UA)||"",
+      shareTaskUrl: readPS(KEY_SHARE)||"",
+      debug: getDebugFlag(),
+      notify: (readPS(KEY_NOTIFY)===null||readPS(KEY_NOTIFY)===undefined)?true:(readPS(KEY_NOTIFY)!=="false"),
+      autoOpenBox: readPS(KEY_AUTOBOX)==="true",
+      autoRepair: readPS(KEY_AUTOREPAIR)==="true",
+      notifyFail: (readPS(KEY_NOTIFYFAIL)===null||readPS(KEY_NOTIFYFAIL)===undefined)?true:(readPS(KEY_NOTIFYFAIL)!=="false"),
+      titlePrefix: readPS(KEY_TITLE)||"九号签到",
+      progressStyle: progressStyle
+    };
 
-    // 查询签到状态
-    let statusResp = await httpGet(`${END.status}?t=${Date.now()}`, headers);
-    const statusData = statusResp?.data||{};
-    let consecutiveDays = statusData?.consecutiveDays ?? 0;
-    const signCards = statusData?.signCardsNum ?? 0;
-    const currentSignStatus = statusData?.currentSignStatus;
-    const isSigned=[1,'1',true,'true'].includes(currentSignStatus);
+    logInfo("九号自动签到开始", cfg);
 
-    // 签到
+    if(!cfg.Authorization||!cfg.DeviceId){
+      notify(cfg.titlePrefix,"未配置 Token","请先开启抓包并在九号 APP 执行签到/分享动作以写入 Authorization / DeviceId / User-Agent");
+      logWarn("终止：未读取到账号信息");
+      $done();
+    }
+
+    const headers=makeHeaders();
+
+    // 1) 查询签到状态
+    logInfo("查询签到状态...");
+    let statusResp=null;
+    try{ statusResp=await httpGet(`${END.status}?t=${Date.now()}`,headers); }catch(e){ logWarn("状态请求异常：",String(e)); }
+    const statusData=statusResp?.data||{};
+    let consecutiveDays=statusData?.consecutiveDays??statusData?.continuousDays??0;
+    const signCards=statusData?.signCardsNum??0;
+    const currentSignStatus=statusData?.currentSignStatus??null;
+    const blindBoxStatus=statusData?.blindBoxStatus??null;
+
+    const knownSignedValues=[1,'1',true,'true'];
+    const isSigned=knownSignedValues.includes(currentSignStatus);
+
     let signMsg="", todayGainExp=0, todayGainNcoin=0;
-    if(!isSigned){
-      const signResp=await httpPost(END.sign, headers,{deviceId:cfg.DeviceId});
-      if(signResp.code===0){ consecutiveDays+=1; const rewards=signResp.data?.rewardList||[]; for(const r of rewards){ if(Number(r.rewardType)===1) todayGainExp+=Number(r.rewardValue||0); else todayGainNcoin+=Number(r.rewardValue||0);} signMsg=`✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N币`; }
-      else signMsg=`✨ 今日签到：已签到`;
-    } else signMsg=`✨ 今日签到：已签到`;
 
-    // 查询积分/N币流水
+    if(!isSigned){
+      logInfo("今日未签到，尝试执行签到...");
+      try{
+        const signResp=await httpPost(END.sign,headers,{deviceId:cfg.DeviceId});
+        logInfo("签到接口返回：",signResp);
+        if(signResp.code===0||signResp.code===1||signResp.success===true){
+          consecutiveDays+=1;
+          const rewardList=signResp.data?.rewardList;
+          let newExp=0,newCoin=0;
+          if(Array.isArray(rewardList)){
+            for(const reward of rewardList){
+              const value=Number(reward.rewardValue??0);
+              const type=Number(reward.rewardType??0);
+              if(type===1) newExp+=value; else newCoin+=value;
+            }
+          }
+          todayGainExp+=Number(signResp.data?.score??0)+newExp;
+          todayGainNcoin+=Number(signResp.data?.nCoin??signResp.data?.coin??0)+newCoin;
+          signMsg=`✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N 币`;
+        }else if(signResp.code===540004||(signResp.msg&&/已签到/.test(signResp.msg))||(signResp.message&&/已签到/.test(signResp.message))){
+          signMsg=`✨ 今日签到：已签到`;
+        }else{
+          const rawMsg=signResp.msg??signResp.message??JSON.stringify(signResp);
+          signMsg=`❌ 签到失败：${rawMsg}`;
+          if(!cfg.notifyFail) signMsg="";
+        }
+      }catch(e){ logWarn("签到请求异常：",String(e)); if(cfg.notifyFail) signMsg=`❌ 签到请求异常：${String(e)}`; }
+    }else{
+      signMsg=`✨ 今日签到：已签到`;
+      logInfo("今日已签到，跳过签到接口");
+    }
+
+    // 2) 积分/N币统计（固定今日奖励显示）
     try{
-      const creditResp=await httpPost(END.creditLst, headers,{page:1,size:100});
-      const nCoinResp=await httpPost(END.nCoinRecord, headers,{page:1,size:100});
+      const creditResp=await httpPost(END.creditLst,headers,{page:1,size:100});
       const today=todayKey();
       const creditList=Array.isArray(creditResp?.data?.list)?creditResp.data.list:[];
-      todayGainExp+=creditList.filter(x=>toDateKeyFromTs(x.create_date)===today).reduce((sum,x)=>sum+Number(x.credit),0);
+      for(const it of creditList){
+        const k=toDateKeyFromAny(it.create_date);
+        if(k===today) todayGainExp+=Number(it.credit??0);
+      }
+      const nCoinResp=await httpPost(END.nCoinRecord,headers,{page:1,size:100});
       const nCoinList=Array.isArray(nCoinResp?.data?.list)?nCoinResp.data.list:[];
-      todayGainNcoin+=nCoinList.filter(x=>toDateKeyFromTs(x.create_time)===today).reduce((sum,x)=>sum+Number(x.amount||0),0);
-      logInfo("今日积分/N币统计完成",todayGainExp,todayGainNcoin);
-    }catch(e){ logInfo("积分/N币统计异常",e); }
+      for(const it of nCoinList){
+        const k=toDateKeyFromAny(it.create_time);
+        if(k===today) todayGainNcoin+=Number(it.amount??it.coin??0);
+      }
+      logInfo("今日积分/N币统计完成", todayGainExp, todayGainNcoin);
+    }catch(e){ logWarn("积分/N币统计异常：",String(e)); }
 
-    // 查询经验信息
-    let upgradeLine="", currentCredit=0;
+    // 3) 查询经验
+    let upgradeLine="", creditData={}, currentCredit=0;
+    const lastCreditStr=readPS(KEY_LAST_CREDIT);
+    const lastCredit=lastCreditStr?Number(lastCreditStr):null;
     try{
-      const cr=await httpGet(END.creditInfo, headers);
-      const creditData=cr?.data||{};
-      currentCredit=Number(creditData.credit||0);
-      writePS(String(currentCredit), KEY_LAST_CREDIT);
-      let need=0; if(creditData.credit_upgrade){ const m=String(creditData.credit_upgrade).match(/还需\s*([0-9]+)/); if(m) need=Number(m[1]);} else if(Array.isArray(creditData.credit_range)&&creditData.credit_range.length>=2) need=creditData.credit_range[1]-currentCredit;
+      const cr=await httpGet(END.creditInfo,headers);
+      creditData=cr?.data||{};
+      currentCredit=Number(creditData.credit??0);
+      if(lastCredit!==null&&currentCredit>lastCredit){
+        const creditDiff=currentCredit-lastCredit;
+        if(creditDiff>todayGainExp) todayGainExp=creditDiff;
+      }
+      writePS(String(currentCredit),KEY_LAST_CREDIT);
+      let need=0;
+      if(creditData.credit_upgrade){ const m=String(creditData.credit_upgrade).match(/还需\s*([0-9]+)\s*/); if(m&&m[1]) need=Number(m[1]); }
+      else if(creditData.credit_range&&Array.isArray(creditData.credit_range)&&creditData.credit_range.length>=2) need=creditData.credit_range[1]-currentCredit;
       upgradeLine=`- 当前经验：${currentCredit}${creditData.level?`（LV.${creditData.level}）`:''}\n- 距离升级：${need} 经验`;
-    }catch(e){ logInfo("经验查询异常",e); }
+    }catch(e){ logWarn("经验查询异常：",String(e)); if(currentCredit>0) writePS(String(currentCredit),KEY_LAST_CREDIT); }
 
-    // 查询余额
+    // 4) 查询余额
     let balLine="";
-    try{ const bal=await httpGet(END.balance, headers); if(bal?.code===0) balLine=`- 当前 N币：${bal.data?.balance??0}`; }catch(e){}
+    try{ const bal=await httpGet(END.balance,headers); if(bal?.code===0) balLine=`- 当前 N币：${bal.data?.balance??bal.data?.coin??0}`; else if(bal?.data&&bal.data.balance!==undefined) balLine=`- 当前 N币：${bal.data.balance}`; }catch(e){ logWarn("余额查询异常：",String(e)); }
 
-    // 查询盲盒
+    // 5) 盲盒列表（保持原样）
     let blindInfo=[];
-    try{ const box=await httpGet(END.blindBoxList, headers); const notOpened=box?.data?.notOpenedBoxes||[]; blindInfo=notOpened.map(b=>{ const target=Number(b.awardDays||b.totalDays||0); const left=Number(b.leftDaysToOpen||b.remaining||0); const opened=Math.max(0,target-left); return {target,left,opened}; }); }catch(e){}
+    try{ const box=await httpGet(END.blindBoxList,headers); const notOpened=box?.data?.notOpenedBoxes??[]; if(Array.isArray(notOpened)&&notOpened.length>0){ notOpened.forEach(b=>{ const target=Number(b.awardDays??b.totalDays??b.daysRequired??0); const left=Number(b.leftDaysToOpen??b.remaining??0); const opened=Math.max(0,target-left); blindInfo.push({target,left,opened}); }); } }catch(e){ logWarn("盲盒查询异常：",String(e)); }
 
-    // 自动开 7天盲盒
-    if(cfg.autoOpenBox) for(const b of blindInfo){ try{ if(Number(b.left)===0 && Number(b.target)===7) await httpPost(END_OPEN.openSeven, headers,{}); }catch(e){} }
-
-    // 通知
-    if(cfg.notify){
-      let barLines=blindInfo.length>0?blindInfo.map(b=>`${b.target} 天盲盒：\n[${"➤".repeat(b.opened)}${"·".repeat(b.target-b.opened)}] ${b.opened} / ${b.target} 天`).join("\n| "):"无";
-      signMsg = (todayGainExp>0 || todayGainNcoin>0)?`✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N币`:signMsg;
-      const notifyBody=`${signMsg}\n📊 账户状态\n${upgradeLine}\n${balLine}\n- 补签卡：${signCards} 张\n- 连续签到：${consecutiveDays} 天\n\n📦 盲盒进度\n${barLines}\n\n🎯 今日获得：积分 ${todayGainExp} / N币 ${todayGainNcoin}`;
-      notify(cfg.titlePrefix,"",notifyBody);
-      logInfo("发送通知",notifyBody);
+    // 6) 自动开启盲盒
+    if(cfg.autoOpenBox&&blindInfo.length>0){
+      for(const b of blindInfo){
+        try{ if(Number(b.left)===0&&Number(b.target)===7){ try{ const openR=await httpPost(END_OPEN.openSeven,headers,{}); logInfo("开箱返回：",openR); if(openR?.code===0) notify(cfg.titlePrefix,"盲盒开启","7天盲盒已自动开启并领取奖励"); else logWarn("7天盲盒开箱未成功：",openR); }catch(e){ logWarn("7天开箱异常：",String(e)); } } }catch(e){ logWarn("盲盒处理异常：",String(e)); }
+      }
     }
-    logInfo("九号自动签到完成");
-  }catch(e){ logInfo("主流程异常",e); }
+
+    // 7) 通知（保持盲盒进度条原样）
+    if(cfg.notify){
+      let barLines="无";
+      if(blindInfo.length>0){
+        barLines=blindInfo.map(b=>{ return `${b.target} 天盲盒：\n[${renderProgressBar(b.opened,b.target,cfg.progressStyle)}] ${b.opened} / ${b.target} 天`; }).join("\n| ");
+      }
+      if(signMsg.includes("成功")&& (todayGainExp>0 || todayGainNcoin>0)){
+        signMsg=`✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N 币`;
+      }
+      let notifyBody=`${signMsg}\n📊 账户状态\n${upgradeLine}\n${balLine}\n- 补签卡：${signCards} 张\n- 连续签到：${consecutiveDays} 天\n\n📦 盲盒进度\n${barLines}\n\n🎯 今日获得：积分 ${todayGainExp} / N币 ${todayGainNcoin}`;
+      if(notifyBody.length>1000) notifyBody=notifyBody.slice(0,997)+'...';
+      notify(cfg.titlePrefix,"",notifyBody);
+      logInfo("发送通知：",notifyBody);
+    }
+
+    logInfo("九号自动签到完成。");
+  }catch(e){ logErr("自动签到主流程异常：",e); }
 })();
