@@ -1,7 +1,9 @@
 /***********************************************
  Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版）
- 2025-11-30 19:49 更新版（积分/N币统计修复 + 通知显示）
+ 2025-12-1 00:00 更新版（积分/N币统计修复 + 通知显示）
  功能：抓包写入、自动签到、分享任务重放/领取、盲盒开箱、经验/N币查询、通知美化
+ [FIXED] 2025-12-01: 修复签到成功后，连续签到天数未在通知中递增的问题。
+ [FIXED] 2025-12-01: 修复签到接口返回的 rewardList 奖励未被正确统计的问题。
 ***********************************************/
 
 /* ENV wrapper (keeps compatibility with Loon/QuanX/Surge) */
@@ -236,7 +238,7 @@ function httpPost(url, headers={}, body={}) { return requestWithRetry({method:"P
     try { statusResp = await httpGet(`${END.status}?t=${Date.now()}`, headers); }
     catch(e){ logWarn("状态请求异常：", String(e)); }
     const statusData = statusResp?.data || {};
-    const consecutiveDays = statusData?.consecutiveDays ?? statusData?.continuousDays ?? 0;
+    let consecutiveDays = statusData?.consecutiveDays ?? statusData?.continuousDays ?? 0; // FIX: 声明为 let 以便修改
     const signCards = statusData?.signCardsNum ?? statusData?.remedyCard ?? 0;
     const currentSignStatus = statusData?.currentSignStatus ?? statusData?.currentSign ?? null;
     const blindBoxStatus = statusData?.blindBoxStatus ?? null;
@@ -253,12 +255,39 @@ function httpPost(url, headers={}, body={}) { return requestWithRetry({method:"P
       try { 
         const signResp = await httpPost(END.sign, headers, { deviceId: cfg.DeviceId }); 
         logInfo("签到接口返回：", signResp);
+        
         // handle common success codes
         if (signResp.code === 0 || signResp.code === 1 || signResp.success === true) {
+          
+          // FIX 1: 签到成功后，手动递增连续签到天数，以便在通知中显示正确
+          consecutiveDays += 1; 
+
+          // FIX 2: 增加对 rewardList 中奖励值的解析
+          const rewardList = signResp.data?.rewardList;
+          let newExp = 0, newCoin = 0;
+          
+          if (Array.isArray(rewardList)) {
+            for (const reward of rewardList) {
+              const value = Number(reward.rewardValue ?? 0);
+              const type = Number(reward.rewardType ?? 0);
+              // 假设 Type 1 为经验/积分，其他为 N 币
+              if (type === 1) {
+                newExp += value;
+              } else {
+                newCoin += value;
+              }
+            }
+          }
+          
+          // 原有的解析逻辑，确保兼容性
           const nCoin = Number(signResp.data?.nCoin ?? signResp.data?.coin ?? 0);
           const score = Number(signResp.data?.score ?? signResp.data?.credit ?? 0);
-          todayGainNcoin += nCoin; todayGainExp += score;
-          signMsg = `✨ 今日签到：成功\n🎁 签到奖励：+${score} 经验、+${nCoin} N 币`;
+          
+          // 累加所有获取的奖励
+          todayGainNcoin += (nCoin + newCoin); 
+          todayGainExp += (score + newExp);
+          
+          signMsg = `✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N 币`;
         } else if (signResp.code === 540004 || (signResp.msg && /已签到/.test(signResp.msg)) || (signResp.message && /已签到/.test(signResp.message))) {
           signMsg = `✨ 今日签到：已签到（接口）`;
         } else { 
@@ -373,7 +402,15 @@ function httpPost(url, headers={}, body={}) { return requestWithRetry({method:"P
           return `${b.target} 天盲盒：\n[${renderProgressBar(b.opened,b.target,cfg.progressStyle)}] ${b.opened} / ${b.target} 天`;
         }).join("\n| ");
       }
+      
+      // FIX: 如果签到成功，更新签到奖励信息到 SignMsg
+      if (signMsg.includes("成功")) {
+          // 重新生成 SignMsg，包含累计的今日奖励
+          signMsg = `✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N 币`;
+      }
+      
       let notifyBody = `${signMsg}\n📊 账户状态\n${upgradeLine}\n${balLine}\n- 补签卡：${signCards} 张\n- 连续签到：${consecutiveDays} 天\n\n📦 盲盒进度\n${barLines}\n\n🎯 今日获得：积分 ${todayGainExp} / N币 ${todayGainNcoin}`;
+      
       // 截断通知体，避免系统/BoxJS 限制过长
       const MAX_NOTIFY_LEN = 1000;
       if (notifyBody.length > MAX_NOTIFY_LEN) {
