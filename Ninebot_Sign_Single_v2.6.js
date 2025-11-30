@@ -2,7 +2,7 @@
 九号智能电动车 · 单号自动签到（含分享奖励 + 今日奖励统计）
 作者：QinyRui
 版本：2.6
-更新时间：2025/11/30 10:30
+更新时间：2025/11/30 10:44
 适配：iOS 系统 / Loon / Scriptable / BoxJS
 说明：
 - 支持抓包自动写入 Authorization / DeviceId / User-Agent
