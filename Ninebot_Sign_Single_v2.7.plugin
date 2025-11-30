@@ -15,12 +15,14 @@ capture = switch, "false", "true", tag=抓包写入开关
 autoRepair = switch, "true", "false", tag=自动修复分享任务开关
 titlePrefix = input, "九号签到助手", tag=自定义通知标题
 cron_time = input, "1 0 * * *", tag=签到时间（CRON）
-progressStyle = select, 0, options=0-█░|1-▓░|2-▰▱|3-●○|4-■□|5-➤·|6-▮▯|7-⣿⣀, tag=进度条样式
 autoOpenBox = switch, "true", "false", tag=自动开启盲盒
 notifyFail = switch, "true", "false", tag=失败时通知
-# --- 新增配置项：日志等级 ---
-logLevel = select, debug, options=debug-全部|info-重要信息|warn-警告和错误, tag=日志输出等级
-# --------------------
+
+# 【已修正】进度条样式：移除特殊字符，确保 UI 正常弹出
+progressStyle = select, 0, options=0-风格0(█░)|1-风格1(▓░)|2-风格2(▰▱)|3-风格3(●○)|4-风格4(■□)|5-风格5(➤·)|6-风格6(▮▯)|7-风格7(⣿⣀), tag=进度条样式
+
+# 【已修正】日志等级：简化标签
+logLevel = select, debug, options=debug-全部日志|info-重要信息|warn-警告和错误, tag=日志输出等级
 
 [Script]
 #（1）抓包写入：签到状态 + 分享动作 app_log
