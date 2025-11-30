@@ -1,13 +1,13 @@
 /***********************************************
  Ninebot_Sign_Single_v2.6.js  （版本 D · 最终整合版）
- 2025-12-01 更新
+ 2025-12-01 02:00 更新
  功能：抓包写入、自动签到、分享任务、盲盒开箱、经验/N币查询、通知美化
- [修正]：增加了日志等级控制 (logLevel)
+ [修正]：增加了日志等级控制 (logLevel) 和 参数读取调试
 ***********************************************/
 
 /* ENV wrapper */
 const IS_REQUEST = typeof $request !== "undefined";
-const IS_ARG = typeof $argument !== "undefined"; // 用于读取配置文件的 Argument
+const IS_ARG = typeof $argument !== "undefined";
 const HAS_PERSIST = typeof $persistentStore !== "undefined";
 const HAS_NOTIFY = typeof $notification !== "undefined";
 const HAS_HTTP = typeof $httpClient !== "undefined";
@@ -105,7 +105,7 @@ if(isCaptureRequest){
     const dev=h["DeviceId"]||h["deviceid"]||h["device_id"]||"";
     const ua=h["User-Agent"]||h["user-agent"]||"";
     const capUrl=$request.url||"";
-    logDebug("抓包 URL：", capUrl); // 调整为 debug 级别
+    logDebug("抓包 URL：", capUrl); 
 
     let changed=false;
     if(auth && readPS(KEY_AUTH)!==auth){ writePS(auth,KEY_AUTH); changed=true; }
@@ -113,10 +113,10 @@ if(isCaptureRequest){
     if(ua && readPS(KEY_UA)!==ua){ writePS(ua,KEY_UA); changed=true; }
     if(capUrl.includes("/service/2/app_log/")){
       const base=capUrl.split("?")[0];
-      if(readPS(KEY_SHARE)!==base){ writePS(base,KEY_SHARE); changed=true; logDebug("捕获分享接口写入：",base); } // 调整为 debug 级别
+      if(readPS(KEY_SHARE)!==base){ writePS(base,KEY_SHARE); changed=true; logDebug("捕获分享接口写入：",base); } 
     }
     if(changed){ writePS(String(Date.now()),KEY_LAST_CAPTURE); notify("九号智能电动车","抓包成功 ✓","数据已写入 BoxJS"); logInfo("抓包写入成功"); }
-    else logDebug("抓包数据无变化"); // 调整为 debug 级别
+    else logDebug("抓包数据无变化"); 
   }catch(e){ logErr("抓包异常：",e); }
   $done({});
 }
@@ -137,15 +137,14 @@ const cfg={
 
 logInfo("九号自动签到开始");
 
-// 【调试警告/信息】：确认 Argument 参数读取是否成功
+// 【调试信息】：确认 Argument 参数读取是否成功
 if(cfg.logLevel.toLowerCase() === 'info') {
-    // 这里使用 logWarn 以确保它在用户选择 'info' 时不会被隐藏
-    logWarn(`[调试警告] Argument 参数 (logLevel) 读取失败或默认值：info。如果设置了其他等级但无效，请确认您的 Loon 版本支持 cron 脚本读取 [Argument] 参数。`);
+    logInfo(`[调试信息] Argument 参数 (logLevel) 读取失败或默认值：info。如果您设置了其他等级但无效，请检查 Argument 配置和脚本更新状态。`); // 强制使用 logInfo
 } else {
     logInfo(`[调试信息] Argument 参数 logLevel 读取成功，当前设置为：${cfg.logLevel}`);
 }
 
-logDebug("当前配置：", { notify:cfg.notify, autoOpenBox:cfg.autoOpenBox, titlePrefix:cfg.titlePrefix, logLevel:cfg.logLevel }); // 调整为 debug 级别
+logDebug("当前配置：", { notify:cfg.notify, autoOpenBox:cfg.autoOpenBox, titlePrefix:cfg.titlePrefix, logLevel:cfg.logLevel }); 
 
 if(!cfg.Authorization || !cfg.DeviceId){
   notify(cfg.titlePrefix,"未配置 Token","请先抓包执行签到/分享动作以写入 Authorization / DeviceId / User-Agent");
@@ -228,7 +227,7 @@ function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.g
     const signCards=statusData?.signCardsNum??statusData?.remedyCard??0;
     const currentSignStatus=statusData?.currentSignStatus??statusData?.currentSign??null;
     const blindBoxStatus=statusData?.blindBoxStatus??null;
-    logDebug("签到状态返回：",statusResp); // 调整为 debug 级别
+    logDebug("签到状态返回：",statusResp); 
 
     const knownSignedValues=[1,'1',true,'true'];
     const isSigned=knownSignedValues.includes(currentSignStatus);
@@ -239,7 +238,7 @@ function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.g
       logInfo("今日未签到，尝试执行签到...");
       try{
         const signResp=await httpPost(END.sign,headers,{deviceId:cfg.DeviceId});
-        logDebug("签到接口返回：",signResp); // 调整为 debug 级别
+        logDebug("签到接口返回：",signResp); 
         if(signResp.code===0||signResp.code===1||signResp.success===true){
           consecutiveDays+=1; // 自动递增
 
@@ -283,7 +282,7 @@ function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.g
         const k=toDateKeyAny(it.create_time??it.createDate??it.createTime??it.create_date);
         if(k===today) todayGainNcoin+=Number(it.amount??it.coin??it.value??0)||0;
       }
-      logDebug("今日积分/N币统计完成：",todayGainExp,todayGainNcoin); // 调整为 debug 级别
+      logDebug("今日积分/N币统计完成：",todayGainExp,todayGainNcoin); 
     }catch(e){ logWarn("积分/N币统计异常：",String(e)); }
 
     // 4) 查询经验信息
@@ -352,7 +351,7 @@ function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.g
       const MAX_NOTIFY_LEN=1000;
       if(notifyBody.length>MAX_NOTIFY_LEN) notifyBody=notifyBody.slice(0,MAX_NOTIFY_LEN-3)+'...';
       notify(cfg.titlePrefix,"",notifyBody);
-      logDebug("发送通知：",notifyBody); // 调整为 debug 级别
+      logDebug("发送通知：",notifyBody); 
     }
 
     logInfo("九号自动签到完成，通知已发送。");
