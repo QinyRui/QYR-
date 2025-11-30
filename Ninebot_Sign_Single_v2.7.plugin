@@ -11,10 +11,12 @@
 
 [Argument]
 notify = switch, "true", "false", tag=通知开关
-debugLevel = select, "0","1","2","3","4","5","6", tag=调试日志等级
+# 采用用户提供的简化 select 格式（数字即为标签）
+debugLevel = select, "0","1","2","3","4","5","6", tag=调试日志等级 (0=详细, 6=精简)
 autoRepair = switch, "true", "false", tag=自动修复分享任务开关
 titlePrefix = input, "九号签到助手", tag=自定义通知标题
-progressStyle = select, "0","1","2","3","4","5","6","7", tag=盲盒进度条样式
+# 采用用户提供的简化 select 格式（数字即为标签）
+progressStyle = select, "0","1","2","3","4","5","6","7", tag=盲盒进度条样式 (数字 0-7)
 cron_time = input, "1 0 * * *", tag=签到时间（CRON）
 autoOpenBox = switch, "true", "false", tag=自动开启盲盒
 capture = switch, "false", "true", tag=抓包写入开关
