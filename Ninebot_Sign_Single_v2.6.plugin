@@ -12,8 +12,6 @@
 [Argument]
 notify = switch, "true", "false", tag=通知开关
 capture = switch, "true", "false", tag=抓包写入开关
-autoRepair = switch, "true", "false", tag=自动修复分享任务开关
-titlePrefix = input, "九号签到", tag=自定义通知标题
 cron_time = input, "0 11 * * *", tag=签到时间（CRON）
 progressStyle = input, "7", tag=盲盒进度条样式（0~7）
 
