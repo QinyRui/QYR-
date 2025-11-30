@@ -13,7 +13,6 @@
         "ninebot.deviceId",
         "ninebot.userAgent",
         "ninebot.shareTaskUrl",
-        "ninebot.progressStyle",
         "ninebot.titlePrefix",
         "ninebot.logLevel"
       ],
@@ -45,23 +44,6 @@
           "val": "",
           "type": "text",
           "desc": "抓包自动写入（仅在出现分享任务时会捕获）"
-        },
-        {
-          "id": "ninebot.progressStyle",
-          "name": "盲盒进度条样式",
-          "val": "7",
-          "type": "select",
-          "items": [
-            { "key": "0", "label": "█░ 样式 0" },
-            { "key": "1", "label": "▓░ 样式 1" },
-            { "key": "2", "label": "▰▱ 样式 2" },
-            { "key": "3", "label": "●○ 样式 3" },
-            { "key": "4", "label": "■□ 样式 4" },
-            { "key": "5", "label": "➤· 样式 5" },
-            { "key": "6", "label": "▮▯ 样式 6" },
-            { "key": "7", "label": "⣿⣀ 样式 7" }
-          ],
-          "desc": "盲盒进度条样式（图形展示），优先使用插件传入 $argument.progressStyle"
         },
         {
           "id": "ninebot.titlePrefix",
