@@ -1,25 +1,45 @@
 #!name = 九号智能电动车 · 单号自动签到（含分享奖励）
-#!desc = 自动签到 + 抓包写入 Authorization / DeviceId / User-Agent。支持盲盒、分享任务、经验/N 币统计、通知美化。UI 完整可控。
-#!author = QinyRui
-#!version = 2.6-C
+#!desc = 自动签到 / 分享奖励 / 盲盒状态展示；支持抓包自动写入 Authorization、DeviceId、User-Agent；含通知/日志等级/UI 开关
+#!version = 2.6
+#!author = QinyRui & ❥﹒﹏非我不可
 #!homepage = https://t.me/JiuHaoAPP
-#!update = 2025-11-30 18:40
-#!icon = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png
+#!update = 2025-11-30
+#!icon = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/assets/ninebot_logo_128.png
+#!category = 九号智能电动车
+#!tag = 签到, 九号, 电动车
+
+[General]
+skip-proxy = ebike.ninebot.com
 
 [Script]
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/(sign|status) script-path=Ninebot_Sign_Single_v2.6.js, tag=九号签到 · 抓包写入
-http-request ^https:\/\/api5-h5-app-bj\.ninebot\.com\/web\/credit\/get-msg script-path=Ninebot_Sign_Single_v2.6.js, tag=九号签到 · 抓包写入
-http-request ^https:\/\/.*?\/service\/2\/app_log\/ script-path=Ninebot_Sign_Single_v2.6.js, tag=九号签到 · 分享任务捕获
-cron "0 11 * * *" script-path=Ninebot_Sign_Single_v2.6.js, tag=九号签到 · 自动执行
-
-[Argument]
-progressStyle = 0
-titlePrefix = 九号签到
-
-[Panel]
-name = 九号签到（单号）
-content = 自动签到脚本已加载
-style = info
+http-request ^https:\/\/ebike\.ninebot\.com\/.* script-path=Ninebot_Sign_Single_v2.6.js, tag=抓包自动写入九号数据
+cron "0 10 11 * * *" script-path=Ninebot_Sign_Single_v2.6.js, tag=九号每日自动签到、分享奖励
 
 [MITM]
-hostname = cn-cbu-gateway.ninebot.com, api5-h5-app-bj.ninebot.com
+hostname = ebike.ninebot.com
+
+[Argument]
+# ============ 九号智能电动车自动签到（单账号） ============
+# 作者：QinyRui & ❥﹒﹏非我不可
+# 版本：2.6
+# 更新时间：2025/11/30
+# Telegram 群：https://t.me/JiuHaoAPP
+# ==========================================================
+
+# 是否开启通知（0=关闭,1=开启）
+notify = 1
+
+# 日志等级（0=仅错误 1=简洁日志 2=详细调试日志）
+logLevel = 1
+
+# 通知标题（可自定义，例如 “九号 · 今日签到”）
+notifyTitle = 九号智能电动车
+
+# 是否显示盲盒进度
+showBox = 1
+
+# ============ 自动抓包写入数据 ============
+# 抓包时自动写入（不要手动改）
+Authorization =
+DeviceId =
+User-Agent =
