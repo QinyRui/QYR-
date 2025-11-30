@@ -1,8 +1,7 @@
 /***********************************************
  Ninebot_Sign_Single_v2.6.js  （版本 C · 最终整合版）
- 2025-11-30 16:49 更新版（积分/N币统计修复 + 通知显示）
+ 2025-11-30 20:00 更新版 (修复 Loon 参数优先级、日志等级数字映射)
  功能：抓包写入、自动签到、分享任务重放/领取、盲盒开箱、经验/N币查询、通知美化
- 说明：优先读取 $argument.progressStyle -> 回退到 BoxJS ninebot.progressStyle
  ***********************************************/
 
 /* ENV wrapper (keeps compatibility with Loon/QuanX/Surge) */
@@ -35,6 +34,7 @@ const KEY_NOTIFYFAIL = "ninebot.notifyFail";
 const KEY_TITLE = "ninebot.titlePrefix";
 const KEY_SHARE = "ninebot.shareTaskUrl";
 const KEY_PROGRESS = "ninebot.progressStyle";
+const KEY_DEBUG_LEVEL = "ninebot.debugLevel"; // 新增：调试日志等级 BoxJS key
 
 /* Endpoints */
 const END = {
@@ -86,14 +86,18 @@ function httpGet(url, headers={}) { return requestWithRetry({method:"GET", url, 
 function httpPost(url, headers={}, body="{}") { return requestWithRetry({method:"POST", url, headers, body}); }
 
 /* Logging */
-const LOG_LEVELS = { 'error': 3, 'warn': 2, 'info': 1, 'debug': 0 }; // 新增：定义日志级别映射
+const LOG_LEVELS = { 'error': 3, 'warn': 2, 'info': 1, 'debug': 0 }; // 定义日志级别映射
 
-// 辅助函数：确定当前有效的日志等级，优先使用 $argument
+// 辅助函数：确定当前有效的日志等级，优先使用 $argument.debugLevel（用于抓包阶段）
 function getCurrentLogLevel() {
-    if (IS_ARG && $argument && $argument.logLevel) {
-        return String($argument.logLevel).toLowerCase();
+    // 检查新的 debugLevel 参数 (Loon UI)
+    if (IS_ARG && $argument && $argument.debugLevel !== undefined) {
+        const levelNum = Number($argument.debugLevel);
+        if (levelNum <= 1) return 'debug'; // 0, 1 -> debug (最详细)
+        if (levelNum <= 2) return 'info';  // 2 -> info
+        return 'warn'; // 3+ -> warn/error (最精简)
     }
-    // 回退到 BoxJS 的 KEY_DEBUG 兼容模式
+    // 回退到 BoxJS 旧 KEY_DEBUG 兼容模式
     return readPS(KEY_DEBUG) === "false" ? 'warn' : 'debug'; 
 }
 
@@ -156,25 +160,39 @@ if (isCaptureRequest) {
 }
 
 /* Read config */
-const argProgressStyle = (IS_ARG && $argument && $argument.progressStyle !== undefined) ? Number($argument.progressStyle) : null;
-const argLogLevel = (IS_ARG && $argument && $argument.logLevel) ? String($argument.logLevel).toLowerCase() : null; // 新增：从 $argument 读取日志等级
+// 1. 读取 progressStyle (最高优先级：$argument > BoxJS/KEY_PROGRESS > 默认 0)
+const progressStyleValue = (IS_ARG && $argument && $argument.progressStyle !== undefined) 
+                           ? Number($argument.progressStyle) 
+                           : Number(readPS(KEY_PROGRESS) || readPS("progressStyle") || 0);
 
-const boxProgressStyle = Number(readPS(KEY_PROGRESS) || readPS("progressStyle") || 0);
-const progressStyle = (argProgressStyle !== null) ? argProgressStyle : boxProgressStyle;
+// 2. 读取 debugLevel (最高优先级：$argument.debugLevel > BoxJS/KEY_DEBUG_LEVEL > 默认 "0")
+const debugLevelValue = (IS_ARG && $argument && $argument.debugLevel !== undefined) 
+                        ? String($argument.debugLevel) 
+                        : (readPS(KEY_DEBUG_LEVEL) || "0"); 
 
 const cfg = {
   Authorization: readPS(KEY_AUTH) || "",
   DeviceId: readPS(KEY_DEV) || "",
   userAgent: readPS(KEY_UA) || "",
   shareTaskUrl: readPS(KEY_SHARE) || "",
-  debug: readPS(KEY_DEBUG) !== "false",
+  debug: readPS(KEY_DEBUG) !== "false", // 旧的 debug 开关
   notify: readPS(KEY_NOTIFY) !== "false",
   autoOpenBox: readPS(KEY_AUTOBOX) === "true",
   autoRepair: readPS(KEY_AUTOREPAIR) === "true",
   notifyFail: readPS(KEY_NOTIFYFAIL) !== "false",
   titlePrefix: readPS(KEY_TITLE) || "九号签到",
-  progressStyle: progressStyle,
-  logLevel: argLogLevel || (readPS(KEY_DEBUG) === "false" ? "warn" : "debug") // 新增：设置最终生效的日志等级
+  
+  // 3. 使用高优先级值
+  progressStyle: progressStyleValue,
+  
+  // 4. 将数字 debugLevel 映射为脚本内部使用的文本 logLevel
+  logLevel: (() => {
+    // 假设 $argument 传入的 0=最详细日志 (debug)，数字越大越精简
+    const levelNum = Number(debugLevelValue || 0);
+    if (levelNum <= 1) return 'debug'; // 0, 1 -> debug
+    if (levelNum <= 2) return 'info';  // 2 -> info
+    return 'warn'; // 3, 4, 5, 6 -> warn/error (只显示警告和错误)
+  })()
 };
 
 logInfo("九号自动签到开始");
