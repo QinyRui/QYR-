@@ -1,59 +1,87 @@
 {
-  "id": "ninebot.auto.sign",
-  "name": "九号智能电动车自动签到（单账号）",
+  "id": "Ninebot.Sign.Single",
+  "name": "九号智能电动车 · 单号自动签到（BoxJS）",
   "author": "QinyRui",
-  "version": "2.6",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon/ninebot_128.png",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
+  "repo": "https://t.me/JiuHaoAPP",
   "apps": [
     {
-      "id": "Ninebot_Auto_Sign",
-      "name": "九号签到",
+      "id": "ninebot.single",
+      "name": "九号智能电动车（单号）",
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
         "ninebot.userAgent",
-        "ninebot.debug",
-        "ninebot.notify",
-        "ninebot.autoOpenBox",
-        "ninebot.autoRepair",
-        "ninebot.notifyFail",
-        "ninebot.titlePrefix",
         "ninebot.shareTaskUrl",
-        "ninebot.progressStyle"
+        "ninebot.progressStyle",
+        "ninebot.titlePrefix",
+        "ninebot.logLevel"
       ],
       "settings": [
-        {"id":"ninebot.authorization","name":"Authorization","type":"text","val":""},
-        {"id":"ninebot.deviceId","name":"DeviceId","type":"text","val":""},
-        {"id":"ninebot.userAgent","name":"User-Agent（自动写入）","type":"text","val":""},
-        {"id":"ninebot.debug","name":"调试日志","type":"boolean","val":true},
-        {"id":"ninebot.notify","name":"通知开关","type":"boolean","val":true},
-        {"id":"ninebot.autoOpenBox","name":"自动开启盲盒","type":"boolean","val":true},
-        {"id":"ninebot.autoRepair","name":"自动补签","type":"boolean","val":true},
-        {"id":"ninebot.notifyFail","name":"签到失败也通知","type":"boolean","val":true},
-        {"id":"ninebot.titlePrefix","name":"自定义通知标题","type":"text","val":"九号签到"},
-        {"id":"ninebot.shareTaskUrl","name":"分享任务接口 URL（自动写入）","type":"text","val":""},
         {
-          "id":"ninebot.progressStyle",
-          "name":"盲盒进度条样式",
-          "type":"select",
-          "val":0,
-          "options":[
-            {"val":0,"name":"█░ (默认)"},
-            {"val":1,"name":"▓░"},
-            {"val":2,"name":"▰▱"},
-            {"val":3,"name":"●○"},
-            {"val":4,"name":"■□"},
-            {"val":5,"name":"➤·"},
-            {"val":6,"name":"▮▯"},
-            {"val":7,"name":"⣿⣀"},
-            {"val":8,"name":"1 天：[⣿░]"},
-            {"val":9,"name":"2 天：[⣿⣿░]"},
-            {"val":10,"name":"3 天：[⣿⣿⣿░]"},
-            {"val":11,"name":"4 天：[⣿⣿⣿⣿░]"},
-            {"val":12,"name":"5 天：[⣿⣿⣿⣿⣿░]"},
-            {"val":13,"name":"6 天：[⣿⣿⣿⣿⣿⣿░]"},
-            {"val":14,"name":"7 天：[⣿⣿⣿⣿⣿⣿⣿░]"}
-          ]
+          "id": "ninebot.authorization",
+          "name": "Authorization",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填"
+        },
+        {
+          "id": "ninebot.deviceId",
+          "name": "DeviceId",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填"
+        },
+        {
+          "id": "ninebot.userAgent",
+          "name": "User-Agent",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填"
+        },
+        {
+          "id": "ninebot.shareTaskUrl",
+          "name": "分享动作接口 baseURL",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入（仅在出现分享任务时会捕获）"
+        },
+        {
+          "id": "ninebot.progressStyle",
+          "name": "盲盒进度条样式",
+          "val": "7",
+          "type": "select",
+          "items": [
+            { "key": "0", "label": "█░ 样式 0" },
+            { "key": "1", "label": "▓░ 样式 1" },
+            { "key": "2", "label": "▰▱ 样式 2" },
+            { "key": "3", "label": "●○ 样式 3" },
+            { "key": "4", "label": "■□ 样式 4" },
+            { "key": "5", "label": "➤· 样式 5" },
+            { "key": "6", "label": "▮▯ 样式 6" },
+            { "key": "7", "label": "⣿⣀ 样式 7" }
+          ],
+          "desc": "盲盒进度条样式（图形展示），优先使用插件传入 $argument.progressStyle"
+        },
+        {
+          "id": "ninebot.titlePrefix",
+          "name": "自定义通知标题",
+          "val": "九号签到助手",
+          "type": "text",
+          "desc": "通知标题前缀，例如：九号签到助手"
+        },
+        {
+          "id": "ninebot.logLevel",
+          "name": "日志等级",
+          "val": "info",
+          "type": "select",
+          "items": [
+            { "key": "debug", "label": "调试（debug）- 输出所有日志信息" },
+            { "key": "info", "label": "信息（info）- 主要流程日志" },
+            { "key": "warn", "label": "警告（warn）- 仅异常或网络错误" },
+            { "key": "error", "label": "错误（error）- 仅错误信息" }
+          ],
+          "desc": "日志输出级别，可选择输出详细或简略日志"
         }
       ]
     }
