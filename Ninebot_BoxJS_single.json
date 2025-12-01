@@ -1,65 +1,63 @@
 {
-  "id": "ninebot.single",
-  "name": "九号智能电动车 · 单号自动签到",
-  "author": "QinyRui",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo/ninebot_128.png",
+  "id": "ninebot.single.sign",
+  "name": "九号智能电动车 · 单号自动签到（含分享奖励）",
+  "author": "@QinyRui",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon.png",
   "repo": "https://t.me/JiuHaoAPP",
   "apps": [
     {
-      "id": "ninebot_single",
-      "name": "九号智能电动车（单号）",
+      "id": "ninebot.sign.config",
+      "name": "九号签到助手 - 配置",
       "keys": [
-        "Ninebot.Authorization",
-        "Ninebot.DeviceId",
-        "Ninebot.UA",
-        "Ninebot.TitlePrefix",
-        "Ninebot.LogLevel"
+        "Ninebot_Authorization",
+        "Ninebot_DeviceId",
+        "Ninebot_UA",
+        "Ninebot_notify",
+        "Ninebot_capture",
+        "Ninebot_autoRepair",
+        "Ninebot_titlePrefix",
+        "Ninebot_cron_time",
+        "Ninebot_logLevel"
       ],
       "settings": [
         {
-          "id": "Ninebot.Authorization",
-          "name": "Authorization",
-          "val": "",
-          "type": "text",
-          "desc": "抓包自动写入，不需要手动修改"
+          "id": "Ninebot_notify",
+          "name": "通知开关",
+          "val": "true",
+          "type": "boolean"
         },
         {
-          "id": "Ninebot.DeviceId",
-          "name": "DeviceId",
-          "val": "",
-          "type": "text",
-          "desc": "抓包自动写入，不需要手动修改"
+          "id": "Ninebot_capture",
+          "name": "抓包写入开关",
+          "val": "false",
+          "type": "boolean"
         },
         {
-          "id": "Ninebot.UA",
-          "name": "User-Agent",
-          "val": "",
-          "type": "text",
-          "desc": "抓包自动写入，不需要手动修改"
+          "id": "Ninebot_autoRepair",
+          "name": "自动修复分享任务",
+          "val": "true",
+          "type": "boolean"
         },
         {
-          "id": "Ninebot.TitlePrefix",
+          "id": "Ninebot_titlePrefix",
           "name": "自定义通知标题",
           "val": "九号签到助手",
-          "type": "text",
-          "desc": "通知标题前缀，例如：九号签到助手"
+          "type": "text"
         },
         {
-          "id": "Ninebot.LogLevel",
-          "name": "日志等级",
+          "id": "Ninebot_cron_time",
+          "name": "签到时间（CRON）",
+          "val": "1 0 * * *",
+          "type": "text"
+        },
+        {
+          "id": "Ninebot_logLevel",
+          "name": "脚本日志等级",
           "val": "info",
-          "type": "select",
-          "items": [
-            { "key": "debug", "label": "调试（debug）" },
-            { "key": "info",  "label": "信息（info）" },
-            { "key": "warn",  "label": "警告（warn）" },
-            { "key": "error", "label": "错误（error）" }
-          ],
-          "desc": "日志输出级别（默认 info）"
+          "type": "text",
+          "desc": "debug=最详细，error=仅报错"
         }
-      ],
-      "author": "QinyRui",
-      "repo": "https://t.me/JiuHaoAPP"
+      ]
     }
   ]
 }
