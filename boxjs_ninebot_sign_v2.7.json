@@ -1,15 +1,16 @@
 {
-  "name": "九号签到脚本 v2.7 专属配置",
-  "author": "适配脚本专用",
+  "id": "Ninebot.Sign.Single",
+  "name": "九号智能电动车 · 单号自动签到（BoxJS）",
   "version": "2.7.0",
-  "description": "兼容 Ninebot_Sign_Single_v2.7.js 主体脚本，管理签到/分享/盲盒等核心参数",
+  "author": "适配脚本专用",
+  "description": "兼容 Ninebot_Sign_Single_v2.7.js，可视化管理签到/分享/盲盒等功能",
   "keys": [
     {
       "key": "ninebot.authorization",
       "type": "input",
       "title": "Authorization",
-      "desc": "抓包自动写入，无需手动填写（核心鉴权参数）",
-      "placeholder": "抓包后自动生成，请勿修改",
+      "desc": "抓包自动写入，核心鉴权参数",
+      "placeholder": "抓包后自动生成",
       "default": ""
     },
     {
@@ -24,79 +25,56 @@
       "key": "ninebot.userAgent",
       "type": "input",
       "title": "User-Agent",
-      "desc": "请求UA，默认适配九号H5端",
-      "placeholder": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
+      "desc": "默认适配九号H5端，无需修改",
       "default": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0"
     },
     {
       "key": "ninebot.shareTaskUrl",
       "type": "input",
       "title": "分享任务接口",
-      "desc": "需抓包一次分享动作获取（URL含 /service/2/app_log/）",
-      "placeholder": "抓包分享动作后自动写入",
+      "desc": "抓包分享动作后自动写入（含 /service/2/app_log/）",
       "default": "https://snssdk.ninebot.com/service/2/app_log/?aid=10000004"
     },
     {
       "key": "ninebot.logLevel",
       "type": "selector",
       "title": "日志等级",
-      "desc": "控制脚本输出日志详细程度",
       "options": [
-        { "label": "调试（debug）", "value": "debug" },
-        { "label": "信息（info）", "value": "info" },
-        { "label": "警告（warn）", "value": "warn" },
-        { "label": "错误（error）", "value": "error" }
+        {"label": "调试", "value": "debug"},
+        {"label": "信息", "value": "info"},
+        {"label": "警告", "value": "warn"},
+        {"label": "错误", "value": "error"}
       ],
       "default": "info"
-    },
-    {
-      "key": "ninebot.debug",
-      "type": "switch",
-      "title": "旧版调试开关（兼容用）",
-      "desc": "开启后日志等级强制为debug（优先级低于logLevel）",
-      "default": false
     },
     {
       "key": "ninebot.notify",
       "type": "switch",
       "title": "启用通知推送",
-      "desc": "签到/分享结果、账户状态推送",
       "default": true
     },
     {
       "key": "ninebot.notifyFail",
       "type": "switch",
       "title": "失败时通知",
-      "desc": "签到/分享异常时推送通知（需先启用通知推送）",
       "default": true
     },
     {
       "key": "ninebot.autoOpenBox",
       "type": "switch",
-      "title": "自动开箱（7天盲盒）",
-      "desc": "检测到可开启的7天盲盒时自动领取奖励",
-      "default": false
-    },
-    {
-      "key": "ninebot.autoRepair",
-      "type": "switch",
-      "title": "自动修复（预留功能）",
-      "desc": "脚本异常时尝试自动恢复（主体脚本兼容项）",
+      "title": "自动开7天盲盒",
       "default": false
     },
     {
       "key": "ninebot.titlePrefix",
       "type": "input",
       "title": "通知标题前缀",
-      "desc": "自定义推送通知的标题开头",
-      "placeholder": "九号签到助手",
       "default": "九号签到助手"
     },
     {
       "key": "ninebot.lastCaptureAt",
       "type": "text",
       "title": "最后抓包时间",
-      "desc": "自动记录，用于查看抓包更新时间（不可编辑）",
       "editable": false,
       "default": ""
     },
@@ -104,14 +82,12 @@
       "key": "ninebot.lastShareDate",
       "type": "text",
       "title": "最后分享日期",
-      "desc": "自动记录今日是否完成分享（不可编辑）",
       "editable": false,
       "default": ""
     }
   ],
   "compatibility": {
     "mainScript": "Ninebot_Sign_Single_v2.7.js",
-    "supportTools": ["Loon", "Surge", "Quantumult X"],
-    "note": "所有参数与主体脚本完全对齐，抓包后自动写入核心参数，无需手动配置"
+    "supportTools": ["Loon", "Surge", "Quantumult X"]
   }
 }
