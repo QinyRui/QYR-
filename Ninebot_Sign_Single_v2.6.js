@@ -1,7 +1,8 @@
 /***********************************************
  Ninebot_Sign_Single_v2.6.js  （版本 D · 最终整合版）
- 2025-12-01 09:10 更新
+ 2025-12-01 10:10 更新 + 统计延迟优化
  功能：抓包写入、自动签到、分享任务、盲盒开箱、经验/N币查询、通知美化
+ 优化点：积分/N币统计增加30秒延迟+1次重试，解决数据同步延迟问题
 ***********************************************/
 
 /* ENV wrapper */
@@ -217,21 +218,42 @@ function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.g
       }catch(e){ logWarn("签到请求异常：",String(e)); if(cfg.notifyFail) signMsg=`❌ 签到请求异常：${String(e)}`; }
     } else { signMsg=`✨ 今日签到：已签到`; logInfo("今日已签到，跳过签到接口"); }
 
-    // 3) 查询积分/N币（今天）
+    // 3) 查询积分/N币（今天）- 增加延迟+重试优化（解决数据同步延迟问题）
+    const DELAY_STAT=30000; // 统计前延迟30秒（给官方数据同步时间）
+    const RETRY_STAT=1; // 统计接口重试1次
     try{
-      const creditResp=await httpPost(END.creditLst,headers,{page:1,size:100});
+      logInfo(`等待${DELAY_STAT/1000}秒后查询今日积分/N币...`);
+      await new Promise(resolve=>setTimeout(resolve,DELAY_STAT));
+      
+      // 积分统计（带重试）
+      let creditList=[];
+      for(let i=0;i<=RETRY_STAT;i++){
+        const creditResp=await httpPost(END.creditLst,headers,{page:1,size:100});
+        creditList=Array.isArray(creditResp?.data?.list)?creditResp.data.list:[];
+        if(creditList.length>0) break; // 拿到数据就退出重试
+        if(i<RETRY_STAT) logInfo(`积分接口第${i+1}次重试...`);
+      }
+      
       const today=todayKey();
-      const creditList=Array.isArray(creditResp?.data?.list)?creditResp.data.list:[];
       for(const it of creditList){
         const k=toDateKeyAny(it.create_date??it.createTime??it.create_date_str??it.create_time);
         if(k===today) todayGainExp+=Number(it.credit??it.amount??0)||0;
       }
-      const nCoinResp=await httpPost(END.nCoinRecord,headers,{page:1,size:100});
-      const nCoinList=Array.isArray(nCoinResp?.data?.list)?nCoinResp.data.list:[];
+      
+      // N币统计（带重试）
+      let nCoinList=[];
+      for(let i=0;i<=RETRY_STAT;i++){
+        const nCoinResp=await httpPost(END.nCoinRecord,headers,{page:1,size:100});
+        nCoinList=Array.isArray(nCoinResp?.data?.list)?nCoinResp.data.list:[];
+        if(nCoinList.length>0) break; // 拿到数据就退出重试
+        if(i<RETRY_STAT) logInfo(`N币接口第${i+1}次重试...`);
+      }
+      
       for(const it of nCoinList){
         const k=toDateKeyAny(it.create_time??it.createDate??it.createTime??it.create_date);
         if(k===today) todayGainNcoin+=Number(it.amount??it.coin??it.value??0)||0;
       }
+      
       logInfo("今日积分/N币统计完成：",todayGainExp,todayGainNcoin);
     }catch(e){ logWarn("积分/N币统计异常：",String(e)); }
 
