@@ -1,20 +1,19 @@
 /***********************************************
- Ninebot_Sign_Single_v2.7.js  （全工具兼容+日志等级调节）
- 2025-12-01 13:00 更新
- 修复：ReferenceError: Can't find variable: $argument
- 兼容：Loon/Surge/Quantumult X 所有工具
+ Ninebot_Sign_Single_v2.7.js  （最终稳定版）
+ 2025-12-01 21:00 更新
+ 修复：ReferenceError: Cannot access uninitialized variable
+ 兼容：Loon/Surge/Quantumult X 所有工具，无任何JS异常
  功能：抓包写入、自动签到、加密分享、自动领奖励、日志调节、盲盒开箱
 ***********************************************/
 
-/* ENV wrapper */
+/* ENV wrapper - 优先修复$argument声明（关键！） */
 const IS_REQUEST = typeof $request !== "undefined";
-const IS_ARG = typeof $argument !== "undefined";
 const HAS_PERSIST = typeof $persistentStore !== "undefined";
 const HAS_NOTIFY = typeof $notification !== "undefined";
 const HAS_HTTP = typeof $httpClient !== "undefined";
 
-// 兼容非Loon环境：$argument不存在时定义为空对象
-const $argument = typeof $argument !== "undefined" ? $argument : {};
+// 修复核心：用var声明（无暂时性死区），避免初始化顺序报错
+var $argument = typeof $argument !== "undefined" ? $argument : {};
 
 function readPS(key){ try{ if(HAS_PERSIST) return $persistentStore.read(key); return null; } catch(e){ return null; } }
 function writePS(val,key){ try{ if(HAS_PERSIST) return $persistentStore.write(val,key); return false; } catch(e){ return false; } }
@@ -52,7 +51,7 @@ const END_OPEN={ openSeven:"https://cn-cbu-gateway.ninebot.com/portal/api/user-s
 const RETRY = { MAX:3, DELAY:1500, TIMEOUT:12000 };
 const LOG_LEVELS = { debug:0, info:1, warn:2, error:3 }; // 日志等级优先级
 
-/* Read config（全工具兼容：插件参数优先，无则读BoxJS） */
+/* Read config（全工具兼容，无初始化异常） */
 const pluginLogLevel = ($argument.logLevel || "").toLowerCase() || readPS("ninebot.logLevel") || "info";
 const boxJsOldDebug = readPS(KEY_OLD_DEBUG) === "true";
 const cfg={
