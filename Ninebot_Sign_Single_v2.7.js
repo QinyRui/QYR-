@@ -1,6 +1,6 @@
 /***********************************************
  Ninebot_Sign_Single_v2.7.js  （全工具兼容+日志等级调节）
- 2025-12-01 20:00 更新
+ 2025-12-01 13:00 更新
  修复：ReferenceError: Can't find variable: $argument
  兼容：Loon/Surge/Quantumult X 所有工具
  功能：抓包写入、自动签到、加密分享、自动领奖励、日志调节、盲盒开箱
