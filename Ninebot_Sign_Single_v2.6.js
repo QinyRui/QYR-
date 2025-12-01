@@ -1,8 +1,8 @@
 /***********************************************
- Ninebot_Sign_Single_v2.6.js  （版本 D · 最终完美版）
- 2025-12-01 12:20 更新
- 功能：抓包写入、自动签到、分享任务、盲盒开箱、经验/N币查询、通知美化
- 适配抓包参数：aid=10000004，解决invalid appid错误
+ Ninebot_Sign_Single_v2.6.js  （版本 D · 终极完美版）
+ 2025-12-01 14:00 更新
+ 功能：抓包写入、自动签到、分享任务（加密请求体适配）、盲盒开箱、经验/N币查询、通知美化
+ 适配工具：Surge/Quantumult X/Loon（支持Base64自动解码）
 ***********************************************/
 
 /* ENV wrapper */
@@ -85,56 +85,71 @@ if(isCaptureRequest){
 const cfg={
   Authorization: readPS(KEY_AUTH)||"",
   DeviceId: readPS(KEY_DEV)||"",
-  userAgent: readPS(KEY_UA)||"",
-  shareTaskUrl: readPS(KEY_SHARE)||"",
+  userAgent: readPS(KEY_UA)||"Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0", // 默认抓包UA
+  shareTaskUrl: readPS(KEY_SHARE)||"https://snssdk.ninebot.com/service/2/app_log/?aid=10000004", // 固定抓包接口URL
   debug: getDebugFlag(),
   notify: (readPS(KEY_NOTIFY)===null||readPS(KEY_NOTIFY)===undefined)?true:(readPS(KEY_NOTIFY)!=="false"),
   autoOpenBox: readPS(KEY_AUTOBOX)==="true",
   autoRepair: readPS(KEY_AUTOREPAIR)==="true",
   notifyFail: (readPS(KEY_NOTIFYFAIL)===null||readPS(KEY_NOTIFYFAIL)===undefined)?true:(readPS(KEY_NOTIFYFAIL)!=="false"),
-  titlePrefix: readPS(KEY_TITLE)||"九号签到",
+  titlePrefix: readPS(KEY_TITLE)||"九号签到助手",
 };
 
 logInfo("九号自动签到+分享任务开始");
 logInfo("当前配置：", { notify:cfg.notify, autoOpenBox:cfg.autoOpenBox, shareUrlExist:!!cfg.shareTaskUrl });
 
 if(!cfg.Authorization || !cfg.DeviceId){
-  notify(cfg.titlePrefix,"未配置 Token","请先抓包执行签到/分享动作以写入 Authorization / DeviceId / User-Agent");
+  notify(cfg.titlePrefix,"未配置 Token","请先抓包执行签到/分享动作以写入 Authorization / DeviceId");
   logWarn("终止：未读取到账号信息");
   $done();
 }
 
-/* Compose headers */
+/* Compose headers（100% 匹配Loon抓包） */
 function makeHeaders(){
   return {
     "Authorization":cfg.Authorization,
-    "Content-Type":"application/json;charset=UTF-8",
+    "Content-Type":"application/octet-stream;tt-data=a",
     "device_id":cfg.DeviceId,
-    "User-Agent":cfg.userAgent||"Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0", // 匹配抓包UA
+    "User-Agent":"Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
     "platform":"h5",
     "Origin":"https://h5-bj.ninebot.com",
     "language":"zh",
-    "aid":"10000004", // 补充抓包的aid请求头
-    "Cookie":"install_id=7387027437663600641; ttreq=1$b5f546fbb02eadcb22e472a5b203b899b5c4048e" // 复用抓包Cookie
+    "aid":"10000004",
+    "Cookie":"install_id=7387027437663600641; ttreq=1$b5f546fbb02eadcb22e472a5b203b899b5c4048e",
+    "accept-encoding":"gzip, deflate, br",
+    "priority":"u=3",
+    "accept-language":"zh-CN,zh-Hans;q=0.9",
+    "accept":"application/json"
   };
 }
 
-/* HTTP retry */
-function requestWithRetry({method="GET",url,headers={},body=null,timeout=REQUEST_TIMEOUT}){
+/* HTTP retry（支持Base64自动解码） */
+function requestWithRetry({method="GET",url,headers={},body=null,timeout=REQUEST_TIMEOUT,isBase64=false}){
   return new Promise((resolve,reject)=>{
     let attempts=0;
     const once=()=>{
       attempts++;
       const opts={url,headers,timeout};
-      if(method==="POST") opts.body=typeof body==="string"?body:JSON.stringify(body===null?{}:body);
+      if(method==="POST"){
+        opts.body=body;
+        if(isBase64) opts["body-base64"]=true; // 标记Base64编码，自动解码
+      }
       const cb=(err,resp,data)=>{
         if(err){
           const msg=String(err&&(err.error||err.message||err));
           const shouldRetry=/(Socket closed|ECONNRESET|network|timed out|timeout|failed)/i.test(msg);
-          if(attempts<MAX_RETRY && shouldRetry){ console.warn(`[${nowStr()}] warn 请求错误：${msg}，${RETRY_DELAY}ms 后重试 (${attempts}/${MAX_RETRY})`); setTimeout(once,RETRY_DELAY); return; }
+          if(attempts<MAX_RETRY && shouldRetry){ 
+            console.warn(`[${nowStr()}] warn 请求错误：${msg}，${RETRY_DELAY}ms 后重试 (${attempts}/${MAX_RETRY})`); 
+            setTimeout(once,RETRY_DELAY); 
+            return; 
+          }
           else{ reject(err); return; }
         }
-        if(resp && resp.status && resp.status>=500 && attempts<MAX_RETRY){ console.warn(`[${nowStr()}] warn 服务端 ${resp.status}，${RETRY_DELAY}ms 后重试 (${attempts}/${MAX_RETRY})`); setTimeout(once,RETRY_DELAY); return; }
+        if(resp && resp.status && resp.status>=500 && attempts<MAX_RETRY){ 
+          console.warn(`[${nowStr()}] warn 服务端 ${resp.status}，${RETRY_DELAY}ms 后重试 (${attempts}/${MAX_RETRY})`); 
+          setTimeout(once,RETRY_DELAY); 
+          return; 
+        }
         try{ resolve(JSON.parse(data||"{}")); } catch(e){ resolve({raw:data}); }
       };
       if(method==="GET") $httpClient.get(opts,cb); else $httpClient.post(opts,cb);
@@ -143,7 +158,7 @@ function requestWithRetry({method="GET",url,headers={},body=null,timeout=REQUEST
   });
 }
 function httpGet(url,headers={}){ return requestWithRetry({method:"GET",url,headers}); }
-function httpPost(url,headers={},body={}){ return requestWithRetry({method:"POST",url,headers,body}); }
+function httpPost(url,headers={},body={},isBase64=false){ return requestWithRetry({method:"POST",url,headers,body,isBase64}); }
 
 /* 解析时间兼容 */
 function toDateKeyAny(ts){
@@ -168,50 +183,37 @@ function toDateKeyAny(ts){
 }
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 
-/* 分享任务核心逻辑（完美适配抓包参数） */
+/* 分享任务核心逻辑（Base64加密请求体版） */
 async function doShareTask(headers){
   const today=todayKey();
   const lastShareDate=readPS(KEY_LAST_SHARE)||"";
   
-  // 1. 校验：是否已分享、是否有分享接口
+  // 1. 校验：是否已分享
   if(lastShareDate===today){
     logInfo("今日已完成分享任务，跳过");
     return { success:false, msg:"今日已分享", exp:0, ncoin:0 };
   }
-  if(!cfg.shareTaskUrl){
-    logWarn("未捕获分享接口，无法执行分享任务");
-    return { success:false, msg:"未配置分享接口（需抓包一次分享动作）", exp:0, ncoin:0 };
-  }
 
-  // 2. 执行分享请求（100% 匹配抓包参数，替换aid为抓包值）
-  logInfo("开始执行分享任务...");
+  // 2. 直接复用Loon抓包的Base64加密请求体（无需修改！）
+  const ENCRYPTED_BODY="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";
+
+  // 3. 执行分享请求（Base64自动解码）
+  logInfo("开始执行分享任务（Base64加密体模式）...");
   try{
-    const shareBody={
-      deviceId: cfg.DeviceId,
-      event: "share_success",
-      timestamp: Date.now(),
-      platform: "h5",
-      aid: "10000004", // 关键：用抓包的aid替代appid
-      app_version: "3620", // 匹配抓包UA中的版本号
-      channel: "official",
-      page: "sign_index",
-      scene: "task_share",
-      uuid: cfg.DeviceId,
-      version: "1.0.0",
-      install_id: "7387027437663600641", // 复用抓包Cookie中的install_id
-      ttreq: "1$b5f546fbb02eadcb22e472a5b203b899b5c4048e" // 复用抓包Cookie中的ttreq
-    };
-    const shareResp=await httpPost(cfg.shareTaskUrl, headers, shareBody);
+    const shareResp=await httpPost(
+      cfg.shareTaskUrl, 
+      headers, 
+      ENCRYPTED_BODY, 
+      true // 标记为Base64编码，工具自动解码
+    );
     logInfo("分享接口返回：", shareResp);
 
-    // 3. 解析分享结果和奖励（适配e=0成功响应）
+    // 4. 解析分享结果（e=0即为成功）
     if(shareResp.e===0||shareResp.success===true||shareResp.message==="success"){
-      // 记录今日已分享，避免重复
-      writePS(today, KEY_LAST_SHARE);
+      writePS(today, KEY_LAST_SHARE); // 记录今日已分享
       
+      // 统计分享奖励
       let shareExp=0, shareNcoin=0;
-      
-      // 查积分（经验）记录：筛选今日「分享」相关奖励
       const creditResp=await httpPost(END.creditLst,headers,{page:1,size:100});
       const creditList=Array.isArray(creditResp?.data?.list)?creditResp.data.list:[];
       for(const it of creditList){
@@ -222,8 +224,6 @@ async function doShareTask(headers){
           logInfo("分享积分奖励：", it.credit??0, "类型：", type);
         }
       }
-      
-      // 查N币记录：筛选今日「分享」相关奖励
       const nCoinResp=await httpPost(END.nCoinRecord,headers,{page:1,size:100});
       const nCoinList=Array.isArray(nCoinResp?.data?.list)?nCoinResp.data.list:[];
       for(const it of nCoinList){
@@ -308,14 +308,10 @@ async function doShareTask(headers){
 
     // 3) 执行分享任务（签到后执行）
     let shareMsg="";
-    if(cfg.shareTaskUrl){
-      const shareResult=await doShareTask(headers);
-      shareMsg=shareResult.msg;
-      todayGainExp+=shareResult.exp;
-      todayGainNcoin+=shareResult.ncoin;
-    } else{
-      shareMsg="📤 分享任务：未配置分享接口（需抓包一次分享动作）";
-    }
+    const shareResult=await doShareTask(headers);
+    shareMsg=shareResult.msg;
+    todayGainExp+=shareResult.exp;
+    todayGainNcoin+=shareResult.ncoin;
 
     // 4) 补充统计今日积分/N币（避免遗漏）
     try{
@@ -325,7 +321,6 @@ async function doShareTask(headers){
       for(const it of creditList){
         const k=toDateKeyAny(it.create_date??it.createTime??it.create_date_str??it.create_time);
         const type=it.type??it.creditType??"";
-        // 排除已统计的分享奖励，避免重复
         if(k===today && !(type.includes("分享")||type.includes("share"))){
           todayGainExp+=Number(it.credit??it.amount??0)||0;
         }
