@@ -1,86 +1,149 @@
 {
   "id": "Ninebot.Sign.Single",
-  "name": "九号智能电动车 · 单号自动签到",
-  "version": "2.7.0",
-  "author": "适配专用",
-  "description": "兼容 Ninebot_Sign_Single_v2.7.js，可视化管理核心功能",
-  "keys": [
+  "name": "九号智能电动车 · 单号自动签到（BoxJS）",
+  "author": "QinyRui",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
+  "repo": "https://t.me/JiuHaoAPP",
+  "apps": [
     {
-      "key": "ninebot.authorization",
-      "type": "input",
-      "title": "Authorization",
-      "desc": "抓包自动写入，无需手动填",
-      "default": ""
-    },
-    {
-      "key": "ninebot.deviceId",
-      "type": "input",
-      "title": "DeviceId",
-      "desc": "抓包自动写入",
-      "default": ""
-    },
-    {
-      "key": "ninebot.userAgent",
-      "type": "input",
-      "title": "User-Agent",
-      "default": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0"
-    },
-    {
-      "key": "ninebot.shareTaskUrl",
-      "type": "input",
-      "title": "分享接口",
-      "desc": "抓包分享动作获取",
-      "default": "https://snssdk.ninebot.com/service/2/app_log/?aid=10000004"
-    },
-    {
-      "key": "ninebot.logLevel",
-      "type": "selector",
-      "title": "日志等级",
-      "options": [
-        {"label": "调试", "value": "debug"},
-        {"label": "信息", "value": "info"},
-        {"label": "警告", "value": "warn"},
-        {"label": "错误", "value": "error"}
+      "id": "ninebot.single",
+      "name": "九号智能电动车（单号）",
+      "keys": [
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent",
+        "ninebot.shareTaskUrl",
+        "ninebot.titlePrefix",
+        "ninebot.debug",
+        "ninebot.notify",
+        "ninebot.autoOpenBox",
+        "ninebot.autoRepair",
+        "ninebot.notifyFail",
+        "ninebot.logLevel",
+        "ninebot.lastCaptureAt",
+        "ninebot.lastShareDate"
       ],
-      "default": "info"
-    },
-    {
-      "key": "ninebot.notify",
-      "type": "switch",
-      "title": "启用通知",
-      "default": true
-    },
-    {
-      "key": "ninebot.notifyFail",
-      "type": "switch",
-      "title": "失败通知",
-      "default": true
-    },
-    {
-      "key": "ninebot.autoOpenBox",
-      "type": "switch",
-      "title": "自动开盲盒",
-      "default": false
-    },
-    {
-      "key": "ninebot.titlePrefix",
-      "type": "input",
-      "title": "通知前缀",
-      "default": "九号签到助手"
-    },
-    {
-      "key": "ninebot.lastCaptureAt",
-      "type": "text",
-      "title": "最后抓包时间",
-      "editable": false,
-      "default": ""
-    },
-    {
-      "key": "ninebot.lastShareDate",
-      "type": "text",
-      "title": "最后分享日期",
-      "editable": false,
-      "default": ""
+      "settings": [
+        {
+          "id": "ninebot.authorization",
+          "name": "Authorization",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填（核心鉴权参数）"
+        },
+        {
+          "id": "ninebot.deviceId",
+          "name": "DeviceId",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，设备唯一标识"
+        },
+        {
+          "id": "ninebot.userAgent",
+          "name": "User-Agent",
+          "val": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
+          "type": "text",
+          "desc": "默认适配九号H5端，无需修改"
+        },
+        {
+          "id": "ninebot.shareTaskUrl",
+          "name": "分享动作接口 baseURL",
+          "val": "https://snssdk.ninebot.com/service/2/app_log/?aid=10000004",
+          "type": "text",
+          "desc": "抓包自动写入（仅在出现分享任务时会捕获）"
+        },
+        {
+          "id": "ninebot.titlePrefix",
+          "name": "自定义通知标题",
+          "val": "九号签到助手",
+          "type": "text",
+          "desc": "通知标题前缀，例如：九号签到助手"
+        },
+        {
+          "id": "ninebot.debug",
+          "name": "调试模式",
+          "val": "false",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（输出完整日志，便于排查问题）" },
+            { "key": "false", "label": "关闭（仅输出关键日志）" }
+          ],
+          "desc": "替换原日志等级，控制日志输出详细程度"
+        },
+        {
+          "id": "ninebot.logLevel",
+          "name": "日志等级（精细控制）",
+          "val": "info",
+          "type": "select",
+          "items": [
+            { "key": "debug", "label": "调试（最详细日志）" },
+            { "key": "info", "label": "信息（默认，关键流程日志）" },
+            { "key": "warn", "label": "警告（仅输出警告/错误日志）" },
+            { "key": "error", "label": "错误（仅输出错误日志）" }
+          ],
+          "desc": "比调试模式更精细的日志控制，优先级高于debug开关"
+        },
+        {
+          "id": "ninebot.notify",
+          "name": "开启签到通知",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（推送签到/分享结果通知）" },
+            { "key": "false", "label": "关闭（不推送任何通知）" }
+          ],
+          "desc": "是否推送签到、分享任务的结果通知"
+        },
+        {
+          "id": "ninebot.autoOpenBox",
+          "name": "自动开启7天盲盒",
+          "val": "false",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（满足7天条件自动开箱）" },
+            { "key": "false", "label": "关闭（手动开箱）" }
+          ],
+          "desc": "连续签到7天后，是否自动开启盲盒领取奖励"
+        },
+        {
+          "id": "ninebot.notifyFail",
+          "name": "失败通知开关",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（签到/分享失败时推送通知）" },
+            { "key": "false", "label": "关闭（失败时不推送通知）" }
+          ],
+          "desc": "仅在签到或分享任务失败时推送通知，避免打扰"
+        },
+        {
+          "id": "ninebot.autoRepair",
+          "name": "自动补签（预留）",
+          "val": "false",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（支持时自动使用补签卡）" },
+            { "key": "false", "label": "关闭（不自动补签）" }
+          ],
+          "desc": "预留功能，当前脚本暂未实现补签逻辑，默认关闭"
+        },
+        {
+          "id": "ninebot.lastCaptureAt",
+          "name": "最后抓包时间",
+          "val": "",
+          "type": "text",
+          "desc": "自动记录，不可编辑（查看抓包更新时间）",
+          "editable": false
+        },
+        {
+          "id": "ninebot.lastShareDate",
+          "name": "最后分享日期",
+          "val": "",
+          "type": "text",
+          "desc": "自动记录，不可编辑（标记今日是否分享）",
+          "editable": false
+        }
+      ]
     }
   ]
 }
