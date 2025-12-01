@@ -1,8 +1,8 @@
 /***********************************************
  Ninebot_Sign_Single_v2.6.js  （版本 D · 最终整合版）
- 2025-12-01 02:00 更新
+ 2025-12-01 更新
  功能：抓包写入、自动签到、分享任务、盲盒开箱、经验/N币查询、通知美化
- [修正]：增加了日志等级控制 (logLevel) 和 参数读取调试
+ [修正]：日志等级控制由插件选项 (Argument) 严格控制
 ***********************************************/
 
 /* ENV wrapper */
@@ -45,33 +45,34 @@ const END_OPEN={ openSeven:"https://cn-cbu-gateway.ninebot.com/portal/api/user-s
 /* Retry */
 const MAX_RETRY=3, RETRY_DELAY=1500, REQUEST_TIMEOUT=12000;
 
-// 【新增】：获取脚本 Argument 参数
+// 【修正】：精简 Argument 读取，假设 $argument 存在
 function getScriptArgument(key) {
     if (IS_ARG && typeof $argument === 'object' && $argument !== null && $argument[key] !== undefined) {
-        return $argument[key];
+        // 确保返回字符串形式，与 select 选项对应
+        return String($argument[key]);
     }
     return null;
 }
 
 /* Logging Helpers */
-// 定义日志等级的权重：数字越大，严重性越高，打印的日志越少。
+// 定义日志等级的权重
 const LOG_LEVEL_MAP = {
-    'debug': 0, // 最详细
+    'debug': 0, 
     'info': 1,
     'warn': 2,
-    'error': 3 // 最不详细
+    'error': 3
 };
 
 // 【核心】：判断是否应该打印日志
 function shouldLog(level) {
-    // 默认等级为 info (如果 cfg.logLevel 尚未加载，则使用 'info')
+    // 默认等级为 info
     const userLevel = cfg.logLevel ? cfg.logLevel.toLowerCase() : 'info';
     
-    // 获取当前日志等级和用户设置等级的权重
+    // 获取权重
     const currentWeight = LOG_LEVEL_MAP[level] ?? 1; 
     const userWeight = LOG_LEVEL_MAP[userLevel] ?? 1;
     
-    // 逻辑：如果当前日志消息的权重 >= 用户设置的最小权重，则打印。
+    // Log if the message's severity (currentWeight) is >= user's minimum required severity (userWeight).
     return currentWeight >= userWeight; 
 }
 
@@ -127,7 +128,7 @@ const cfg={
   DeviceId: readPS(KEY_DEV)||"",
   userAgent: readPS(KEY_UA)||"",
   shareTaskUrl: readPS(KEY_SHARE)||"",
-  logLevel: getScriptArgument('logLevel') || 'info', // 【新增】从 Argument 读取，失败则默认为 'info'
+  logLevel: getScriptArgument('logLevel') || 'info', // 【核心】从 Argument 读取，失败则默认为 'info'
   notify: (readPS(KEY_NOTIFY)===null||readPS(KEY_NOTIFY)===undefined)?true:(readPS(KEY_NOTIFY)!=="false"),
   autoOpenBox: readPS(KEY_AUTOBOX)==="true",
   autoRepair: readPS(KEY_AUTOREPAIR)==="true",
@@ -137,11 +138,11 @@ const cfg={
 
 logInfo("九号自动签到开始");
 
-// 【调试信息】：确认 Argument 参数读取是否成功
+// 【关键调试信息】：确认 Argument 读取结果
 if(cfg.logLevel.toLowerCase() === 'info') {
-    logInfo(`[调试信息] Argument 参数 (logLevel) 读取失败或默认值：info。如果您设置了其他等级但无效，请检查 Argument 配置和脚本更新状态。`); // 强制使用 logInfo
+    logInfo(`[Argument 检查] 当前日志等级为默认值：info。如果设置了其他等级，请检查插件配置是否已成功导入。`);
 } else {
-    logInfo(`[调试信息] Argument 参数 logLevel 读取成功，当前设置为：${cfg.logLevel}`);
+    logInfo(`[Argument 检查] 日志等级读取成功，当前设置为：${cfg.logLevel}`);
 }
 
 logDebug("当前配置：", { notify:cfg.notify, autoOpenBox:cfg.autoOpenBox, titlePrefix:cfg.titlePrefix, logLevel:cfg.logLevel }); 
@@ -158,7 +159,7 @@ function makeHeaders(){
     "Authorization":cfg.Authorization,
     "Content-Type":"application/json;charset=UTF-8",
     "device_id":cfg.DeviceId,
-    "User-Agent":cfg.userAgent||"Mozilla/5.0 (iPhone; CPU iPhone OS) Segway v6",
+    "User-Agent":cfg.userAgent||"Mozilla/5.0 (iPhone; CPU OS) Segway v6",
     "platform":"h5",
     "Origin":"https://h5-bj.ninebot.com",
     "language":"zh"
