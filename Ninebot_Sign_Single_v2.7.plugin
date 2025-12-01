@@ -5,8 +5,8 @@
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
-#!date = 2025-11-30 10:00:00
-#!version = 2.6
+#!date = 2025-12-01 18:00:00
+#!version = 2.7
 #!system_version = 15
 
 [Argument]
@@ -15,8 +15,7 @@ capture = switch, "false", "true", tag=抓包写入开关
 autoRepair = switch, "true", "false", tag=自动修复分享任务开关
 titlePrefix = input, "九号签到助手", tag=自定义通知标题
 cron_time = input, "1 0 * * *", tag=签到时间（CRON）
-# 【新增】：日志等级控制，默认 info，可选 debug/warn/error
-logLevel = select, "info", "debug", "warn", "error", tag=脚本日志等级
+logLevel = select, "info", "debug", "warn", "error", tag=脚本日志等级（debug=最详细，error=仅报错）
 
 [Script]
 #（1）抓包写入：签到状态 + 分享动作 app_log
