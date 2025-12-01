@@ -1,38 +1,35 @@
 {
   "id": "Ninebot.Sign.Single",
-  "name": "九号智能电动车 · 单号自动签到（BoxJS）",
+  "name": "九号智能电动车 · 单号自动签到",
   "version": "2.7.0",
-  "author": "适配脚本专用",
-  "description": "兼容 Ninebot_Sign_Single_v2.7.js，可视化管理签到/分享/盲盒等功能",
+  "author": "适配专用",
+  "description": "兼容 Ninebot_Sign_Single_v2.7.js，可视化管理核心功能",
   "keys": [
     {
       "key": "ninebot.authorization",
       "type": "input",
       "title": "Authorization",
-      "desc": "抓包自动写入，核心鉴权参数",
-      "placeholder": "抓包后自动生成",
+      "desc": "抓包自动写入，无需手动填",
       "default": ""
     },
     {
       "key": "ninebot.deviceId",
       "type": "input",
       "title": "DeviceId",
-      "desc": "设备唯一标识，抓包自动写入",
-      "placeholder": "抓包后自动生成",
+      "desc": "抓包自动写入",
       "default": ""
     },
     {
       "key": "ninebot.userAgent",
       "type": "input",
       "title": "User-Agent",
-      "desc": "默认适配九号H5端，无需修改",
       "default": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0"
     },
     {
       "key": "ninebot.shareTaskUrl",
       "type": "input",
-      "title": "分享任务接口",
-      "desc": "抓包分享动作后自动写入（含 /service/2/app_log/）",
+      "title": "分享接口",
+      "desc": "抓包分享动作获取",
       "default": "https://snssdk.ninebot.com/service/2/app_log/?aid=10000004"
     },
     {
@@ -50,25 +47,25 @@
     {
       "key": "ninebot.notify",
       "type": "switch",
-      "title": "启用通知推送",
+      "title": "启用通知",
       "default": true
     },
     {
       "key": "ninebot.notifyFail",
       "type": "switch",
-      "title": "失败时通知",
+      "title": "失败通知",
       "default": true
     },
     {
       "key": "ninebot.autoOpenBox",
       "type": "switch",
-      "title": "自动开7天盲盒",
+      "title": "自动开盲盒",
       "default": false
     },
     {
       "key": "ninebot.titlePrefix",
       "type": "input",
-      "title": "通知标题前缀",
+      "title": "通知前缀",
       "default": "九号签到助手"
     },
     {
@@ -85,9 +82,5 @@
       "editable": false,
       "default": ""
     }
-  ],
-  "compatibility": {
-    "mainScript": "Ninebot_Sign_Single_v2.7.js",
-    "supportTools": ["Loon", "Surge", "Quantumult X"]
-  }
+  ]
 }
