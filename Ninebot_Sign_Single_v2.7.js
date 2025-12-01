@@ -1,9 +1,9 @@
 /***********************************************
- Ninebot_Sign_Single_v2.7.js  （日志等级调节版）
- 2025-12-01 19:00 更新
- 核心新增：支持插件调节日志等级（debug/info/warn/error）
- 功能全景：抓包写入、自动签到、自动分享（加密体）、自动领奖励、盲盒开箱、经验/N币统计、通知美化
- 适配工具：Loon（优先）/ Surge/Quantumult X
+ Ninebot_Sign_Single_v2.7.js  （全工具兼容+日志等级调节）
+ 2025-12-01 20:00 更新
+ 修复：ReferenceError: Can't find variable: $argument
+ 兼容：Loon/Surge/Quantumult X 所有工具
+ 功能：抓包写入、自动签到、加密分享、自动领奖励、日志调节、盲盒开箱
 ***********************************************/
 
 /* ENV wrapper */
@@ -12,6 +12,9 @@ const IS_ARG = typeof $argument !== "undefined";
 const HAS_PERSIST = typeof $persistentStore !== "undefined";
 const HAS_NOTIFY = typeof $notification !== "undefined";
 const HAS_HTTP = typeof $httpClient !== "undefined";
+
+// 兼容非Loon环境：$argument不存在时定义为空对象
+const $argument = typeof $argument !== "undefined" ? $argument : {};
 
 function readPS(key){ try{ if(HAS_PERSIST) return $persistentStore.read(key); return null; } catch(e){ return null; } }
 function writePS(val,key){ try{ if(HAS_PERSIST) return $persistentStore.write(val,key); return false; } catch(e){ return false; } }
@@ -49,21 +52,21 @@ const END_OPEN={ openSeven:"https://cn-cbu-gateway.ninebot.com/portal/api/user-s
 const RETRY = { MAX:3, DELAY:1500, TIMEOUT:12000 };
 const LOG_LEVELS = { debug:0, info:1, warn:2, error:3 }; // 日志等级优先级
 
-/* Read config（插件参数优先，兼容BoxJS） */
-const pluginLogLevel = ($argument?.logLevel || "").toLowerCase() || readPS("ninebot.logLevel") || "info";
+/* Read config（全工具兼容：插件参数优先，无则读BoxJS） */
+const pluginLogLevel = ($argument.logLevel || "").toLowerCase() || readPS("ninebot.logLevel") || "info";
 const boxJsOldDebug = readPS(KEY_OLD_DEBUG) === "true";
 const cfg={
   Authorization: readPS(KEY_AUTH)||"",
   DeviceId: readPS(KEY_DEV)||"",
   UserAgent: readPS(KEY_UA)||"Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
   shareTaskUrl: readPS(KEY_SHARE)||"https://snssdk.ninebot.com/service/2/app_log/?aid=10000004",
-  // 日志等级：插件设置优先，旧BoxJS debug=true映射为debug等级
+  // 日志等级：Loon插件优先，旧BoxJS debug=true映射为debug，默认info
   logLevel: boxJsOldDebug ? "debug" : (LOG_LEVELS[pluginLogLevel] ? pluginLogLevel : "info"),
-  notify: $argument?.notify === "false" ? false : (readPS(KEY_NOTIFY) === "false" ? false : true),
+  notify: $argument.notify === "false" ? false : (readPS(KEY_NOTIFY) === "false" ? false : true),
   autoOpenBox: readPS(KEY_AUTOBOX) === "true",
-  autoRepair: $argument?.autoRepair === "true" || readPS(KEY_AUTOREPAIR) === "true",
+  autoRepair: $argument.autoRepair === "true" || readPS(KEY_AUTOREPAIR) === "true",
   notifyFail: readPS(KEY_NOTIFYFAIL) !== "false",
-  titlePrefix: $argument?.titlePrefix || readPS(KEY_TITLE)||"九号签到助手"
+  titlePrefix: $argument.titlePrefix || readPS(KEY_TITLE)||"九号签到助手"
 };
 const currentLogLevel = LOG_LEVELS[cfg.logLevel];
 
