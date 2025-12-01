@@ -14,7 +14,11 @@
         "ninebot.userAgent",
         "ninebot.shareTaskUrl",
         "ninebot.titlePrefix",
-        "ninebot.logLevel"
+        "ninebot.debug",
+        "ninebot.notify",
+        "ninebot.autoOpenBox",
+        "ninebot.autoRepair",
+        "ninebot.notifyFail"
       ],
       "settings": [
         {
@@ -53,17 +57,59 @@
           "desc": "通知标题前缀，例如：九号签到助手"
         },
         {
-          "id": "ninebot.logLevel",
-          "name": "日志等级",
-          "val": "info",
+          "id": "ninebot.debug",
+          "name": "调试模式",
+          "val": "true",
           "type": "select",
           "items": [
-            { "key": "debug", "label": "调试（debug）- 输出所有日志信息" },
-            { "key": "info", "label": "信息（info）- 主要流程日志" },
-            { "key": "warn", "label": "警告（warn）- 仅异常或网络错误" },
-            { "key": "error", "label": "错误（error）- 仅错误信息" }
+            { "key": "true", "label": "开启（输出完整日志，便于排查问题）" },
+            { "key": "false", "label": "关闭（仅输出关键日志）" }
           ],
-          "desc": "日志输出级别，可选择输出详细或简略日志"
+          "desc": "替换原日志等级，控制日志输出详细程度"
+        },
+        {
+          "id": "ninebot.notify",
+          "name": "开启签到通知",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（推送签到/分享结果通知）" },
+            { "key": "false", "label": "关闭（不推送任何通知）" }
+          ],
+          "desc": "是否推送签到、分享任务的结果通知"
+        },
+        {
+          "id": "ninebot.autoOpenBox",
+          "name": "自动开启7天盲盒",
+          "val": "false",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（满足7天条件自动开箱）" },
+            { "key": "false", "label": "关闭（手动开箱）" }
+          ],
+          "desc": "连续签到7天后，是否自动开启盲盒领取奖励"
+        },
+        {
+          "id": "ninebot.notifyFail",
+          "name": "失败通知开关",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（签到/分享失败时推送通知）" },
+            { "key": "false", "label": "关闭（失败时不推送通知）" }
+          ],
+          "desc": "仅在签到或分享任务失败时推送通知，避免打扰"
+        },
+        {
+          "id": "ninebot.autoRepair",
+          "name": "自动补签（预留）",
+          "val": "false",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（支持时自动使用补签卡）" },
+            { "key": "false", "label": "关闭（不自动补签）" }
+          ],
+          "desc": "预留功能，当前脚本暂未实现补签逻辑，默认关闭"
         }
       ]
     }
