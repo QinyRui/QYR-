@@ -1,61 +1,115 @@
 {
-  "id": "ninebot.single.sign",
-  "name": "九号智能电动车 · 单号自动签到（含分享奖励）",
-  "author": "@QinyRui",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icon.png",
+  "id": "Ninebot.Sign.Single",
+  "name": "九号智能电动车 · 单号自动签到（BoxJS）",
+  "author": "QinyRui",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
   "repo": "https://t.me/JiuHaoAPP",
   "apps": [
     {
-      "id": "ninebot.sign.config",
-      "name": "九号签到助手 - 配置",
+      "id": "ninebot.single",
+      "name": "九号智能电动车（单号）",
       "keys": [
-        "Ninebot_Authorization",
-        "Ninebot_DeviceId",
-        "Ninebot_UA",
-        "Ninebot_notify",
-        "Ninebot_capture",
-        "Ninebot_autoRepair",
-        "Ninebot_titlePrefix",
-        "Ninebot_cron_time",
-        "Ninebot_logLevel"
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent",
+        "ninebot.shareTaskUrl",
+        "ninebot.titlePrefix",
+        "ninebot.debug",
+        "ninebot.notify",
+        "ninebot.autoOpenBox",
+        "ninebot.autoRepair",
+        "ninebot.notifyFail"
       ],
       "settings": [
         {
-          "id": "Ninebot_notify",
-          "name": "通知开关",
-          "val": "true",
-          "type": "boolean"
+          "id": "ninebot.authorization",
+          "name": "Authorization",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填"
         },
         {
-          "id": "Ninebot_capture",
-          "name": "抓包写入开关",
-          "val": "false",
-          "type": "boolean"
+          "id": "ninebot.deviceId",
+          "name": "DeviceId",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填"
         },
         {
-          "id": "Ninebot_autoRepair",
-          "name": "自动修复分享任务",
-          "val": "true",
-          "type": "boolean"
+          "id": "ninebot.userAgent",
+          "name": "User-Agent",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入，无需手填"
         },
         {
-          "id": "Ninebot_titlePrefix",
+          "id": "ninebot.shareTaskUrl",
+          "name": "分享动作接口 baseURL",
+          "val": "",
+          "type": "text",
+          "desc": "抓包自动写入（仅在出现分享任务时会捕获）"
+        },
+        {
+          "id": "ninebot.titlePrefix",
           "name": "自定义通知标题",
           "val": "九号签到助手",
-          "type": "text"
-        },
-        {
-          "id": "Ninebot_cron_time",
-          "name": "签到时间（CRON）",
-          "val": "1 0 * * *",
-          "type": "text"
-        },
-        {
-          "id": "Ninebot_logLevel",
-          "name": "脚本日志等级",
-          "val": "info",
           "type": "text",
-          "desc": "debug=最详细，error=仅报错"
+          "desc": "通知标题前缀，例如：九号签到助手"
+        },
+        {
+          "id": "ninebot.debug",
+          "name": "调试模式",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（输出完整日志，便于排查问题）" },
+            { "key": "false", "label": "关闭（仅输出关键日志）" }
+          ],
+          "desc": "替换原日志等级，控制日志输出详细程度"
+        },
+        {
+          "id": "ninebot.notify",
+          "name": "开启签到通知",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（推送签到/分享结果通知）" },
+            { "key": "false", "label": "关闭（不推送任何通知）" }
+          ],
+          "desc": "是否推送签到、分享任务的结果通知"
+        },
+        {
+          "id": "ninebot.autoOpenBox",
+          "name": "自动开启7天盲盒",
+          "val": "false",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（满足7天条件自动开箱）" },
+            { "key": "false", "label": "关闭（手动开箱）" }
+          ],
+          "desc": "连续签到7天后，是否自动开启盲盒领取奖励"
+        },
+        {
+          "id": "ninebot.notifyFail",
+          "name": "失败通知开关",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（签到/分享失败时推送通知）" },
+            { "key": "false", "label": "关闭（失败时不推送通知）" }
+          ],
+          "desc": "仅在签到或分享任务失败时推送通知，避免打扰"
+        },
+        {
+          "id": "ninebot.autoRepair",
+          "name": "自动补签（预留）",
+          "val": "false",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（支持时自动使用补签卡）" },
+            { "key": "false", "label": "关闭（不自动补签）" }
+          ],
+          "desc": "预留功能，当前脚本暂未实现补签逻辑，默认关闭"
         }
       ]
     }
