@@ -1,6 +1,6 @@
 /***********************************************
- Ninebot_Sign_Single_v2.6.js  （版本 D · 新增自动分享）
- 2025-12-01 10:40 更新
+ Ninebot_Sign_Single_v2.6.js  （版本 D · 分享功能完善版）
+ 2025-12-01 11:50 更新
  功能：抓包写入、自动签到、分享任务、盲盒开箱、经验/N币查询、通知美化
 ***********************************************/
 
@@ -28,7 +28,7 @@ const KEY_NOTIFYFAIL="ninebot.notifyFail";
 const KEY_TITLE="ninebot.titlePrefix";
 const KEY_SHARE="ninebot.shareTaskUrl";
 const KEY_LAST_CAPTURE="ninebot.lastCaptureAt";
-const KEY_LAST_SHARE="ninebot.lastShareDate"; // 新增：记录上次分享日期，避免重复
+const KEY_LAST_SHARE="ninebot.lastShareDate"; // 记录上次分享日期，避免重复
 
 /* Endpoints */
 const END={
@@ -165,7 +165,7 @@ function toDateKeyAny(ts){
 }
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 
-/* 新增：分享任务核心逻辑 */
+/* 分享任务核心逻辑（完善版） */
 async function doShareTask(headers){
   const today=todayKey();
   const lastShareDate=readPS(KEY_LAST_SHARE)||"";
@@ -177,45 +177,56 @@ async function doShareTask(headers){
   }
   if(!cfg.shareTaskUrl){
     logWarn("未捕获分享接口，无法执行分享任务");
-    return { success:false, msg:"未配置分享接口", exp:0, ncoin:0 };
+    return { success:false, msg:"未配置分享接口（需抓包一次分享动作）", exp:0, ncoin:0 };
   }
 
-  // 2. 执行分享请求（模拟真实分享行为，携带必要参数）
+  // 2. 执行分享请求（补充appid等必填参数，适配九号接口）
   logInfo("开始执行分享任务...");
   try{
     const shareBody={
       deviceId: cfg.DeviceId,
-      event: "share_success", // 模拟分享成功事件（根据真实抓包参数调整）
+      event: "share_success",
       timestamp: Date.now(),
-      platform: "h5"
+      platform: "h5",
+      appid: "ninebot_mini_program", // 通用appid，抓包到具体值可替换
+      app_version: cfg.userAgent.includes("v6") ? "6.9.1" : "6.8.0",
+      channel: "official",
+      page: "sign_index",
+      scene: "task_share",
+      uuid: cfg.DeviceId,
+      version: "1.0.0"
     };
     const shareResp=await httpPost(cfg.shareTaskUrl, headers, shareBody);
     logInfo("分享接口返回：", shareResp);
 
-    // 3. 解析分享结果和奖励
-    if(shareResp.code===0||shareResp.success===true||shareResp.msg&&/成功/.test(shareResp.msg)){
+    // 3. 解析分享结果和奖励（适配e=0成功响应，无直接奖励返回时从记录筛选）
+    if(shareResp.e===0||shareResp.success===true||shareResp.message==="success"){
       // 记录今日已分享，避免重复
       writePS(today, KEY_LAST_SHARE);
       
-      // 解析奖励（兼容不同返回格式）
       let shareExp=0, shareNcoin=0;
-      const reward=shareResp.data?.reward||{};
-      if(reward.rewardType===1) shareExp=Number(reward.rewardValue||0);
-      else if(reward.rewardType===2) shareNcoin=Number(reward.rewardValue||0);
       
-      // 兜底：从今日收益中补充（若接口未直接返回奖励）
-      if(shareExp===0 && shareNcoin===0){
-        const creditResp=await httpPost(END.creditLst,headers,{page:1,size:100});
-        const creditList=Array.isArray(creditResp?.data?.list)?creditResp.data.list:[];
-        for(const it of creditList){
-          const k=toDateKeyAny(it.create_date??it.createTime);
-          if(k===today && it.type&&/分享/.test(it.type)) shareExp+=Number(it.credit||0);
+      // 查积分（经验）记录：筛选今日「分享」相关奖励
+      const creditResp=await httpPost(END.creditLst,headers,{page:1,size:100});
+      const creditList=Array.isArray(creditResp?.data?.list)?creditResp.data.list:[];
+      for(const it of creditList){
+        const k=toDateKeyAny(it.create_date??it.createTime);
+        const type=it.type??it.creditType??"";
+        if(k===today && (type.includes("分享")||type.includes("share")||type.includes("任务分享"))){
+          shareExp+=Number(it.credit??it.amount??0);
+          logInfo("分享积分奖励：", it.credit??0, "类型：", type);
         }
-        const nCoinResp=await httpPost(END.nCoinRecord,headers,{page:1,size:100});
-        const nCoinList=Array.isArray(nCoinResp?.data?.list)?nCoinResp.data.list:[];
-        for(const it of nCoinList){
-          const k=toDateKeyAny(it.create_time??it.createDate);
-          if(k===today && it.type&&/分享/.test(it.type)) shareNcoin+=Number(it.amount||0);
+      }
+      
+      // 查N币记录：筛选今日「分享」相关奖励
+      const nCoinResp=await httpPost(END.nCoinRecord,headers,{page:1,size:100});
+      const nCoinList=Array.isArray(nCoinResp?.data?.list)?nCoinResp.data.list:[];
+      for(const it of nCoinList){
+        const k=toDateKeyAny(it.create_time??it.createDate);
+        const type=it.type??it.operateType??"";
+        if(k===today && (type.includes("分享")||type.includes("share")||type.includes("任务分享"))){
+          shareNcoin+=Number(it.amount??it.coin??0);
+          logInfo("分享N币奖励：", it.amount??0, "类型：", type);
         }
       }
 
@@ -290,7 +301,7 @@ async function doShareTask(headers){
       }catch(e){ logWarn("签到请求异常：",String(e)); if(cfg.notifyFail) signMsg=`❌ 签到请求异常：${String(e)}`; }
     } else { signMsg=`✨ 今日签到：已签到`; logInfo("今日已签到，跳过签到接口"); }
 
-    // 新增：3) 执行分享任务（签到后执行，避免冲突）
+    // 3) 执行分享任务（签到后执行）
     let shareMsg="";
     if(cfg.shareTaskUrl){
       const shareResult=await doShareTask(headers);
@@ -301,20 +312,27 @@ async function doShareTask(headers){
       shareMsg="📤 分享任务：未配置分享接口（需抓包一次分享动作）";
     }
 
-    // 4) 查询积分/N币（今天）
+    // 4) 补充统计今日积分/N币（避免遗漏）
     try{
       const creditResp=await httpPost(END.creditLst,headers,{page:1,size:100});
       const today=todayKey();
       const creditList=Array.isArray(creditResp?.data?.list)?creditResp.data.list:[];
       for(const it of creditList){
         const k=toDateKeyAny(it.create_date??it.createTime??it.create_date_str??it.create_time);
-        if(k===today) todayGainExp+=Number(it.credit??it.amount??0)||0;
+        const type=it.type??it.creditType??"";
+        // 排除已统计的分享奖励，避免重复
+        if(k===today && !(type.includes("分享")||type.includes("share"))){
+          todayGainExp+=Number(it.credit??it.amount??0)||0;
+        }
       }
       const nCoinResp=await httpPost(END.nCoinRecord,headers,{page:1,size:100});
       const nCoinList=Array.isArray(nCoinResp?.data?.list)?nCoinResp.data.list:[];
       for(const it of nCoinList){
         const k=toDateKeyAny(it.create_time??it.createDate??it.createTime??it.create_date);
-        if(k===today) todayGainNcoin+=Number(it.amount??it.coin??it.value??0)||0;
+        const type=it.type??it.operateType??"";
+        if(k===today && !(type.includes("分享")||type.includes("share"))){
+          todayGainNcoin+=Number(it.amount??it.coin??it.value??0)||0;
+        }
       }
       logInfo("今日积分/N币统计完成：",todayGainExp,todayGainNcoin);
     }catch(e){ logWarn("积分/N币统计异常：",String(e)); }
@@ -374,7 +392,7 @@ async function doShareTask(headers){
       }
     }
 
-    // 9) 通知（整合分享结果）
+    // 9) 通知（整合签到+分享结果）
     if(cfg.notify){
       let blindLines="无";
       if(blindInfo.length>0){
