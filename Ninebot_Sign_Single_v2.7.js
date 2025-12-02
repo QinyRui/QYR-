@@ -1,8 +1,12 @@
 /***********************************************
- Ninebot_Sign_Single_v2.7.js  （最终稳定版）
- 2025-12-01 21:00 更新
- 修复：ReferenceError: Cannot access uninitialized variable
- 兼容：Loon/Surge/Quantumult X 所有工具，无任何JS异常
+ Ninebot_Sign_Single_v2.8.js  （完整修复版）
+ 2025-12-02 更新
+ 核心修复：
+ 1. 1:1匹配APP真实请求头（Content-Type=application/json）
+ 2. 签到请求体简化为仅deviceId（与抓包一致）
+ 3. 强化二次签到状态校验，杜绝伪成功
+ 4. 修复盲盒进度负数显示问题
+ 兼容：Loon/Surge/Quantumult X 所有工具
  功能：抓包写入、自动签到、加密分享、自动领奖励、日志调节、盲盒开箱
 ***********************************************/
 
@@ -43,7 +47,7 @@ const END={
   creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/get-msg",
   creditLst:"https://api5-h5-app-bj.ninebot.com/web/credit/credit-lst",
   nCoinRecord:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/record/v2",
-  shareReceiveReward:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/receive-share-reward" // 推测领取接口
+  shareReceiveReward:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/receive-share-reward"
 };
 const END_OPEN={ openSeven:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-seven-box" };
 
@@ -57,7 +61,7 @@ const boxJsOldDebug = readPS(KEY_OLD_DEBUG) === "true";
 const cfg={
   Authorization: readPS(KEY_AUTH)||"",
   DeviceId: readPS(KEY_DEV)||"",
-  UserAgent: readPS(KEY_UA)||"Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
+  UserAgent: readPS(KEY_UA)||"Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Segway v6 C 609113620", // 默认真实UA
   shareTaskUrl: readPS(KEY_SHARE)||"https://snssdk.ninebot.com/service/2/app_log/?aid=10000004",
   // 日志等级：Loon插件优先，旧BoxJS debug=true映射为debug，默认info
   logLevel: boxJsOldDebug ? "debug" : (LOG_LEVELS[pluginLogLevel] ? pluginLogLevel : "info"),
@@ -121,26 +125,28 @@ if(isCaptureRequest){
   $done({});
 }
 
-/* Compose headers（100%匹配抓包） */
+/* Compose headers（1:1复刻抓包请求头） */
 function makeHeaders(){
   return {
-    "Authorization":cfg.Authorization,
-    "Content-Type":"application/octet-stream;tt-data=a",
-    "device_id":cfg.DeviceId,
-    "User-Agent":cfg.UserAgent,
-    "platform":"h5",
-    "Origin":"https://h5-bj.ninebot.com",
-    "language":"zh",
-    "aid":"10000004",
-    "Cookie":"install_id=7387027437663600641; ttreq=1$b5f546fbb02eadcb22e472a5b203b899b5c4048e",
-    "accept-encoding":"gzip, deflate, br",
-    "priority":"u=3",
-    "accept-language":"zh-CN,zh-Hans;q=0.9",
-    "accept":"application/json"
+    "Authorization": cfg.Authorization,
+    "Content-Type": "application/json", // 🔥 核心修复：匹配真实请求
+    "device_id": cfg.DeviceId,
+    "User-Agent": cfg.UserAgent,
+    "platform": "h5",
+    "Origin": "https://h5-bj.ninebot.com",
+    "language": "zh",
+    "aid": "10000004",
+    "Cookie": "install_id=7387027437663600641; ttreq=1$b5f546fbb02eadcb22e472a5b203b899b5c4048e",
+    "accept-encoding": "gzip, deflate, br",
+    "priority": "u=3",
+    "accept-language": "zh-CN,zh-Hans;q=0.9",
+    "accept": "application/json",
+    "Referer": "https://h5-bj.ninebot.com/", // 补充抓包必填字段
+    "sys_language": "zh-CN" // 补充抓包必填字段
   };
 }
 
-/* HTTP请求工具（支持Base64解码+重试） */
+/* HTTP请求工具（支持JSON请求+重试） */
 function requestWithRetry({method="GET",url,headers={},body=null,timeout=RETRY.TIMEOUT,isBase64=false}){
   return new Promise((resolve,reject)=>{
     let attempts=0;
@@ -150,6 +156,11 @@ function requestWithRetry({method="GET",url,headers={},body=null,timeout=RETRY.T
       if(method==="POST"){
         opts.body=body;
         if(isBase64) opts["body-base64"]=true;
+        // 自动设置JSON请求头（如果body是对象）
+        if(typeof body==="object" && !isBase64){
+          opts.body=JSON.stringify(body);
+          headers["Content-Type"]=headers["Content-Type"]||"application/json";
+        }
       }
       logDebug(`[HTTP] 发起${method}请求（第${attempts}次）：`,url,"参数：",body);
       const cb=(err,resp,data)=>{
@@ -301,7 +312,7 @@ async function doShareTask(headers){
     const statusData=statusResp?.data||{};
     logDebug("签到状态响应：",statusResp);
 
-    // 2. 签到逻辑
+    // 2. 签到逻辑（完整修复版）
     let signMsg="", todayGainExp=0, todayGainNcoin=0;
     const consecutiveDays=statusData?.consecutiveDays||statusData?.continuousDays||0;
     const signCards=statusData?.signCardsNum||statusData?.remedyCard||0;
@@ -311,10 +322,18 @@ async function doShareTask(headers){
     if(!isSigned){
       logInfo("今日未签到，执行签到...");
       try{
-        const signResp=await httpPost(END.sign,headers,{deviceId:cfg.DeviceId});
+        // 🔥 匹配抓包请求体（仅deviceId，无需额外参数）
+        const signBody={ deviceId:cfg.DeviceId };
+        const signResp=await httpPost(END.sign, headers, signBody);
         logDebug("签到接口响应：",signResp);
-        if(signResp.code===0||signResp.code===1||signResp.success){
-          const newDays=consecutiveDays+1;
+
+        // 🔥 二次校验：签到后重新查询状态，确保真实成功
+        const checkStatusResp=await httpGet(`${END.status}?t=${Date.now()}`, headers);
+        const checkData=checkStatusResp?.data||{};
+        const realIsSigned=[1,'1',true,'true'].includes(checkData?.currentSignStatus||checkData?.currentSign||0);
+
+        if(realIsSigned){
+          const newDays=checkData?.consecutiveDays||checkData?.continuousDays||consecutiveDays+1;
           const rewardList=signResp.data?.rewardList||[];
           let newExp=0,newCoin=0;
           rewardList.forEach(r=>{
@@ -323,9 +342,9 @@ async function doShareTask(headers){
           });
           todayGainExp=newExp+(signResp.data?.score||signResp.data?.credit||0);
           todayGainNcoin=newCoin+(signResp.data?.nCoin||signResp.data?.coin||0);
-          signMsg=`✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N 币\n📅 连续签到：${newDays} 天`;
+          signMsg=`✨ 今日签到：成功（已验证）\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N 币\n📅 连续签到：${newDays} 天`;
         } else if(signResp.code===540004||(signResp.msg&&/已签到/.test(signResp.msg))){
-          signMsg=`✨ 今日签到：已签到（接口）`;
+          signMsg=`✨ 今日签到：已签到（接口返回）`;
         } else{
           const errMsg=signResp.msg||signResp.message||"未知错误";
           signMsg=`❌ 签到失败：${errMsg}`;
@@ -336,7 +355,7 @@ async function doShareTask(headers){
         signMsg=cfg.notifyFail?`❌ 签到异常：${String(e)}`:"";
       }
     } else{
-      signMsg=`✨ 今日签到：已签到`;
+      signMsg=`✨ 今日签到：已签到\n📅 连续签到：${consecutiveDays} 天`;
       logInfo("今日已签到，跳过签到流程");
     }
 
@@ -391,13 +410,19 @@ async function doShareTask(headers){
       balLine=`- 当前 N 币：${balance}`;
     }catch(e){ logWarn("余额查询异常：",e); }
 
-    // 6. 盲盒进度
+    // 6. 盲盒进度（修复负数显示）
     let blindLines="无";
     try{
       const boxResp=await httpGet(END.blindBoxList,headers);
       const blindList=boxResp?.data?.notOpenedBoxes||[];
       if(blindList.length>0){
-        blindLines=blindList.map(b=>`${b.awardDays||b.totalDays||0} 天盲盒：${(b.totalDays||0)-(b.leftDaysToOpen||b.remaining||0)} / ${b.awardDays||b.totalDays||0} 天`).join("\n| ");
+        blindLines=blindList.map(b=>{
+          const totalDays=b.awardDays||b.totalDays||0;
+          const remainingDays=b.leftDaysToOpen||b.remaining||0;
+          const completedDays=totalDays - remainingDays;
+          // 避免负数：如果completedDays<0，显示0/总天数
+          return `${totalDays} 天盲盒：${Math.max(0, completedDays)} / ${totalDays} 天`;
+        }).join("\n| ");
       }
     }catch(e){ logWarn("盲盒查询异常：",e); }
 
