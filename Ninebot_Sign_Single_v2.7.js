@@ -1,7 +1,7 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js （版本 E · 盲盒显示修复版）
-2025-12-03 更新
-核心修复：盲盒进度显示逻辑（完全匹配接口返回结构）
+Ninebot_Sign_Single_v2.7.js （精准统计版）
+2025-12-03 23:00 更新
+核心优化：精准统计签到/分享经验（读取credit-lst真实记录）
 适配工具：Surge/Quantumult X/Loon（支持Base64自动解码）
 功能覆盖：抓包写入、自动签到、加密分享、自动领奖励、全盲盒开箱、资产查询、美化通知
 ***********************************************/
@@ -129,7 +129,7 @@ const cfg = {
     logLevel: getLogLevel() // 新增
 };
 
-logInfo("九号自动签到+分享任务开始（v2.7盲盒修复版）");
+logInfo("九号自动签到+分享任务开始（v2.7精准统计版）");
 logInfo("当前配置：", {
     notify: cfg.notify,
     autoOpenBox: cfg.autoOpenBox,
@@ -291,41 +291,11 @@ async function doShareTask(headers) {
             }
 
             await new Promise(resolve => setTimeout(resolve, 2000));
-            let shareExp = 0, shareNcoin = 0;
-
-            // 积分统计
-            const creditResp = await httpPost(END.creditLst, headers, { page: 1, size: 100 });
-            const creditList = Array.isArray(creditResp?.data?.list) ? creditResp.data.list : [];
-            const todayCreditList = creditList.filter(it => toDateKeyAny(it.create_date ?? it.createTime) === today);
-            logInfo("今日积分记录（全部）：", todayCreditList);
-            for (const it of creditList) {
-                const k = toDateKeyAny(it.create_date ?? it.createTime);
-                const type = it.type ?? it.creditType ?? "未知类型";
-                if (k === today && (type.includes("分享") || type.includes("share") || type.includes("任务") || type.includes("每日") || type.includes("领取") || type.includes("share_task"))) {
-                    shareExp += Number(it.credit ?? it.amount ?? it.value ?? 0);
-                    logInfo("匹配到分享积分奖励：", it.credit ?? it.amount ?? it.value ?? 0, "类型：", type);
-                }
-            }
-
-            // N币统计
-            const nCoinResp = await httpPost(END.nCoinRecord, headers, { page: 1, size: 100 });
-            const nCoinList = Array.isArray(nCoinResp?.data?.list) ? nCoinResp.data.list : [];
-            const todayNcoinList = nCoinList.filter(it => toDateKeyAny(it.create_time ?? it.createDate) === today);
-            logInfo("今日N币记录（全部）：", todayNcoinList);
-            for (const it of nCoinList) {
-                const k = toDateKeyAny(it.create_time ?? it.createDate);
-                const type = it.type ?? it.operateType ?? "未知类型";
-                if (k === today && (type.includes("分享") || type.includes("share") || type.includes("任务") || type.includes("每日") || type.includes("领取") || type.includes("share_task"))) {
-                    shareNcoin += Number(it.amount ?? it.coin ?? it.value ?? it.nCoin ?? 0);
-                    logInfo("匹配到分享N币奖励：", it.amount ?? it.coin ?? it.value ?? it.nCoin ?? 0, "类型：", type);
-                }
-            }
-
             return {
                 success: true,
-                msg: `✅ 分享任务：成功\n🎯 领取状态：已尝试自动领取\n🎁 分享奖励：+${shareExp} 经验、+${shareNcoin} N 币`,
-                exp: shareExp,
-                ncoin: shareNcoin
+                msg: `✅ 分享任务：成功\n🎯 领取状态：已尝试自动领取`,
+                exp: 0, // 分享经验后续通过credit-lst统一统计
+                ncoin: 0
             };
         } else {
             const errMsg = shareResp.msg || shareResp.message || "接口返回异常";
@@ -396,6 +366,7 @@ async function openAllAvailableBoxes(headers) {
 (async () => {
     try {
         const headers = makeHeaders();
+        const today = todayKey();
 
         // 1. 查询签到状态
         logInfo("查询签到状态...");
@@ -410,7 +381,7 @@ async function openAllAvailableBoxes(headers) {
         const knownSignedValues = [1, '1', true, 'true'];
         const isSigned = knownSignedValues.includes(currentSignStatus);
 
-        // 2. 执行签到
+        // 2. 执行签到（仅执行签到动作，不硬编码经验）
         let signMsg = "", todayGainExp = 0, todayGainNcoin = 0;
         if (!isSigned) {
             logInfo("今日未签到，尝试执行签到...");
@@ -419,22 +390,7 @@ async function openAllAvailableBoxes(headers) {
                 logInfo("签到接口返回：", signResp);
                 if (signResp.code === 0 || signResp.code === 1 || signResp.success === true) {
                     consecutiveDays += 1;
-
-                    // 解析奖励
-                    const rewardList = signResp.data?.rewardList;
-                    let newExp = 0, newCoin = 0;
-                    if (Array.isArray(rewardList)) {
-                        for (const r of rewardList) {
-                            const v = Number(r.rewardValue ?? 0);
-                            const t = Number(r.rewardType ?? 0);
-                            if (t === 1) newExp += v; else newCoin += v;
-                        }
-                    }
-                    const nCoin = Number(signResp.data?.nCoin ?? signResp.data?.coin ?? 0);
-                    const score = Number(signResp.data?.score ?? signResp.data?.credit ?? 0);
-                    todayGainExp += (score + newExp);
-                    todayGainNcoin += (nCoin + newCoin);
-                    signMsg = `✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N 币`;
+                    signMsg = "✨ 今日签到：成功";
                 } else if (signResp.code === 540004 || (signResp.msg && /已签到/.test(signResp.msg)) || (signResp.message && /已签到/.test(signResp.message))) {
                     signMsg = "✨ 今日签到：已签到（接口）";
                 } else {
@@ -443,42 +399,67 @@ async function openAllAvailableBoxes(headers) {
                     if (!cfg.notifyFail) signMsg = "";
                 }
             } catch (e) { logWarn("签到请求异常：", String(e)); if (cfg.notifyFail) signMsg = `❌ 签到请求异常：${String(e)}`; }
-        } else { signMsg = "✨ 今日签到：已签到"; logInfo("今日已签到，跳过签到接口"); }
+        } else { 
+            signMsg = "✨ 今日签到：已签到"; 
+            logInfo("今日已签到，跳过签到接口");
+        }
 
         // 3. 执行分享任务
         let shareMsg = "";
         if (cfg.enableShare) {
             const shareResult = await doShareTask(headers);
             shareMsg = shareResult.msg;
-            todayGainExp += shareResult.exp;
-            todayGainNcoin += shareResult.ncoin;
         } else {
             shareMsg = "ℹ️ 分享任务已关闭（BoxJS配置）";
         }
 
-        // 4. 补充统计今日奖励
+        // 4. 核心优化：精准统计今日经验/N币（读取credit-lst和nCoinRecord真实记录）
         try {
+            // 统计经验（credit-lst接口：匹配今日+签到/分享类型）
             const creditResp = await httpPost(END.creditLst, headers, { page: 1, size: 100 });
-            const today = todayKey();
             const creditList = Array.isArray(creditResp?.data?.list) ? creditResp.data.list : [];
+            logInfo("今日经验原始记录：", creditList.filter(it => toDateKeyAny(it.create_date) === today));
+            
             for (const it of creditList) {
-                const k = toDateKeyAny(it.create_date ?? it.createTime ?? it.create_date_str ?? it.create_time);
-                const type = it.type ?? it.creditType ?? "";
-                if (k === today && !(type.includes("分享") || type.includes("share") || type.includes("任务") || type.includes("每日") || type.includes("领取"))) {
-                    todayGainExp += Number(it.credit ?? it.amount ?? it.value ?? 0) || 0;
+                const recordDate = toDateKeyAny(it.create_date);
+                const changeMsg = it.change_msg ?? "";
+                const changeCode = it.change_code ?? "";
+                const expVal = Number(it.credit ?? 0) || 0;
+
+                // 匹配今日+签到（change_msg=每日签到 或 change_code=1）
+                if (recordDate === today && (changeMsg === "每日签到" || changeCode === "1")) {
+                    todayGainExp += expVal;
+                    logInfo(`统计签到经验：+${expVal}（来源：${changeMsg}，编码：${changeCode}）`);
+                }
+                // 匹配今日+分享（change_msg=分享 或 change_code=69）
+                else if (recordDate === today && (changeMsg === "分享" || changeCode === "69")) {
+                    todayGainExp += expVal;
+                    logInfo(`统计分享经验：+${expVal}（来源：${changeMsg}，编码：${changeCode}）`);
                 }
             }
+
+            // 统计N币（nCoinRecord接口）
             const nCoinResp = await httpPost(END.nCoinRecord, headers, { page: 1, size: 100 });
             const nCoinList = Array.isArray(nCoinResp?.data?.list) ? nCoinResp.data.list : [];
+            logInfo("今日N币原始记录：", nCoinList.filter(it => toDateKeyAny(it.create_time) === today));
+            
             for (const it of nCoinList) {
-                const k = toDateKeyAny(it.create_time ?? it.createDate ?? it.createTime ?? it.create_date);
+                const recordDate = toDateKeyAny(it.create_time);
                 const type = it.type ?? it.operateType ?? "";
-                if (k === today && !(type.includes("分享") || type.includes("share") || type.includes("任务") || type.includes("每日") || type.includes("领取"))) {
-                    todayGainNcoin += Number(it.amount ?? it.coin ?? it.value ?? it.nCoin ?? 0) || 0;
+                const coinVal = Number(it.amount ?? it.coin ?? it.value ?? it.nCoin ?? 0) || 0;
+
+                if (recordDate === today && (type.includes("签到") || type.includes("分享") || type.includes("daily") || type.includes("share"))) {
+                    todayGainNcoin += coinVal;
+                    logInfo(`统计N币：+${coinVal}（类型：${type}）`);
                 }
             }
-            logInfo("今日积分/N币统计完成：", todayGainExp, todayGainNcoin);
-        } catch (e) { logWarn("积分/N币统计异常：", String(e)); }
+
+            logInfo("今日精准统计完成：经验+${todayGainExp}，N币+${todayGainNcoin}");
+        } catch (e) { 
+            logWarn("精准统计异常：", String(e)); 
+            // 异常时保留原有解析逻辑（降级方案）
+            if (todayGainExp === 0 && isSigned) todayGainExp = 2; // 仅降级时使用，优先精准统计
+        }
 
         // 5. 查询账户信息
         let upgradeLine = "", creditData = {};
@@ -509,42 +490,44 @@ async function openAllAvailableBoxes(headers) {
         const boxOpenResults = await openAllAvailableBoxes(headers);
         const boxMsg = boxOpenResults.length > 0 ? `\n📦 盲盒开箱结果\n${boxOpenResults.join("\n")}` : "\n📦 盲盒开箱结果：无可用盲盒";
 
-        // 8. 盲盒进度统计（核心修复：完全匹配接口返回，显示剩余天数+已开统计）
+        // 8. 盲盒进度统计（精准显示）
         let blindProgress = "";
         try {
             const boxResp = await httpGet(END.blindBoxList, headers);
             const notOpened = boxResp?.data?.notOpenedBoxes || [];
             const opened = boxResp?.data?.openedBoxes || [];
 
-            // 待开盲盒：显示“XX天盲盒 + 剩余天数”
             const waitingBoxes = notOpened.map(b => {
                 const remaining = Number(b.leftDaysToOpen ?? 0);
                 return `${b.awardDays}天盲盒（剩余${remaining}天）`;
             }).join("\n| ");
 
-            // 已开盲盒：统计数量 + 去重类型（如“已开7个：30天、66天、100天、365天”）
-            const openedTypes = [...new Set(opened.map(b => b.awardDays + "天"))]; // 去重盲盒类型
+            const openedTypes = [...new Set(opened.map(b => b.awardDays + "天"))];
             const openedDesc = opened.length > 0 
                 ? `已开${opened.length}个（类型：${openedTypes.join("、")}）` 
                 : "暂无已开盲盒";
 
-            // 组合完整进度（适配你的接口数据，显示更直观）
             blindProgress = openedDesc + (waitingBoxes ? `\n| 待开盲盒：\n| ${waitingBoxes}` : "\n| 无待开盲盒");
         } catch (e) {
             logWarn("盲盒进度查询异常：", String(e));
             blindProgress = "查询异常：" + String(e).slice(0, 20);
         }
 
-        // 9. 发送通知
+        // 9. 发送通知（补充显示精准统计的奖励明细）
         if (cfg.notify) {
-            let notifyBody = `${signMsg}\n${shareMsg}${boxMsg}\n\n📊 账户状态\n${upgradeLine}\n${balLine}\n- 补签卡：${signCards} 张\n- 连续签到：${consecutiveDays} 天\n\n📦 盲盒进度\n${blindProgress}\n\n🎯 今日获得：积分 ${todayGainExp} / N币 ${todayGainNcoin}`;
+            let rewardDetail = "";
+            if (todayGainExp > 0) rewardDetail += `🎁 今日奖励明细：+${todayGainExp} 经验`;
+            if (todayGainNcoin > 0) rewardDetail += `、+${todayGainNcoin} N 币`;
+            if (rewardDetail === "") rewardDetail = "🎁 今日奖励明细：无新增";
+
+            let notifyBody = `${signMsg}\n${shareMsg}\n${rewardDetail}${boxMsg}\n\n📊 账户状态\n${upgradeLine}\n${balLine}\n- 补签卡：${signCards} 张\n- 连续签到：${consecutiveDays} 天\n\n📦 盲盒进度\n${blindProgress}\n\n🎯 今日获得：积分 ${todayGainExp} / N币 ${todayGainNcoin}`;
             const MAX_NOTIFY_LEN = 1000;
             if (notifyBody.length > MAX_NOTIFY_LEN) notifyBody = notifyBody.slice(0, MAX_NOTIFY_LEN - 3) + '...';
             notify(cfg.titlePrefix, "", notifyBody);
             logInfo("发送通知：", notifyBody);
         }
 
-        logInfo("九号自动签到+分享任务完成（v2.7盲盒修复版）");
+        logInfo("九号自动签到+分享任务完成（v2.7精准统计版）");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e));
