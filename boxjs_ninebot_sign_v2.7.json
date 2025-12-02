@@ -20,6 +20,7 @@
         "ninebot.autoRepair",
         "ninebot.notifyFail",
         "ninebot.logLevel",
+        "ninebot.enableShare",
         "ninebot.lastCaptureAt",
         "ninebot.lastShareDate"
       ],
@@ -68,20 +69,30 @@
             { "key": "true", "label": "开启（输出完整日志，便于排查问题）" },
             { "key": "false", "label": "关闭（仅输出关键日志）" }
           ],
-          "desc": "替换原日志等级，控制日志输出详细程度"
+          "desc": "兼容旧版，控制日志输出详细程度"
         },
         {
           "id": "ninebot.logLevel",
           "name": "日志等级（精细控制）",
-          "val": "info",
+          "val": "full",
           "type": "select",
           "items": [
-            { "key": "debug", "label": "调试（最详细日志）" },
-            { "key": "info", "label": "信息（默认，关键流程日志）" },
-            { "key": "warn", "label": "警告（仅输出警告/错误日志）" },
-            { "key": "error", "label": "错误（仅输出错误日志）" }
+            { "key": "full", "label": "完整（所有日志，调试用）" },
+            { "key": "simple", "label": "简化（关键警告/错误）" },
+            { "key": "silent", "label": "静默（仅报错通知，无日志）" }
           ],
-          "desc": "精细控制日志输出等级，优先级高于调试模式"
+          "desc": "精细控制日志输出，优先级高于调试模式"
+        },
+        {
+          "id": "ninebot.enableShare",
+          "name": "启用分享任务",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（自动完成分享+领奖励）" },
+            { "key": "false", "label": "关闭（不执行分享任务）" }
+          ],
+          "desc": "控制是否自动执行分享任务，默认开启"
         },
         {
           "id": "ninebot.notify",
@@ -96,14 +107,14 @@
         },
         {
           "id": "ninebot.autoOpenBox",
-          "name": "自动开启7天盲盒",
+          "name": "自动开启盲盒",
           "val": "false",
           "type": "select",
           "items": [
-            { "key": "true", "label": "开启（满足7天条件自动开箱）" },
+            { "key": "true", "label": "开启（所有可开盲盒自动开箱）" },
             { "key": "false", "label": "关闭（手动开箱）" }
           ],
-          "desc": "连续签到7天后，是否自动开启盲盒领取奖励"
+          "desc": "支持7天盲盒+普通盲盒，满足条件自动开箱"
         },
         {
           "id": "ninebot.notifyFail",
