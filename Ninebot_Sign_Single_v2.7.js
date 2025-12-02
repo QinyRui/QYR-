@@ -1,6 +1,6 @@
 /***********************************************
  Ninebot_Sign_Single_v2.7.js  （最终稳定版）
- 2025-12-01 21:00 更新
+ 2025-12-01 20:00 更新
  修复：ReferenceError: Cannot access uninitialized variable
  兼容：Loon/Surge/Quantumult X 所有工具，无任何JS异常
  功能：抓包写入、自动签到、加密分享、自动领奖励、日志调节、盲盒开箱
