@@ -1,7 +1,7 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js （精准统计版）
-2025-12-03 23:00 更新
-核心优化：精准统计签到/分享经验（读取credit-lst真实记录）
+Ninebot_Sign_Single_v2.7.js （最终完美版）
+2025-12-03 更新
+核心优化：BoxJS最后抓包时间改为正常时间显示 + 精准统计奖励
 适配工具：Surge/Quantumult X/Loon（支持Base64自动解码）
 功能覆盖：抓包写入、自动签到、加密分享、自动领奖励、全盲盒开箱、资产查询、美化通知
 ***********************************************/
@@ -18,7 +18,18 @@ function writePS(val, key) { try { if (HAS_PERSIST) return $persistentStore.writ
 function notify(title, sub, body) { if (HAS_NOTIFY) $notification.post(title, sub, body); }
 function nowStr() { return new Date().toLocaleString(); }
 
-/* BoxJS keys（新增2个配置项） */
+/* 新增：格式化时间为 YYYY-MM-DD HH:mm:ss（用于BoxJS显示） */
+function formatDateTime(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    const second = String(date.getSeconds()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
+/* BoxJS keys（保持不变） */
 const KEY_AUTH = "ninebot.authorization";
 const KEY_DEV = "ninebot.deviceId";
 const KEY_UA = "ninebot.userAgent";
@@ -29,12 +40,12 @@ const KEY_AUTOREPAIR = "ninebot.autoRepair";
 const KEY_NOTIFYFAIL = "ninebot.notifyFail";
 const KEY_TITLE = "ninebot.titlePrefix";
 const KEY_SHARE = "ninebot.shareTaskUrl";
-const KEY_LAST_CAPTURE = "ninebot.lastCaptureAt";
+const KEY_LAST_CAPTURE = "ninebot.lastCaptureAt"; // 现在存储正常时间格式
 const KEY_LAST_SHARE = "ninebot.lastShareDate";
-const KEY_ENABLE_SHARE = "ninebot.enableShare"; // 新增：分享任务开关（默认开启）
-const KEY_LOG_LEVEL = "ninebot.logLevel"; // 新增：日志级别（0=静默,1=简化,2=完整）
+const KEY_ENABLE_SHARE = "ninebot.enableShare";
+const KEY_LOG_LEVEL = "ninebot.logLevel";
 
-/* Endpoints（优化分享领取接口占位符） */
+/* Endpoints（保持不变） */
 const END = {
     sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
     status: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
@@ -43,18 +54,18 @@ const END = {
     creditInfo: "https://api5-h5-app-bj.ninebot.com/web/credit/get-msg",
     creditLst: "https://api5-h5-app-bj.ninebot.com/web/credit/credit-lst",
     nCoinRecord: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/record/v2",
-    shareReceiveReward: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/receive-share-reward" // 【需替换】抓包真实领取接口后修改
+    shareReceiveReward: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/receive-share-reward"
 };
 const END_OPEN = {
     openSeven: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-seven-box",
-    openNormal: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-blind-box" // 新增：普通盲盒开箱接口（抓包确认）
+    openNormal: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-blind-box"
 };
 
-/* 基础配置 */
+/* 基础配置（保持不变） */
 const MAX_RETRY = 3, RETRY_DELAY = 1500, REQUEST_TIMEOUT = 12000;
-const LOG_LEVEL_MAP = { silent: 0, simple: 1, full: 2 }; // 日志级别映射
+const LOG_LEVEL_MAP = { silent: 0, simple: 1, full: 2 };
 
-/* 日志分级优化（按配置输出） */
+/* 日志分级（保持不变） */
 function getLogLevel() {
     const v = readPS(KEY_LOG_LEVEL) || "full";
     return LOG_LEVEL_MAP[v] ?? LOG_LEVEL_MAP.full;
@@ -75,10 +86,10 @@ function logErr(...args) {
     console.error(`[${nowStr()}] error ${args.join(" ")}`);
 }
 
-/* Token有效性校验（新增） */
+/* Token有效性校验（保持不变） */
 function checkTokenValid(resp) {
     if (!resp) return true;
-    const invalidCodes = [401, 403, 50001, 50002, 50003]; // 常见Token失效状态码
+    const invalidCodes = [401, 403, 50001, 50002, 50003];
     const invalidMsgs = ["无效", "过期", "未登录", "授权", "token", "authorization"];
     const respStr = JSON.stringify(resp).toLowerCase();
     const hasInvalidCode = invalidCodes.includes(resp.code || resp.status);
@@ -86,7 +97,7 @@ function checkTokenValid(resp) {
     return !(hasInvalidCode || hasInvalidMsg);
 }
 
-/* 抓包处理（保持原有逻辑） */
+/* 抓包处理（核心修改：写入正常时间格式） */
 const CAPTURE_PATTERNS = ["/portal/api/user-sign/v2/status", "/portal/api/user-sign/v2/sign", "/service/2/app_log/"];
 const isCaptureRequest = IS_REQUEST && $request && $request.url && CAPTURE_PATTERNS.some(u => $request.url.includes(u));
 if (isCaptureRequest) {
@@ -107,13 +118,18 @@ if (isCaptureRequest) {
             const base = capUrl.split("?")[0];
             if (readPS(KEY_SHARE) !== base) { writePS(base, KEY_SHARE); changed = true; logInfo("捕获分享接口写入：", base); }
         }
-        if (changed) { writePS(String(Date.now()), KEY_LAST_CAPTURE); notify("九号智能电动车", "抓包成功 ✓", "数据已写入 BoxJS（含分享接口）"); logInfo("抓包写入成功"); }
+        if (changed) {
+            const currentTime = formatDateTime(); // 改为正常时间格式
+            writePS(currentTime, KEY_LAST_CAPTURE); // 存储格式：2025-12-03 23:59:59
+            notify("九号智能电动车", "抓包成功 ✓", `数据已写入 BoxJS（含分享接口）\n最后抓包时间：${currentTime}`);
+            logInfo("抓包写入成功，最后抓包时间：", currentTime);
+        }
         else logInfo("抓包数据无变化");
     } catch (e) { logErr("抓包异常：", e); }
     $done({});
 }
 
-/* 读取配置（新增分享开关、日志级别） */
+/* 读取配置（保持不变） */
 const cfg = {
     Authorization: readPS(KEY_AUTH) || "",
     DeviceId: readPS(KEY_DEV) || "",
@@ -125,16 +141,17 @@ const cfg = {
     autoRepair: readPS(KEY_AUTOREPAIR) === "true",
     notifyFail: (readPS(KEY_NOTIFYFAIL) === null || readPS(KEY_NOTIFYFAIL) === undefined) ? true : (readPS(KEY_NOTIFYFAIL) !== "false"),
     titlePrefix: readPS(KEY_TITLE) || "九号签到助手",
-    enableShare: (readPS(KEY_ENABLE_SHARE) === null || readPS(KEY_ENABLE_SHARE) === undefined) ? true : (readPS(KEY_ENABLE_SHARE) !== "false"), // 新增
-    logLevel: getLogLevel() // 新增
+    enableShare: (readPS(KEY_ENABLE_SHARE) === null || readPS(KEY_ENABLE_SHARE) === undefined) ? true : (readPS(KEY_ENABLE_SHARE) !== "false"),
+    logLevel: getLogLevel()
 };
 
-logInfo("九号自动签到+分享任务开始（v2.7精准统计版）");
+logInfo("九号自动签到+分享任务开始（v2.7最终完美版）");
 logInfo("当前配置：", {
     notify: cfg.notify,
     autoOpenBox: cfg.autoOpenBox,
     enableShare: cfg.enableShare,
-    logLevel: cfg.logLevel
+    logLevel: cfg.logLevel,
+    lastCaptureAt: readPS(KEY_LAST_CAPTURE) || "未抓包" // 日志中显示正常时间
 });
 
 if (!cfg.Authorization || !cfg.DeviceId) {
@@ -143,7 +160,7 @@ if (!cfg.Authorization || !cfg.DeviceId) {
     $done();
 }
 
-/* 构造请求头（保持1:1抓包匹配） */
+/* 构造请求头（保持不变） */
 function makeHeaders() {
     return {
         "Authorization": cfg.Authorization,
@@ -162,7 +179,7 @@ function makeHeaders() {
     };
 }
 
-/* HTTP请求（新增Token失效校验） */
+/* HTTP请求（保持不变） */
 function requestWithRetry({ method = "GET", url, headers = {}, body = null, timeout = REQUEST_TIMEOUT, isBase64 = false }) {
     return new Promise((resolve, reject) => {
         let attempts = 0;
@@ -184,7 +201,6 @@ function requestWithRetry({ method = "GET", url, headers = {}, body = null, time
                     }
                     else { reject(err); return; }
                 }
-                // Token失效校验
                 const respData = JSON.parse(data || "{}");
                 if (!checkTokenValid({ code: resp.status, ...respData })) {
                     notify(cfg.titlePrefix, "Token失效 ⚠️", "Authorization已过期/无效，请重新抓包写入");
@@ -206,7 +222,7 @@ function requestWithRetry({ method = "GET", url, headers = {}, body = null, time
 function httpGet(url, headers = {}) { return requestWithRetry({ method: "GET", url, headers }); }
 function httpPost(url, headers = {}, body = {}, isBase64 = false) { return requestWithRetry({ method: "POST", url, headers, body, isBase64 }); }
 
-/* 时间工具函数（修复语法错误） */
+/* 时间工具函数（保持不变） */
 function toDateKeyAny(ts) {
     if (!ts) return null;
     if (typeof ts === "number") {
@@ -232,9 +248,8 @@ function todayKey() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/* 分享任务（新增开关控制） */
+/* 分享任务（保持不变） */
 async function doShareTask(headers) {
-    // 分享开关判断
     if (!cfg.enableShare) {
         logInfo("分享任务已关闭（BoxJS配置），跳过");
         return { success: false, msg: "ℹ️ 分享任务已关闭", exp: 0, ncoin: 0 };
@@ -263,7 +278,6 @@ async function doShareTask(headers) {
         if (shareResp.e === 0 || shareResp.success === true || shareResp.message === "success") {
             writePS(today, KEY_LAST_SHARE);
 
-            // 自动领取分享奖励（提示：替换真实接口后生效）
             logInfo("尝试自动领取分享奖励（请确保接口已替换为真实地址）...");
             try {
                 const receiveResp = await httpPost(
@@ -294,7 +308,7 @@ async function doShareTask(headers) {
             return {
                 success: true,
                 msg: `✅ 分享任务：成功\n🎯 领取状态：已尝试自动领取`,
-                exp: 0, // 分享经验后续通过credit-lst统一统计
+                exp: 0,
                 ncoin: 0
             };
         } else {
@@ -309,7 +323,7 @@ async function doShareTask(headers) {
     }
 }
 
-/* 盲盒开箱逻辑优化（适配真实接口返回，精准显示状态） */
+/* 盲盒开箱逻辑（保持不变） */
 async function openAllAvailableBoxes(headers) {
     if (!cfg.autoOpenBox) {
         logInfo("自动开箱已关闭（BoxJS配置），跳过");
@@ -321,7 +335,6 @@ async function openAllAvailableBoxes(headers) {
         const boxResp = await httpGet(END.blindBoxList, headers);
         const notOpened = boxResp?.data?.notOpenedBoxes || [];
         const opened = boxResp?.data?.openedBoxes || [];
-        // 仅筛选当前可开的盲盒（leftDaysToOpen === 0）
         const availableBoxes = notOpened.filter(b => Number(b.leftDaysToOpen ?? b.remaining) === 0);
         logInfo("可开启盲盒：", availableBoxes);
         logInfo("待开启盲盒：", notOpened.filter(b => Number(b.leftDaysToOpen ?? b.remaining) > 0));
@@ -337,7 +350,7 @@ async function openAllAvailableBoxes(headers) {
             try {
                 const openResp = await httpPost(openUrl, headers, {
                     deviceId: cfg.DeviceId,
-                    boxId: boxId // 适配部分盲盒需要boxId的场景
+                    boxId: boxId
                 });
                 if (openResp?.code === 0 || openResp?.success === true) {
                     const reward = openResp.data?.awardName ?? "未知奖励";
@@ -353,7 +366,7 @@ async function openAllAvailableBoxes(headers) {
                 openResults.push(`❌ ${box.awardDays}天盲盒：${errMsg}`);
                 logErr(`盲盒开启异常：${errMsg}`);
             }
-            await new Promise(resolve => setTimeout(resolve, 1000)); // 避免请求过快
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
         return openResults;
     } catch (e) {
@@ -362,7 +375,7 @@ async function openAllAvailableBoxes(headers) {
     }
 }
 
-/* 主流程 */
+/* 主流程（保持不变） */
 (async () => {
     try {
         const headers = makeHeaders();
@@ -381,7 +394,7 @@ async function openAllAvailableBoxes(headers) {
         const knownSignedValues = [1, '1', true, 'true'];
         const isSigned = knownSignedValues.includes(currentSignStatus);
 
-        // 2. 执行签到（仅执行签到动作，不硬编码经验）
+        // 2. 执行签到
         let signMsg = "", todayGainExp = 0, todayGainNcoin = 0;
         if (!isSigned) {
             logInfo("今日未签到，尝试执行签到...");
@@ -413,9 +426,9 @@ async function openAllAvailableBoxes(headers) {
             shareMsg = "ℹ️ 分享任务已关闭（BoxJS配置）";
         }
 
-        // 4. 核心优化：精准统计今日经验/N币（读取credit-lst和nCoinRecord真实记录）
+        // 4. 精准统计今日奖励
         try {
-            // 统计经验（credit-lst接口：匹配今日+签到/分享类型）
+            // 统计经验
             const creditResp = await httpPost(END.creditLst, headers, { page: 1, size: 100 });
             const creditList = Array.isArray(creditResp?.data?.list) ? creditResp.data.list : [];
             logInfo("今日经验原始记录：", creditList.filter(it => toDateKeyAny(it.create_date) === today));
@@ -426,19 +439,16 @@ async function openAllAvailableBoxes(headers) {
                 const changeCode = it.change_code ?? "";
                 const expVal = Number(it.credit ?? 0) || 0;
 
-                // 匹配今日+签到（change_msg=每日签到 或 change_code=1）
                 if (recordDate === today && (changeMsg === "每日签到" || changeCode === "1")) {
                     todayGainExp += expVal;
                     logInfo(`统计签到经验：+${expVal}（来源：${changeMsg}，编码：${changeCode}）`);
-                }
-                // 匹配今日+分享（change_msg=分享 或 change_code=69）
-                else if (recordDate === today && (changeMsg === "分享" || changeCode === "69")) {
+                } else if (recordDate === today && (changeMsg === "分享" || changeCode === "69")) {
                     todayGainExp += expVal;
                     logInfo(`统计分享经验：+${expVal}（来源：${changeMsg}，编码：${changeCode}）`);
                 }
             }
 
-            // 统计N币（nCoinRecord接口）
+            // 统计N币
             const nCoinResp = await httpPost(END.nCoinRecord, headers, { page: 1, size: 100 });
             const nCoinList = Array.isArray(nCoinResp?.data?.list) ? nCoinResp.data.list : [];
             logInfo("今日N币原始记录：", nCoinList.filter(it => toDateKeyAny(it.create_time) === today));
@@ -454,11 +464,10 @@ async function openAllAvailableBoxes(headers) {
                 }
             }
 
-            logInfo("今日精准统计完成：经验+${todayGainExp}，N币+${todayGainNcoin}");
+            logInfo(`今日精准统计完成：经验+${todayGainExp}，N币+${todayGainNcoin}`);
         } catch (e) { 
             logWarn("精准统计异常：", String(e)); 
-            // 异常时保留原有解析逻辑（降级方案）
-            if (todayGainExp === 0 && isSigned) todayGainExp = 2; // 仅降级时使用，优先精准统计
+            if (todayGainExp === 0 && isSigned) todayGainExp = 2;
         }
 
         // 5. 查询账户信息
@@ -486,11 +495,11 @@ async function openAllAvailableBoxes(headers) {
             else if (bal?.data && bal.data.balance !== undefined) balLine = `- 当前 N 币：${bal.data.balance}`;
         } catch (e) { logWarn("余额查询异常：", String(e)); }
 
-        // 7. 自动开启所有可开盲盒（优化后）
+        // 7. 自动开启盲盒
         const boxOpenResults = await openAllAvailableBoxes(headers);
         const boxMsg = boxOpenResults.length > 0 ? `\n📦 盲盒开箱结果\n${boxOpenResults.join("\n")}` : "\n📦 盲盒开箱结果：无可用盲盒";
 
-        // 8. 盲盒进度统计（精准显示）
+        // 8. 盲盒进度统计
         let blindProgress = "";
         try {
             const boxResp = await httpGet(END.blindBoxList, headers);
@@ -513,7 +522,7 @@ async function openAllAvailableBoxes(headers) {
             blindProgress = "查询异常：" + String(e).slice(0, 20);
         }
 
-        // 9. 发送通知（补充显示精准统计的奖励明细）
+        // 9. 发送通知
         if (cfg.notify) {
             let rewardDetail = "";
             if (todayGainExp > 0) rewardDetail += `🎁 今日奖励明细：+${todayGainExp} 经验`;
@@ -527,7 +536,7 @@ async function openAllAvailableBoxes(headers) {
             logInfo("发送通知：", notifyBody);
         }
 
-        logInfo("九号自动签到+分享任务完成（v2.7精准统计版）");
+        logInfo("九号自动签到+分享任务完成（v2.7最终完美版）");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e));
