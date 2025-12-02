@@ -1,7 +1,7 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js （版本 E · 全优化版）
-2025-12-02 23:00 更新
-核心优化：新增分享开关、Token过期提醒、全盲盒自动开箱、日志分级、接口适配
+Ninebot_Sign_Single_v2.7.js （版本 E · 盲盒显示修复版）
+2025-12-03 更新
+核心修复：盲盒进度显示逻辑（完全匹配接口返回结构）
 适配工具：Surge/Quantumult X/Loon（支持Base64自动解码）
 功能覆盖：抓包写入、自动签到、加密分享、自动领奖励、全盲盒开箱、资产查询、美化通知
 ***********************************************/
@@ -129,7 +129,7 @@ const cfg = {
     logLevel: getLogLevel() // 新增
 };
 
-logInfo("九号自动签到+分享任务开始（v2.7全优化版）");
+logInfo("九号自动签到+分享任务开始（v2.7盲盒修复版）");
 logInfo("当前配置：", {
     notify: cfg.notify,
     autoOpenBox: cfg.autoOpenBox,
@@ -339,7 +339,7 @@ async function doShareTask(headers) {
     }
 }
 
-/* 盲盒开箱逻辑优化（支持所有可开盲盒） */
+/* 盲盒开箱逻辑优化（适配真实接口返回，精准显示状态） */
 async function openAllAvailableBoxes(headers) {
     if (!cfg.autoOpenBox) {
         logInfo("自动开箱已关闭（BoxJS配置），跳过");
@@ -350,8 +350,12 @@ async function openAllAvailableBoxes(headers) {
     try {
         const boxResp = await httpGet(END.blindBoxList, headers);
         const notOpened = boxResp?.data?.notOpenedBoxes || [];
+        const opened = boxResp?.data?.openedBoxes || [];
+        // 仅筛选当前可开的盲盒（leftDaysToOpen === 0）
         const availableBoxes = notOpened.filter(b => Number(b.leftDaysToOpen ?? b.remaining) === 0);
         logInfo("可开启盲盒：", availableBoxes);
+        logInfo("待开启盲盒：", notOpened.filter(b => Number(b.leftDaysToOpen ?? b.remaining) > 0));
+        logInfo("已开启盲盒：", opened);
 
         const openResults = [];
         for (const box of availableBoxes) {
@@ -363,7 +367,7 @@ async function openAllAvailableBoxes(headers) {
             try {
                 const openResp = await httpPost(openUrl, headers, {
                     deviceId: cfg.DeviceId,
-                    boxId: boxId // 普通盲盒可能需要传入boxId，抓包确认
+                    boxId: boxId // 适配部分盲盒需要boxId的场景
                 });
                 if (openResp?.code === 0 || openResp?.success === true) {
                     const reward = openResp.data?.awardName ?? "未知奖励";
@@ -505,15 +509,31 @@ async function openAllAvailableBoxes(headers) {
         const boxOpenResults = await openAllAvailableBoxes(headers);
         const boxMsg = boxOpenResults.length > 0 ? `\n📦 盲盒开箱结果\n${boxOpenResults.join("\n")}` : "\n📦 盲盒开箱结果：无可用盲盒";
 
-        // 8. 盲盒进度统计
-        let blindProgress = "无";
+        // 8. 盲盒进度统计（核心修复：完全匹配接口返回，显示剩余天数+已开统计）
+        let blindProgress = "";
         try {
             const boxResp = await httpGet(END.blindBoxList, headers);
             const notOpened = boxResp?.data?.notOpenedBoxes || [];
-            if (Array.isArray(notOpened) && notOpened.length > 0) {
-                blindProgress = notOpened.map(b => `${b.awardDays ?? b.totalDays}天盲盒：${b.openedDays ?? b.currentDays ?? 0}/${b.awardDays ?? b.totalDays}天`).join("\n| ");
-            }
-        } catch (e) { logWarn("盲盒进度查询异常：", String(e)); }
+            const opened = boxResp?.data?.openedBoxes || [];
+
+            // 待开盲盒：显示“XX天盲盒 + 剩余天数”
+            const waitingBoxes = notOpened.map(b => {
+                const remaining = Number(b.leftDaysToOpen ?? 0);
+                return `${b.awardDays}天盲盒（剩余${remaining}天）`;
+            }).join("\n| ");
+
+            // 已开盲盒：统计数量 + 去重类型（如“已开7个：30天、66天、100天、365天”）
+            const openedTypes = [...new Set(opened.map(b => b.awardDays + "天"))]; // 去重盲盒类型
+            const openedDesc = opened.length > 0 
+                ? `已开${opened.length}个（类型：${openedTypes.join("、")}）` 
+                : "暂无已开盲盒";
+
+            // 组合完整进度（适配你的接口数据，显示更直观）
+            blindProgress = openedDesc + (waitingBoxes ? `\n| 待开盲盒：\n| ${waitingBoxes}` : "\n| 无待开盲盒");
+        } catch (e) {
+            logWarn("盲盒进度查询异常：", String(e));
+            blindProgress = "查询异常：" + String(e).slice(0, 20);
+        }
 
         // 9. 发送通知
         if (cfg.notify) {
@@ -524,7 +544,7 @@ async function openAllAvailableBoxes(headers) {
             logInfo("发送通知：", notifyBody);
         }
 
-        logInfo("九号自动签到+分享任务完成（v2.7全优化版）");
+        logInfo("九号自动签到+分享任务完成（v2.7盲盒修复版）");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e));
