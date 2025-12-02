@@ -62,14 +62,14 @@
         },
         {
           "id": "ninebot.debug",
-          "name": "调试模式",
+          "name": "调试模式（兼容旧版）",
           "val": "false",
           "type": "select",
           "items": [
             { "key": "true", "label": "开启（输出完整日志，便于排查问题）" },
             { "key": "false", "label": "关闭（仅输出关键日志）" }
           ],
-          "desc": "兼容旧版，控制日志输出详细程度"
+          "desc": "兼容旧版配置，优先级低于「日志等级」"
         },
         {
           "id": "ninebot.logLevel",
@@ -81,7 +81,7 @@
             { "key": "simple", "label": "简化（关键警告/错误）" },
             { "key": "silent", "label": "静默（仅报错通知，无日志）" }
           ],
-          "desc": "精细控制日志输出，优先级高于调试模式"
+          "desc": "下拉选择无需手填，精细控制日志输出"
         },
         {
           "id": "ninebot.enableShare",
@@ -143,7 +143,7 @@
           "name": "最后抓包时间",
           "val": "",
           "type": "text",
-          "desc": "自动记录，不可编辑（查看抓包更新时间）",
+          "desc": "自动记录正常时间（格式：YYYY-MM-DD HH:mm:ss），不可编辑",
           "editable": false
         },
         {
@@ -151,7 +151,7 @@
           "name": "最后分享日期",
           "val": "",
           "type": "text",
-          "desc": "自动记录，不可编辑（标记今日是否分享）",
+          "desc": "自动记录（格式：YYYY-MM-DD），不可编辑",
           "editable": false
         }
       ]
