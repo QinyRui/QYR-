@@ -1,9 +1,8 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js （版本 E · 全优化版）
+Ninebot_Sign_Single_v2.7.js （版本 E · 全终极版）
 2025-12-02 22:00 更新
-核心优化：新增分享开关、Token过期提醒、全盲盒自动开箱、日志分级、接口适配
-适配工具：Surge/Quantumult X/Loon（支持Base64自动解码）
-功能覆盖：抓包写入、自动签到、加密分享、自动领奖励、全盲盒开箱、资产查询、美化通知
+功能覆盖：抓包写入、自动签到、分享任务、盲盒、资产查询、通知美化
+适配工具：Surge/Quantumult X/Loon
 ***********************************************/
 
 /* ENV wrapper */
@@ -31,8 +30,8 @@ const KEY_TITLE="ninebot.titlePrefix";
 const KEY_SHARE="ninebot.shareTaskUrl";
 const KEY_LAST_CAPTURE="ninebot.lastCaptureAt";
 const KEY_LAST_SHARE="ninebot.lastShareDate";
-const KEY_ENABLE_SHARE="ninebot.enableShare"; // 分享任务开关（默认开启）
-const KEY_LOG_LEVEL="ninebot.logLevel"; // 日志级别（0=静默,1=简化,2=完整）
+const KEY_ENABLE_SHARE="ninebot.enableShare"; 
+const KEY_LOG_LEVEL="ninebot.logLevel"; 
 
 /* Endpoints */
 const END={
@@ -85,4 +84,168 @@ const capUrl=request.url||"";
 logInfo("抓包 URL：", capUrl);
 
 let changed=false;
-if(auth
+if(auth && readPS(KEY_AUTH)!==auth){ writePS(auth,KEY_AUTH); changed=true; }
+if(dev && readPS(KEY_DEV)!==dev){ writePS(dev,KEY_DEV); changed=true; }
+if(ua && readPS(KEY_UA)!==ua){ writePS(ua,KEY_UA); changed=true; }
+if(capUrl.includes("/service/2/app_log/")){
+const base=capUrl.split("?")[0];
+if(readPS(KEY_SHARE)!==base){ writePS(base,KEY_SHARE); changed=true; logInfo("捕获分享接口写入：",base); }
+}
+if(changed){ writePS(String(Date.now()),KEY_LAST_CAPTURE); notify("九号智能电动车","抓包成功 ✓","数据已写入 BoxJS（含分享接口）"); logInfo("抓包写入成功"); }
+else logInfo("抓包数据无变化");
+}catch(e){ logErr("抓包异常：",e); }
+$done({});
+}
+
+/* 时间工具函数 */
+function toDateKeyAny(ts){
+if(!ts) return null;
+let d;
+if(typeof ts==="number"){
+if(ts>1e12) ts=Math.floor(ts/1000);
+d=new Date(ts*1000);
+}else if(typeof ts==="string"){
+if(/^\d+/.test(ts)){
+let n=Number(ts);
+if(n>1e12) n=Math.floor(n/1000);
+d=new Date(n*1000);
+}else{
+d=new Date(ts);
+}
+}else return null;
+if(isNaN(d)) return null;
+return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+
+/* 构造请求头 */
+function makeHeaders(){
+return {
+"Authorization":readPS(KEY_AUTH)||"",
+"Content-Type":"application/octet-stream;tt-data=a",
+"device_id":readPS(KEY_DEV)||"",
+"User-Agent":readPS(KEY_UA)||"Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
+"platform":"h5",
+"Origin":"https://h5-bj.ninebot.com",
+"language":"zh",
+"aid":"10000004",
+"Cookie":"install_id=7387027437663600641; ttreq=1$b5f546fbb02eadcb22e472a5b203b899b5c4048e",
+"accept-encoding":"gzip, deflate, br",
+"priority":"u=3",
+"accept-language":"zh-CN,zh-Hans;q=0.9",
+"accept":"application/json"
+};
+}
+
+/* HTTP请求 */
+function requestWithRetry({method="GET",url,headers={},body=null,timeout=REQUEST_TIMEOUT,isBase64=false}){
+return new Promise((resolve,reject)=>{
+let attempts=0;
+const once=()=>{
+attempts++;
+const opts={url,headers,timeout};
+if(method==="POST"){ opts.body=body; if(isBase64) opts["body-base64"]=true; }
+const cb=(err,resp,data)=>{
+if(err){
+const msg=String(err&&(err.error||err.message||err));
+const shouldRetry=/(Socket closed|ECONNRESET|network|timed out|timeout|failed)/i.test(msg);
+if(attempts<MAX_RETRY && shouldRetry){ setTimeout(once,RETRY_DELAY); return; } else{ reject(err); return; }
+}
+let respData={};
+try{ respData=JSON.parse(data||"{}"); }catch(e){ respData={raw:data}; }
+if(!checkTokenValid({code:resp.status,...respData})){ reject(new Error("Token invalid or expired")); return; }
+resolve(respData);
+};
+if(method==="GET") $httpClient.get(opts,cb); else $httpClient.post(opts,cb);
+};
+once();
+});
+}
+function httpGet(url,headers={}){ return requestWithRetry({method:"GET",url,headers}); }
+function httpPost(url,headers={},body={},isBase64=false){ return requestWithRetry({method:"POST",url,headers,body,isBase64}); }
+
+/* 主流程 */
+(async()=>{
+try{
+const headers=makeHeaders();
+let notifyMsg="",notifyTitle=readPS(KEY_TITLE)||"九号签到";
+
+// 1. 查询签到状态
+let statusResp=null;
+try{ statusResp=await httpGet(`${END.status}?t=${Date.now()}`,headers); }catch(e){ logWarn("状态请求异常：",String(e)); }
+const statusData=statusResp?.data||{};
+let consecutiveDays=statusData?.consecutiveDays??statusData?.continuousDays??0;
+const signCards=statusData?.signCardsNum??statusData?.remedyCard??0;
+const currentSignStatus=statusData?.currentSignStatus??statusData?.currentSign??null;
+const knownSignedValues=[1,'1',true,'true'];
+const isSigned=knownSignedValues.includes(currentSignStatus);
+
+// 2. 执行签到
+let signMsg="", todayGainExp=0, todayGainNcoin=0;
+if(!isSigned){
+try{
+const signResp=await httpPost(END.sign,headers,{deviceId:readPS(KEY_DEV)||""});
+if(signResp.code===0||signResp.success===true){
+consecutiveDays+=1;
+const rewardList=signResp.data?.rewardList;
+let newExp=0,newCoin=0;
+if(Array.isArray(rewardList)){
+for(const r of rewardList){
+const v=Number(r.rewardValue??0);
+const t=Number(r.rewardType??0);
+if(t===1) newExp+=v; else newCoin+=v;
+}}
+const nCoin=Number(signResp.data?.nCoin??signResp.data?.coin??0);
+const score=Number(signResp.data?.score??signResp.data?.credit??0);
+todayGainExp+=(score+newExp);
+todayGainNcoin+=(nCoin+newCoin);
+signMsg=`✨ 今日签到：成功\n🎁 签到奖励：+${todayGainExp} 经验、+${todayGainNcoin} N 币`;
+} else if(signResp.code===540004||(signResp.msg&&/已签到/.test(signResp.msg))||(signResp.message&&/已签到/.test(signResp.message))){
+signMsg="✨ 今日签到：已签到（接口）";
+} else { signMsg=`❌ 签到失败：${signResp.msg||signResp.message||JSON.stringify(signResp)}`; }
+}catch(e){ logWarn("签到异常：",String(e)); signMsg=`❌ 签到异常：${String(e)}`; }
+}else signMsg="✨ 今日签到：已签到";
+
+// 3. 分享任务
+const shareEnabled=readPS(KEY_ENABLE_SHARE)!=="0";
+if(shareEnabled){
+try{
+const lastShare=readPS(KEY_LAST_SHARE);
+if(lastShare!==todayKey()){
+const shareUrl=readPS(KEY_SHARE);
+if(shareUrl){
+const shareResp=await httpGet(shareUrl,headers);
+if(shareResp?.code===0){ 
+todayGainNcoin+=Number(shareResp?.data?.nCoin??0);
+writePS(todayKey(),KEY_LAST_SHARE); 
+signMsg+=`\n🎁 分享奖励：+${shareResp?.data?.nCoin??0} N 币`; 
+}}}}catch(e){ logWarn("分享任务异常：",String(e)); }}
+
+// 4. 盲盒自动开箱
+const autoBox=readPS(KEY_AUTOBOX)!=="0";
+if(autoBox){
+try{
+const boxList=await httpGet(END.blindBoxList,headers);
+if(boxList?.data?.length){
+for(const box of boxList.data){
+const id=box.id,opened=box.status===1;
+if(!opened){
+const openUrl=box.day===7?END_OPEN.openSeven:END_OPEN.openNormal;
+await httpPost(openUrl,headers,{id}); 
+}}
+}}catch(e){ logWarn("盲盒开箱异常：",String(e)); }}
+
+// 5. 查询账户资产
+let balanceMsg="";
+try{
+const bal=await httpGet(END.balance,headers);
+const nCoin=bal?.data?.nCoin??0,exp=bal?.data?.score??0;
+balanceMsg=`📊 账户状态\n- 当前经验：${exp}\n- 当前 N币：${nCoin}\n- 连续签到：${consecutiveDays} 天\n- 补签卡：${signCards} 张`;
+}catch(e){ logWarn("资产查询异常：",String(e)); }
+
+notifyMsg=`${signMsg}\n${balanceMsg}`;
+logInfo(notifyMsg);
+notify(notifyTitle,"签到结果",notifyMsg);
+
+}catch(e){ logErr("自动签到主流程异常：",e); notify("九号签到异常","执行失败",String(e)); }
+})();
