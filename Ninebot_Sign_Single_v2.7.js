@@ -521,7 +521,7 @@ async function openAllAvailableBoxes(headers) {
                 if (cfg.notifyFail) signMsg = `❌ 签到请求异常：${errMsg}`;
             }
         } else { 
-            signMsg = "✨ 今日签到：已签到（日期+状态双重验证）"; 
+            signMsg = "✨ 今日签到：已签到"; 
             logInfo("今日已签到，跳过签到接口");
 
             // 已签到时，从credit-lst统计今日经验（去重逻辑）
