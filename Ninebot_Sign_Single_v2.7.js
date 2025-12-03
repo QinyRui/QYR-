@@ -1,13 +1,13 @@
 /***********************************************
-Ninebot_Sign_Single_v2.8.js （Base64自动捕获版）
-2025-12-05 11:00 更新
+Ninebot_Sign_Single_v2.8.js （Base64自动捕获+通知优化版）
+2025-12-05 15:30 更新
 核心新增：分享任务Base64编码自动抓包写入BoxJS，适配接口动态变化
 核心优化：
 1. 动态捕获分享接口+分享Base64编码+分享奖励接口（三重自动适配）
 2. 盲盒开箱补充签名参数（适配接口要求）
 3. 经验/N币统计去重（避免重复计算）
 4. 新增网络重试开关（BoxJS可配置）
-5. 通知明确化（奖励明细精准显示，已移除冗余说明）
+5. 通知格式优化（按用户要求精简字段、调整盲盒进度显示）
 适配工具：Surge/Quantumult X/Loon（支持Base64自动解码）
 功能覆盖：抓包写入、自动签到、加密分享、自动领奖励、全盲盒开箱、资产查询、美化通知
 ***********************************************/
@@ -200,7 +200,7 @@ const cfg = {
     logLevel: getLogLevel()
 };
 
-logInfo("九号自动签到+分享任务开始（v2.8 Base64自动捕获版）");
+logInfo("九号自动签到+分享任务开始（v2.8 Base64自动捕获+通知优化版）");
 logInfo("当前配置：", {
     notify: cfg.notify,
     autoOpenBox: cfg.autoOpenBox,
@@ -378,7 +378,7 @@ async function doShareTask(headers) {
             await new Promise(resolve => setTimeout(resolve, 2000));
             return {
                 success: true,
-                msg: `✅ 分享任务：成功\n🎯 领取状态：已尝试自动领取`,
+                msg: `✅ 分享任务：成功`,
                 exp: 0,
                 ncoin: 0
             };
@@ -505,7 +505,7 @@ async function openAllAvailableBoxes(headers) {
                     todayGainNcoin += signCoin;
 
                     // 通知文案明确：标注接口返回成功+实际奖励
-                    signMsg = `✨ 今日签到：实际成功\n🎯 接口返回：Success（code:${signResp.code}）\n🎁 签到奖励：+${signExp} 经验、+${signCoin} N 币`;
+                    signMsg = `✨ 今日签到：实际成功`;
                     logInfo("签到成功：", signMsg);
                 } else if (signResp.code === 540004 || (signResp.msg && /已签到/.test(signResp.msg)) || (signResp.message && /已签到/.test(signResp.message))) {
                     signMsg = "✨ 今日签到：已签到（接口重复请求）";
@@ -587,13 +587,12 @@ async function openAllAvailableBoxes(headers) {
         }
 
         // 查询账户信息
-        let upgradeLine = "", creditData = {};
+        let upgradeLine = "", creditData = {}, need = 0;
         try {
             const cr = await httpGet(END.creditInfo, headers);
             creditData = cr?.data || {};
             const credit = Number(creditData.credit ?? 0);
             const level = creditData.level ?? null;
-            let need = 0;
             if (creditData.credit_upgrade) {
                 const m = String(creditData.credit_upgrade).match(/还需\s*([0-9]+)\s*/);
                 if (m && m[1]) need = Number(m[1]);
@@ -604,55 +603,70 @@ async function openAllAvailableBoxes(headers) {
         } catch (e) { logWarn("经验信息查询异常：", String(e)); }
 
         // 查询N币余额
-        let balLine = "";
+        let balLine = "", bal = {};
         try {
-            const bal = await httpGet(END.balance, headers);
+            bal = await httpGet(END.balance, headers);
             if (bal?.code === 0) balLine = `- 当前 N 币：${bal.data?.balance ?? bal.data?.coin ?? 0}`;
             else if (bal?.data && bal.data.balance !== undefined) balLine = `- 当前 N 币：${bal.data.balance}`;
         } catch (e) { logWarn("余额查询异常：", String(e)); }
 
         // 自动开启盲盒
         const boxOpenResults = await openAllAvailableBoxes(headers);
-        const boxMsg = boxOpenResults.length > 0 ? `\n📦 盲盒开箱结果\n${boxOpenResults.join("\n")}` : "\n📦 盲盒开箱结果：无可用盲盒";
+        const boxMsg = boxOpenResults.length > 0 
+            ? `📦 盲盒开箱结果\n${boxOpenResults.join("\n")}` 
+            : "📦 盲盒开箱结果：无可用盲盒";
 
-        // 盲盒进度统计
+        // 盲盒进度（按用户要求调整格式：- 开头，无 | 符号）
         let blindProgress = "";
         try {
             const boxResp = await httpGet(END.blindBoxList, headers);
             const notOpened = boxResp?.data?.notOpenedBoxes || [];
             const opened = boxResp?.data?.openedBoxes || [];
 
-            const waitingBoxes = notOpened.map(b => {
-                const remaining = Number(b.leftDaysToOpen ?? 0);
-                return `${b.awardDays}天盲盒（剩余${remaining}天）`;
-            }).join("\n| ");
-
             const openedTypes = [...new Set(opened.map(b => b.awardDays + "天"))];
             const openedDesc = opened.length > 0 
                 ? `已开${opened.length}个（类型：${openedTypes.join("、")}）` 
                 : "暂无已开盲盒";
 
-            blindProgress = openedDesc + (waitingBoxes ? `\n| 待开盲盒：\n| ${waitingBoxes}` : "\n| 无待开盲盒");
+            const waitingBoxes = notOpened.map(b => {
+                const remaining = Number(b.leftDaysToOpen ?? 0);
+                return `- ${b.awardDays}天盲盒（剩余${remaining}天）`;
+            }).join("\n");
+
+            blindProgress = openedDesc + (waitingBoxes ? `\n- 待开盲盒：\n${waitingBoxes}` : "\n- 待开盲盒：无");
         } catch (e) {
             logWarn("盲盒进度查询异常：", String(e));
             blindProgress = "查询异常：" + String(e).slice(0, 20);
         }
 
-        // 发送通知（已移除冗余说明和重复的“今日获得”）
+        // 发送通知（按用户要求格式优化）
         if (cfg.notify) {
             let rewardDetail = "";
             if (todayGainExp > 0) rewardDetail += `🎁 今日奖励明细：+${todayGainExp} 经验`;
             if (todayGainNcoin > 0) rewardDetail += `、+${todayGainNcoin} N 币`;
             if (rewardDetail === "") rewardDetail = "🎁 今日奖励明细：无新增";
 
-            let notifyBody = `${signMsg}\n${shareMsg}\n${rewardDetail}${boxMsg}\n\n📊 账户状态\n${upgradeLine}\n${balLine}\n- 补签卡：${signCards} 张\n- 连续签到：${consecutiveDays} 天\n\n📦 盲盒进度\n${blindProgress}`;
+            // 最终通知体（严格匹配用户提供的格式）
+            let notifyBody = `${signMsg}
+${shareMsg}
+${rewardDetail}
+${boxMsg}
+📊 账户状态
+- 当前经验：${creditData.credit ?? 0}${creditData.level ? `（LV.${creditData.level}）` : ''}
+- 距离升级：${need ?? 0} 经验
+- 当前 N 币：${bal.data?.balance ?? bal.data?.coin ?? 0}
+- 补签卡：${signCards} 张
+- 连续签到：${consecutiveDays} 天
+📦 盲盒进度
+${blindProgress}`;
+
             const MAX_NOTIFY_LEN = 1000;
             if (notifyBody.length > MAX_NOTIFY_LEN) notifyBody = notifyBody.slice(0, MAX_NOTIFY_LEN - 3) + '...';
             notify(cfg.titlePrefix, "", notifyBody);
             logInfo("发送通知：", notifyBody);
         }
 
-        logInfo("九号自动签到+分享任务完成（v2.8 Base64自动捕获版）");
+        logInfo("九号自动签到+分享任务完成（v2.8 Base64自动捕获+通知优化版）");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e));
