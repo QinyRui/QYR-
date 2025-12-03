@@ -1,5 +1,5 @@
 /*
- 九号签到脚本 · 终极更新检测系统（全功能）
+ 九号签到脚本 · 终极更新检测系统（Loon/QX 稳定版）
  功能：
  1. 下载远程 JS + version.json
  2. Hash 对比 + 版本号对比
@@ -33,16 +33,13 @@ const TELEGRAM_BOT_TOKEN = "";
 const TELEGRAM_CHAT_ID = "";
 
 // ---------- 工具函数 ----------
-function sha256(str) {
-    // Loon / QX 内置 $crypto 对象可能不存在，用 WebCrypto 方案
+async function sha256(str) {
     if (typeof $crypto !== "undefined") return $crypto.sha256(str).toUpperCase();
     if (typeof crypto !== "undefined" && crypto.subtle) {
         const encoder = new TextEncoder();
-        return crypto.subtle.digest("SHA-256", encoder.encode(str)).then(buf => {
-            return Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
-        });
+        const buf = await crypto.subtle.digest("SHA-256", encoder.encode(str));
+        return Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
     }
-    // Fallback: 返回空，保证逻辑继续
     console.warn("无法计算 SHA256，使用 fallback");
     return "UNKNOWN_HASH";
 }
@@ -95,7 +92,11 @@ function analyzeFunctionChanges(oldData, newData){
                 $httpClient.get(VERSION_URL,(e,r,d)=>resolve(d));
             });
             remoteVersion = JSON.parse(verResp||"{}").version||"";
-        }catch(e){ console.warn("version.json 下载失败:", e); }
+            console.log("远程 version.json:", remoteVersion);
+        }catch(e){
+            console.warn("version.json 下载失败:", e);
+            $notification.post(TITLE,"⚠️ 更新检测异常","version.json 下载失败\n"+String(e),{ "media-url": LOGO_URL });
+        }
 
         for(const sc of SCRIPTS){
             let data;
@@ -142,7 +143,9 @@ diff 摘要：
 ${diff}
 点击查看详细更新
 `;
+                console.log("发送通知...");
                 $notification.post(TITLE, "🚀 检测到脚本更新", notifyBody, { "open-url": "https://github.com/QinyRui/QYR-/compare/main...HEAD", "media-url": LOGO_URL });
+                console.log("通知发送成功");
 
                 // Telegram 推送
                 if(TELEGRAM_ENABLE && TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID){
@@ -151,7 +154,6 @@ ${diff}
                     $httpClient.get(tgUrl,()=>{});
                 }
 
-                console.log(`${sc.name} 已检测到更新`);
             }else{
                 console.log(`${sc.name} 已是最新，无需更新`);
             }
