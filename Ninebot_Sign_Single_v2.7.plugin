@@ -6,7 +6,7 @@
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
 #!date = 2025-12-05 15:30:00
-#!version = 2.8
+#!version = 2.7
 #!system_version = 15
 
 [Argument]
@@ -19,10 +19,10 @@ checkUpdate = switch, "true", "false", tag=自动检查脚本更新（终极版�
 
 [Script]
 #（1）抓包写入：仅签到状态
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.8.js, timeout=10, tag=九号-抓包写入, enable={capture}
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=10, tag=九号-抓包写入, enable={capture}
 
 #（2）自动签到 + 盲盒开箱
-cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.8.js, timeout=120, tag=九号-自动签到
+cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=120, tag=九号-自动签到
 
 #（3）自动检查更新（终极版：Hash+Version+Diff+多脚本+卡片+LOGO+Telegram）
 cron "10 9 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_UpdateChecker_Ultimate.js, timeout=60, tag=九号-脚本更新检测, enable={checkUpdate}
