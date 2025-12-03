@@ -1,5 +1,5 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js （基础精简版）
+Ninebot_Sign_Single_v2.8.js （基础精简版）
 2025-12-05 15:30 更新
 核心功能：自动签到、盲盒开箱、资产查询
 适配工具：Surge/Quantumult X/Loon
@@ -37,6 +37,7 @@ const KEY_NOTIFYFAIL = "ninebot.notifyFail";
 const KEY_TITLE = "ninebot.titlePrefix";
 const KEY_LAST_SIGN_DATE = "ninebot.lastSignDate";
 const KEY_ENABLE_RETRY = "ninebot.enableRetry";
+const KEY_LOG_LEVEL = "ninebot.logLevel"; // 补充缺失的配置项
 
 const END = {
     sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
@@ -54,7 +55,7 @@ const MAX_RETRY = 3, RETRY_DELAY = 1500, REQUEST_TIMEOUT = 12000;
 const LOG_LEVEL_MAP = { silent: 0, simple: 1, full: 2 };
 
 function getLogLevel() {
-    const v = readPS(KEY_LOG_LEVEL) || "full";
+    const v = readPS(KEY_LOG_LEVEL) || "full"; // 补充缺失的KEY_LOG_LEVEL读取
     return LOG_LEVEL_MAP[v] ?? LOG_LEVEL_MAP.full;
 }
 function logInfo(...args) {
@@ -122,7 +123,7 @@ const cfg = {
     notifyFail: (readPS(KEY_NOTIFYFAIL) === null || readPS(KEY_NOTIFYFAIL) === undefined) ? true : (readPS(KEY_NOTIFYFAIL) !== "false"),
     titlePrefix: readPS(KEY_TITLE) || "九号签到助手",
     enableRetry: (readPS(KEY_ENABLE_RETRY) === null || readPS(KEY_ENABLE_RETRY) === undefined) ? true : (readPS(KEY_ENABLE_RETRY) !== "false"),
-    logLevel: getLogLevel()
+    logLevel: getLogLevel() // 补充缺失的logLevel配置
 };
 
 if (!cfg.Authorization || !cfg.DeviceId) {
