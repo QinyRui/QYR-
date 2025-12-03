@@ -12,17 +12,12 @@
         "ninebot.authorization",
         "ninebot.deviceId",
         "ninebot.userAgent",
-        "ninebot.shareTaskUrl",
-        "ninebot.shareRewardUrl",
-        "ninebot.shareBody",
-        "ninebot.shareBodyCapturedAt",
         "ninebot.titlePrefix",
         "ninebot.debug",
         "ninebot.notify",
         "ninebot.autoOpenBox",
-        "ninebot.autoRepair",
         "ninebot.notifyFail",
-        "ninebot.enableShare",
+        "ninebot.autoRepair",
         "ninebot.enableRetry",
         "ninebot.logLevel",
         "ninebot.lastCaptureAt"
@@ -50,41 +45,6 @@
           "desc": "请求UA（抓包自动覆盖，默认值可直接使用）"
         },
         {
-          "id": "ninebot.shareTaskUrl",
-          "name": "分享接口BaseURL",
-          "val": "",
-          "type": "text",
-          "desc": "分享动作接口地址（抓包自动写入，无需手填）"
-        },
-        {
-          "id": "ninebot.shareRewardUrl",
-          "name": "分享奖励接口",
-          "val": "",
-          "type": "text",
-          "desc": "分享后领奖励接口（抓包自动写入，无需手填）"
-        },
-        {
-          "id": "ninebot.shareBody",
-          "name": "分享Base64编码",
-          "val": "",
-          "type": "text",
-          "desc": "分享请求体Base64编码（抓包自动写入，无需手填）"
-        },
-        {
-          "id": "ninebot.shareBodyCapturedAt",
-          "name": "Base64捕获时间",
-          "val": "",
-          "type": "text",
-          "desc": "Base64编码最后捕获时间（仅展示，不可修改）"
-        },
-        {
-          "id": "ninebot.lastCaptureAt",
-          "name": "最后抓包时间",
-          "val": "",
-          "type": "text",
-          "desc": "所有配置最后抓包更新时间（仅展示，不可修改）"
-        },
-        {
           "id": "ninebot.titlePrefix",
           "name": "自定义通知标题",
           "val": "九号签到助手",
@@ -97,10 +57,10 @@
           "val": "true",
           "type": "select",
           "items": [
-            { "key": "true", "label": "开启（输出完整日志，便于排查问题）" },
+            { "key": "true", "label": "开启（输出完整日志）" },
             { "key": "false", "label": "关闭（仅输出关键日志）" }
           ],
-          "desc": "控制日志输出详细程度，调试时开启"
+          "desc": "控制日志输出详细程度"
         },
         {
           "id": "ninebot.notify",
@@ -108,10 +68,10 @@
           "val": "true",
           "type": "select",
           "items": [
-            { "key": "true", "label": "开启（推送签到/分享结果通知）" },
-            { "key": "false", "label": "关闭（不推送任何通知）" }
+            { "key": "true", "label": "开启（推送签到结果）" },
+            { "key": "false", "label": "关闭（不推送通知）" }
           ],
-          "desc": "是否推送签到、分享、开箱的结果通知"
+          "desc": "是否推送签到结果通知"
         },
         {
           "id": "ninebot.autoOpenBox",
@@ -133,7 +93,7 @@
             { "key": "true", "label": "开启（失败时推送通知）" },
             { "key": "false", "label": "关闭（失败时不推送）" }
           ],
-          "desc": "仅在签到/分享/开箱失败时推送通知，避免打扰"
+          "desc": "仅在失败时推送通知，避免打扰"
         },
         {
           "id": "ninebot.autoRepair",
@@ -147,17 +107,6 @@
           "desc": "预留功能，当前暂未实现，默认关闭"
         },
         {
-          "id": "ninebot.enableShare",
-          "name": "启用分享任务",
-          "val": "true",
-          "type": "select",
-          "items": [
-            { "key": "true", "label": "开启（自动执行分享+领奖励）" },
-            { "key": "false", "label": "关闭（不执行分享任务）" }
-          ],
-          "desc": "需抓包获取分享接口后生效，可获取额外奖励"
-        },
-        {
           "id": "ninebot.enableRetry",
           "name": "网络重试开关",
           "val": "true",
@@ -166,7 +115,7 @@
             { "key": "true", "label": "开启（网络异常自动重试）" },
             { "key": "false", "label": "关闭（网络异常直接失败）" }
           ],
-          "desc": "最多重试3次，避免临时网络问题导致任务失败"
+          "desc": "最多重试3次，避免临时网络问题"
         },
         {
           "id": "ninebot.logLevel",
@@ -174,11 +123,18 @@
           "val": "full",
           "type": "select",
           "items": [
-            { "key": "silent", "label": "静默（无任何日志）" },
-            { "key": "simple", "label": "简洁（仅警告/错误日志）" },
-            { "key": "full", "label": "完整（所有运行日志）" }
+            { "key": "silent", "label": "静默（无日志）" },
+            { "key": "simple", "label": "简洁（仅错误日志）" },
+            { "key": "full", "label": "完整（所有日志）" }
           ],
-          "desc": "细化日志控制，稳定运行后可设为simple"
+          "desc": "细化日志控制"
+        },
+        {
+          "id": "ninebot.lastCaptureAt",
+          "name": "最后抓包时间",
+          "val": "",
+          "type": "text",
+          "desc": "所有配置最后抓包更新时间（仅展示，不可修改）"
         }
       ]
     }
