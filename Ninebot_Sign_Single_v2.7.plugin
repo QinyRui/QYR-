@@ -1,4 +1,4 @@
-#!name = 九号智能电动车 · 单号自动签到（Loon专用版）
+#!name = 九号智能电动车 · 单号自动签到（极简版）
 #!desc = 抓包自动写入教程→打开 Loon 抓包开关→打开九号 APP 签到页，会自动写入 BoxJS
 #!openUrl = https://t.me/JiuHaoAPP
 #!author = QinyRui
@@ -6,7 +6,7 @@
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
 #!date = 2025-12-05 15:30:00
-#!version = 2.8
+#!version = 2.7
 #!system_version = 15
 
 [Argument]
@@ -15,10 +15,14 @@ capture = switch, "false", "true", tag=抓包写入开关
 titlePrefix = input, "九号签到助手", tag=自定义通知标题
 cron_time = input, "1 0 * * *", tag=签到时间（CRON）
 logLevel = select, "info", "debug", "warn", "error", tag=脚本日志等级（debug=最详细，error=仅报错）
+checkUpdate = switch, "true", "false", tag=自动检查脚本更新
 
 [Script]
-#（1）抓包写入：仅签到状态
+#（1）抓包写入
 http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=10, tag=九号-抓包写入, enable={capture}
 
 #（2）自动签到 + 盲盒开箱
 cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=120, tag=九号-自动签到
+
+#（3）自动检查更新（终极版：Hash+Version+Diff+多脚本+卡片+LOGO+Telegram）
+cron "10 9 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_UpdateChecker_Ultimate.js, timeout=60, tag=九号-脚本更新检测, enable={checkUpdate}
