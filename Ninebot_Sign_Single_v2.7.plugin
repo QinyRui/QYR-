@@ -12,11 +12,10 @@
 [Argument]
 notify = switch, "true", "false", tag=通知开关
 capture = switch, "false", "true", tag=抓包写入开关
+checkUpdate = switch, "true", "false", tag=自动检查脚本更新
 titlePrefix = input, "九号签到助手", tag=自定义通知标题
 cron_time = input, "1 0 * * *", tag=签到时间（CRON）
 logLevel = select, "info", "debug", "warn", "error", tag=脚本日志等级（debug=最详细，error=仅报错）
-checkUpdate = switch, "true", "false", tag=自动检查脚本更新
-forceCheck = switch, "false", "true", tag=立即执行更新检测（手动触发）
 
 [Script]
 #（1）抓包写入
