@@ -1,11 +1,11 @@
 /***********************************************
-Ninebot_Sign_Single_v2.8.js （最终修复版）
-2025-12-05 15:30 更新
+Ninebot_Sign_Single_v2.8.js （Loon修复版）
+2025-12-05 20:30 更新
 核心功能：自动签到、盲盒开箱、资产查询
 适配工具：Loon/Surge/Quantumult X
 ***********************************************/
 
-const IS_LOON = typeof $argument !== "undefined";
+const IS_LOON = (typeof $httpClient !== "undefined" && $httpClient?.version) || (typeof $notification !== "undefined" && $notification?.post);
 const IS_REQUEST = typeof $request !== "undefined";
 const HAS_PERSIST = typeof $persistentStore !== "undefined";
 const HAS_NOTIFY = typeof $notification !== "undefined";
@@ -19,12 +19,20 @@ logInfo("环境检测：", {
     HAS_HTTP: HAS_HTTP
 });
 
-// 参数处理（强制优先使用BoxJS配置）
+// 参数处理（强制优先使用Loon参数）
 const ARG = {
-    titlePrefix: readPS("ninebot.titlePrefix") || "九号签到助手",
-    logLevel: readPS("ninebot.logLevel") || "debug",
-    notify: readPS("ninebot.notify") === "true"
+    titlePrefix: IS_LOON ? ($argument?.titlePrefix || readPS("ninebot.titlePrefix") || "九号签到助手") : readPS("ninebot.titlePrefix") || "九号签到助手",
+    logLevel: IS_LOON ? ($argument?.logLevel || readPS("ninebot.logLevel") || "debug") : readPS("ninebot.logLevel") || "debug",
+    notify: IS_LOON ? ($argument?.notify === "true") : (readPS("ninebot.notify") === "true")
 };
+
+// 参数来源日志
+logInfo("参数来源：", {
+    isLoon: IS_LOON,
+    titlePrefix: ARG.titlePrefix,
+    logLevel: ARG.logLevel,
+    notify: ARG.notify
+});
 
 // 强制开启日志验证
 const LOG_LEVEL_MAP = { silent: 0, simple: 1, full: 2 };
@@ -60,6 +68,8 @@ function logErr(...args) {
     const formattedArgs = args.map(a => typeof a === "object" ? JSON.stringify(a) : String(a));
     console.error(`[${nowStr()}] error ${formattedArgs.join(" ")}`);
 }
+
+// 其他代码与之前版本一致...
 
 const KEY_AUTH = "ninebot.authorization";
 const KEY_DEV = "ninebot.deviceId";
