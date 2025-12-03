@@ -4,6 +4,7 @@
   "author": "QinyRui",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
   "repo": "https://t.me/JiuHaoAPP",
+  "version": "2.7",
   "apps": [
     {
       "id": "ninebot.single",
@@ -28,14 +29,14 @@
           "name": "Authorization",
           "val": "",
           "type": "text",
-          "desc": "账号鉴权Token（抓包自动写入，无需手填）"
+          "desc": "账号鉴权Token（抓包自动写入，无需手动填写）"
         },
         {
           "id": "ninebot.deviceId",
           "name": "DeviceId",
           "val": "",
           "type": "text",
-          "desc": "设备ID（抓包自动写入，无需手填）"
+          "desc": "设备ID（抓包自动写入，无需手动填写）"
         },
         {
           "id": "ninebot.userAgent",
@@ -49,7 +50,7 @@
           "name": "自定义通知标题",
           "val": "九号签到助手",
           "type": "text",
-          "desc": "通知标题前缀，例如：九号签到助手"
+          "desc": "通知标题前缀，可自定义"
         },
         {
           "id": "ninebot.debug",
@@ -127,16 +128,22 @@
             { "key": "simple", "label": "简洁（仅错误日志）" },
             { "key": "full", "label": "完整（所有日志）" }
           ],
-          "desc": "细化日志控制"
+          "desc": "可在 BoxJS 调节日志输出等级"
         },
         {
           "id": "ninebot.lastCaptureAt",
           "name": "最后抓包时间",
           "val": "",
           "type": "text",
-          "desc": "所有配置最后抓包更新时间（仅展示，不可修改）"
+          "desc": "抓包最后写入 BoxJS 的时间，仅展示，不可修改"
         }
       ]
     }
-  ]
+  ],
+  "update": {
+    "autoCheck": true,
+    "version": "2.7",
+    "changelog": "v2.7 最终修复版：支持自动签到、盲盒开箱、日志等级调节、自定义通知标题、抓包时间显示"
+  },
+  "description": "抓包自动写入教程→打开 Loon 抓包开关→打开九号 APP 签到页，会自动写入 BoxJS；支持日志等级调节、通知自定义标题、显示抓包最后写入时间。"
 }
