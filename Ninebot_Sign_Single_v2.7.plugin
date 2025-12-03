@@ -25,4 +25,4 @@ http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2
 cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=120, tag=九号-自动签到
 
 #（3）自动检查更新（终极版：Hash+Version+Diff+多脚本+卡片+LOGO+Telegram）
-cron "10 9 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_UpdateChecker_Ultimate.js, timeout=60, tag=九号-脚本更新检测, enable={checkUpdate}
+cron "10 9 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_UpdateCheck_v2.7.js, timeout=60, tag=九号-脚本更新检测, enable={checkUpdate}
