@@ -1,11 +1,12 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js （功能增强版）
+Ninebot_Sign_Single_v2.9.js （功能增强版）
 2025-12-05 更新
 核心优化：
 1. 移除通知中冗余的双重验证说明文本
 2. 新增盲盒到期提醒（到期前1天自动通知）
 3. 新增连续签到里程碑提醒（50/100/200/300/500/1000天）
-4. 保留原有所有优化功能（抓包/防重复/签名适配等）
+4. 优化分享任务：用短Base64编码替换超长编码（缩减80%+）
+5. 保留原有所有优化功能（抓包/防重复/签名适配等）
 适配工具：Surge/Quantumult X/Loon（支持Base64自动解码）
 功能覆盖：抓包写入、自动签到、加密分享、自动领奖励、全盲盒开箱、资产查询、美化通知
 ***********************************************/
@@ -51,7 +52,7 @@ const KEY_LOG_LEVEL = "ninebot.logLevel";
 const KEY_LAST_SIGN_DATE = "ninebot.lastSignDate";
 const KEY_SHARE_REWARD = "ninebot.shareRewardUrl";
 const KEY_ENABLE_RETRY = "ninebot.enableRetry";
-const KEY_MILESTONE_NOTIFIED = "ninebot.milestoneNotified"; // 新增：记录已通知的里程碑
+const KEY_MILESTONE_NOTIFIED = "ninebot.milestoneNotified"; // 记录已通知的里程碑
 
 /* Endpoints */
 const END = {
@@ -280,7 +281,7 @@ function todayKey() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/* 分享任务 */
+/* 分享任务（已优化：短Base64编码） */
 async function doShareTask(headers) {
     if (!cfg.enableShare) {
         logInfo("分享任务已关闭（BoxJS配置），跳过");
@@ -295,4 +296,290 @@ async function doShareTask(headers) {
         return { success: false, msg: "ℹ️ 今日已分享", exp: 0, ncoin: 0 };
     }
 
-    const ENCRYPTED_BODY = "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
+    // 优化：使用短Base64编码（来自Loon回放，有效且精简）
+    const ENCRYPTED_BODY = "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";
+
+    logInfo("开始执行分享任务（使用短Base64编码）...");
+    try {
+        const shareResp = await httpPost(
+            cfg.shareTaskUrl,
+            headers,
+            ENCRYPTED_BODY,
+            true // 标记为Base64编码，脚本会自动解码
+        );
+        logInfo("分享接口返回：", shareResp);
+
+        if (shareResp.e === 0 || shareResp.success === true || shareResp.message === "success") {
+            writePS(today, KEY_LAST_SHARE);
+
+            logInfo("尝试自动领取分享奖励（使用抓包的真实接口）...");
+            try {
+                const receiveResp = await httpPost(
+                    cfg.shareRewardUrl, // 动态使用抓包的奖励接口
+                    headers,
+                    {
+                        deviceId: cfg.DeviceId,
+                        taskType: "share",
+                        timestamp: Date.now(),
+                        signType: "daily_share",
+                        awardType: 1
+                    }
+                );
+                logInfo("分享奖励领取接口返回：", receiveResp);
+                let receiveMsg = "";
+                if (receiveResp.code === 0 || receiveResp.success === true || (receiveResp.msg && receiveResp.msg.includes("成功")) || (receiveResp.message && receiveResp.message.includes("成功"))) {
+                    receiveMsg = "✅ 奖励已领取";
+                } else if ((receiveResp.msg && receiveResp.msg.includes("已领取")) || (receiveResp.message && receiveResp.message.includes("已领取"))) {
+                    receiveMsg = "ℹ️ 奖励已领取";
+                } else {
+                    receiveMsg = "⚠️ 奖励领取失败（接口返回：" + (receiveResp.msg || receiveResp.message || "未知错误") + "）";
+                }
+            } catch (e) {
+                logWarn("自动领取奖励异常：", String(e));
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            return {
+                success: true,
+                msg: `✅ 分享任务：成功\n🎯 领取状态：已尝试自动领取`,
+                exp: 0,
+                ncoin: 0
+            };
+        } else {
+            const errMsg = shareResp.msg || shareResp.message || "接口返回异常";
+            logWarn("分享任务失败：", errMsg);
+            return { success: false, msg: `❌ 分享失败：${errMsg}`, exp: 0, ncoin: 0 };
+        }
+    } catch (e) {
+        const errMsg = String(e);
+        logErr("分享任务请求异常：", errMsg);
+        return { success: false, msg: cfg.notifyFail ? `❌ 分享异常：${errMsg}` : "", exp: 0, ncoin: 0 };
+    }
+}
+
+/* 盲盒到期提醒 */
+async function checkBlindBoxExpire(headers) {
+    logInfo("开始检查盲盒到期状态...");
+    try {
+        const boxList = await httpGet(END.blindBoxList, headers);
+        if (!boxList || !boxList.data || !Array.isArray(boxList.data.list)) {
+            logWarn("盲盒列表获取失败：", boxList);
+            return "";
+        }
+
+        const now = new Date().getTime();
+        const expireRemind = [];
+        boxList.data.list.forEach(box => {
+            if (box.expireTime) {
+                const expireTime = new Date(box.expireTime).getTime();
+                const diffDays = Math.ceil((expireTime - now) / (1000 * 60 * 60 * 24));
+                if (diffDays <= BOX_REMIND_DAY && diffDays >= 0) {
+                    expireRemind.push({
+                        type: box.boxType === 1 ? "七日盲盒" : "普通盲盒",
+                        days: diffDays
+                    });
+                }
+            }
+        });
+
+        if (expireRemind.length > 0) {
+            const remindMsg = expireRemind.map(item => `${item.type}（剩余${item.days}天到期）`).join("、");
+            return `⚠️ 盲盒到期提醒：${remindMsg}\n请及时开箱避免失效～`;
+        }
+        return "";
+    } catch (e) {
+        logErr("盲盒到期检查异常：", e);
+        return "";
+    }
+}
+
+/* 连续签到里程碑提醒 */
+function checkSignMilestone(continuousDays) {
+    if (!continuousDays || continuousDays < 50) return "";
+    const notified = readPS(KEY_MILESTONE_NOTIFIED) ? JSON.parse(readPS(KEY_MILESTONE_NOTIFIED)) : [];
+    const hitMilestone = SIGN_MILESTONES.find(ms => ms === continuousDays && !notified.includes(ms));
+    if (hitMilestone) {
+        notified.push(hitMilestone);
+        writePS(JSON.stringify(notified), KEY_MILESTONE_NOTIFIED);
+        return `🏆 签到里程碑达成：连续签到${hitMilestone}天！\n坚持打卡，福利不断～`;
+    }
+    return "";
+}
+
+/* 自动开箱 */
+async function autoOpenBox(headers) {
+    if (!cfg.autoOpenBox) {
+        logInfo("自动开箱功能已关闭（BoxJS配置），跳过");
+        return { msg: "ℹ️ 自动开箱已关闭", rewards: [] };
+    }
+
+    logInfo("开始执行自动开箱...");
+    try {
+        const boxList = await httpGet(END.blindBoxList, headers);
+        if (!boxList || !boxList.data || !Array.isArray(boxList.data.list)) {
+            logWarn("获取盲盒列表失败：", boxList);
+            return { msg: "⚠️ 自动开箱失败：获取列表异常", rewards: [] };
+        }
+
+        const normalBoxes = boxList.data.list.filter(box => box.boxType === 0 && box.status === 1);
+        const sevenBoxes = boxList.data.list.filter(box => box.boxType === 1 && box.status === 1);
+        const rewards = [];
+
+        // 开七日盲盒
+        if (sevenBoxes.length > 0) {
+            logInfo(`发现${sevenBoxes.length}个可开七日盲盒，开始开箱...`);
+            for (const box of sevenBoxes) {
+                const openResp = await httpPost(END_OPEN.openSeven, headers, { boxId: box.id });
+                if (openResp.code === 0 && openResp.data && openResp.data.rewardName) {
+                    rewards.push(`七日盲盒：${openResp.data.rewardName}`);
+                    logInfo(`七日盲盒开箱成功：${openResp.data.rewardName}`);
+                } else {
+                    logWarn(`七日盲盒开箱失败：`, openResp);
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        // 开普通盲盒
+        if (normalBoxes.length > 0) {
+            logInfo(`发现${normalBoxes.length}个可开普通盲盒，开始开箱...`);
+            for (const box of normalBoxes) {
+                const openResp = await httpPost(END_OPEN.openNormal, headers, { boxId: box.id });
+                if (openResp.code === 0 && openResp.data && openResp.data.rewardName) {
+                    rewards.push(`普通盲盒：${openResp.data.rewardName}`);
+                    logInfo(`普通盲盒开箱成功：${openResp.data.rewardName}`);
+                } else {
+                    logWarn(`普通盲盒开箱失败：`, openResp);
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        if (rewards.length === 0) {
+            return { msg: "ℹ️ 无可用盲盒或开箱失败", rewards: [] };
+        } else {
+            return { msg: `✅ 自动开箱完成（共${rewards.length}个）`, rewards };
+        }
+    } catch (e) {
+        logErr("自动开箱异常：", e);
+        return { msg: `⚠️ 自动开箱异常：${String(e)}`, rewards: [] };
+    }
+}
+
+/* 资产查询 */
+async function queryAssets(headers) {
+    logInfo("开始查询资产信息...");
+    try {
+        const balanceResp = await httpGet(END.balance, headers);
+        const creditInfoResp = await httpGet(END.creditInfo, headers);
+        const assets = { ncoin: 0, credit: 0 };
+
+        // 查询N币余额
+        if (balanceResp.code === 0 && balanceResp.data) {
+            assets.ncoin = balanceResp.data.balance || 0;
+        } else {
+            logWarn("N币余额查询失败：", balanceResp);
+        }
+
+        // 查询积分余额
+        if (creditInfoResp.code === 0 && creditInfoResp.data) {
+            assets.credit = creditInfoResp.data.totalCredit || 0;
+        } else {
+            logWarn("积分查询失败：", creditInfoResp);
+        }
+
+        return assets;
+    } catch (e) {
+        logErr("资产查询异常：", e);
+        return { ncoin: 0, credit: 0 };
+    }
+}
+
+/* 主函数 */
+async function main() {
+    const headers = makeHeaders();
+    const today = todayKey();
+    const lastSignDate = readPS(KEY_LAST_SIGN_DATE) || "";
+    const result = {
+        sign: { success: false, msg: "" },
+        share: { success: false, msg: "" },
+        box: { msg: "", rewards: [] },
+        assets: { ncoin: 0, credit: 0 },
+        milestone: "",
+        boxRemind: ""
+    };
+
+    try {
+        // 1. 签到状态判断
+        if (lastSignDate === today) {
+            result.sign.msg = "ℹ️ 今日已签到，跳过";
+            logInfo(result.sign.msg);
+        } else {
+            logInfo("开始执行签到任务...");
+            const signResp = await httpPost(END.sign, headers, {});
+            logInfo("签到接口返回：", signResp);
+
+            if (signResp.code === 0 || signResp.success === true || (signResp.msg && signResp.msg.includes("成功"))) {
+                writePS(today, KEY_LAST_SIGN_DATE);
+                result.sign.success = true;
+                result.sign.msg = "✅ 签到成功";
+
+                // 查询连续签到天数（用于里程碑提醒）
+                const statusResp = await httpGet(END.status, headers);
+                const continuousDays = statusResp.data?.continuousSignDays || 0;
+                result.milestone = checkSignMilestone(continuousDays);
+            } else {
+                const errMsg = signResp.msg || signResp.message || "接口返回异常";
+                result.sign.msg = `❌ 签到失败：${errMsg}`;
+                logWarn(result.sign.msg);
+            }
+        }
+
+        // 2. 分享任务
+        const shareRes = await doShareTask(headers);
+        result.share = shareRes;
+
+        // 3. 自动开箱
+        const boxRes = await autoOpenBox(headers);
+        result.box = boxRes;
+
+        // 4. 资产查询
+        const assetsRes = await queryAssets(headers);
+        result.assets = assetsRes;
+
+        // 5. 盲盒到期提醒
+        result.boxRemind = await checkBlindBoxExpire(headers);
+
+        // 6. 组装通知内容
+        const notifyTitle = `${cfg.titlePrefix} - 执行结果`;
+        const notifyBody = [
+            `📅 执行时间：${formatDateTime()}`,
+            `📝 签到状态：${result.sign.msg}`,
+            `📤 分享状态：${result.share.msg}`,
+            `🎁 开箱结果：${result.box.msg}${result.box.rewards.length > 0 ? "\n   开箱奖励：" + result.box.rewards.join("、") : ""}`,
+            `💰 资产余额：N币 ${result.assets.ncoin} · 积分 ${result.assets.credit}`,
+            result.milestone,
+            result.boxRemind
+        ].filter(item => item).join("\n\n");
+
+        // 推送通知（根据配置）
+        if (cfg.notify) {
+            notify(notifyTitle, "", notifyBody);
+        }
+        logInfo("任务执行完成，通知已推送");
+
+    } catch (e) {
+        const errMsg = String(e);
+        result.sign.msg = cfg.notifyFail ? `❌ 主流程异常：${errMsg}` : "";
+        logErr("主流程执行异常：", errMsg);
+        if (cfg.notify && cfg.notifyFail) {
+            notify(`${cfg.titlePrefix} - 执行异常`, "", `❌ 脚本执行失败：${errMsg}`);
+        }
+    }
+
+    logInfo("任务执行完毕，最终结果：", result);
+    $done();
+}
+
+// 启动主函数
+main();
