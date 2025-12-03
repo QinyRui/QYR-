@@ -1,56 +1,67 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js （Loon 专用安全版）
-2025-12-05 16:00 更新
-核心功能：自动签到、盲盒开箱、账户状态查询
+Ninebot_Sign_Single_v2.7.js （Loon安全版·最终整合）
+2025-12-05 23:00 更新
+核心功能：自动签到、盲盒开箱、资产查询
 适配工具：Loon/Surge/Quantumult X
+优化：
+1. 盲盒逻辑优化（未到开启条件显示无可开盲盒）
+2. 通知优化（账户状态、盲盒进度）
+3. 日志等级可调、自定义标题可改
+4. BoxJS最后抓包时间显示
 ***********************************************/
 
-// 安全初始化 Loon 对象
 const IS_LOON = typeof $argument !== "undefined";
-const _ARG = IS_LOON ? $argument : {};
-const _PERSIST = typeof $persistentStore !== "undefined" ? $persistentStore : { read: () => null, write: () => false };
-const _NOTIFY = typeof $notification !== "undefined" ? $notification : { post: () => {} };
-const _HTTP = typeof $httpClient !== "undefined" ? $httpClient : { get: (opts, cb) => cb(null,{status:200},'{}'), post: (opts, cb) => cb(null,{status:200},'{}') };
+const IS_REQUEST = typeof $request !== "undefined";
+const HAS_PERSIST = typeof $persistentStore !== "undefined";
+const HAS_NOTIFY = typeof $notification !== "undefined";
+const HAS_HTTP = typeof $httpClient !== "undefined";
 
-// 日志函数
-function nowStr() { return new Date().toLocaleString(); }
-function logInfo(...args) { console.log(`[${nowStr()}] info ${args.join(" ")}`); }
-function logWarn(...args) { console.warn(`[${nowStr()}] warn ${args.join(" ")}`); }
-function logErr(...args) { console.error(`[${nowStr()}] error ${args.join(" ")}`); }
-function notify(title, sub, body){ _NOTIFY.post(title, sub, body); logInfo("通知发送", title, sub, body); }
+// ---------- 日志函数 ----------
+function nowStr(){ return new Date().toLocaleString(); }
+function logInfo(...args){ console.log(`[${nowStr()}] info`, ...args); }
+function logWarn(...args){ console.warn(`[${nowStr()}] warn`, ...args); }
+function logErr(...args){ console.error(`[${nowStr()}] error`, ...args); }
 
-// 参数读取
-function readPS(key){ return _PERSIST.read(key); }
-function writePS(val,key){ return _PERSIST.write(val,key); }
+// ---------- 参数处理 ----------
+function readPS(key){ try { return HAS_PERSIST ? $persistentStore.read(key) : null } catch(e){return null;} }
+function writePS(val,key){ try { return HAS_PERSIST ? $persistentStore.write(val,key) : false } catch(e){return false;} }
+function notify(title, sub, body){ 
+    logInfo("通知发送", {title, sub, body});
+    if(HAS_NOTIFY) $notification.post(title, sub, body);
+    else logWarn("通知未发送：无通知API支持");
+}
 
 const ARG = {
-    titlePrefix: _ARG.titlePrefix || readPS("ninebot.titlePrefix") || "九号签到助手",
-    logLevel: _ARG.logLevel || readPS("ninebot.logLevel") || "debug",
-    notify: (_ARG.notify==="true") || (readPS("ninebot.notify")==="true")
+    titlePrefix: IS_LOON ? ($argument?.titlePrefix || readPS("ninebot.titlePrefix") || "九号签到助手") : readPS("ninebot.titlePrefix") || "九号签到助手",
+    logLevel: IS_LOON ? ($argument?.logLevel || readPS("ninebot.logLevel") || "debug") : readPS("ninebot.logLevel") || "debug",
+    notify: IS_LOON ? ($argument?.notify === "true") : (readPS("ninebot.notify") === "true")
 };
 
-// 配置常量
-const KEY_AUTH = "ninebot.authorization";
-const KEY_DEV = "ninebot.deviceId";
-const KEY_AUTOBOX = "ninebot.autoOpenBox";
-const KEY_NOTIFYFAIL = "ninebot.notifyFail";
-const KEY_ENABLE_RETRY = "ninebot.enableRetry";
+// ---------- 常量 ----------
+const KEY_AUTH="ninebot.authorization";
+const KEY_DEV="ninebot.deviceId";
+const KEY_UA="ninebot.userAgent";
+const KEY_TITLE="ninebot.titlePrefix";
+const KEY_DEBUG="ninebot.debug";
+const KEY_AUTOBOX="ninebot.autoOpenBox";
+const KEY_NOTIFYFAIL="ninebot.notifyFail";
+const KEY_ENABLE_RETRY="ninebot.enableRetry";
+const KEY_LOG_LEVEL="ninebot.logLevel";
 
 const END = {
-    sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
-    status: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
-    blindBoxList: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
-    balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
-    creditInfo: "https://api5-h5-app-bj.ninebot.com/web/credit/get-msg"
+    sign:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
+    status:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
+    blindBoxList:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
+    balance:"https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
+    creditInfo:"https://api5-h5-app-bj.ninebot.com/web/credit/get-msg"
 };
-const END_OPEN = {
-    openSeven: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-seven-box",
-    openNormal: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-blind-box"
+const END_OPEN={
+    openSeven:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-seven-box",
+    openNormal:"https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/open-blind-box"
 };
-
 const MAX_RETRY=3, RETRY_DELAY=1500, REQUEST_TIMEOUT=12000;
 
-// 检查 Token 是否有效
+// ---------- token 检查 ----------
 function checkTokenValid(resp){
     if(!resp) return true;
     const invalidCodes=[401,403,50001,50002,50003];
@@ -61,7 +72,46 @@ function checkTokenValid(resp){
     return !(hasInvalidCode||hasInvalidMsg);
 }
 
-// 请求封装 + 重试
+// ---------- 抓包写入 ----------
+if(IS_REQUEST && $request && $request.url && $request.url.includes("/portal/api/user-sign/v2/status")){
+    try{
+        const h=$request.headers||{};
+        const auth=h["Authorization"]||h["authorization"]||"";
+        const dev=h["DeviceId"]||h["deviceid"]||h["device_id"]||"";
+        const ua=h["User-Agent"]||h["user-agent"]||"";
+        let changed=false;
+        if(auth && readPS(KEY_AUTH)!==auth){ writePS(auth,KEY_AUTH); changed=true; }
+        if(dev && readPS(KEY_DEV)!==dev){ writePS(dev,KEY_DEV); changed=true; }
+        if(ua && readPS(KEY_UA)!==ua){ writePS(ua,KEY_UA); changed=true; }
+        if(changed){
+            const currentTime=new Date().toISOString().slice(0,19).replace("T"," ");
+            writePS(currentTime,"ninebot.lastCaptureAt");
+            notify(ARG.titlePrefix,"抓包成功 ✓",`数据已写入 BoxJS\n最后抓包时间：${currentTime}`);
+        }
+    }catch(e){ logErr("抓包异常：", e); notify(ARG.titlePrefix,"抓包失败 ⚠️",String(e).slice(0,50)); }
+    $done({});
+}
+
+// ---------- 配置 ----------
+const cfg={
+    Authorization: readPS(KEY_AUTH)||"",
+    DeviceId: readPS(KEY_DEV)||"",
+    userAgent: readPS(KEY_UA)||"Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
+    debug: readPS(KEY_DEBUG)!=="false",
+    notify: ARG.notify,
+    autoOpenBox: readPS(KEY_AUTOBOX)==="true",
+    notifyFail: readPS(KEY_NOTIFYFAIL)!=="false",
+    enableRetry: readPS(KEY_ENABLE_RETRY)!=="false",
+    logLevel: ARG.logLevel
+};
+
+if(!cfg.Authorization||!cfg.DeviceId){
+    notify(cfg.titlePrefix,"未配置 Token","请先抓包执行签到动作以写入 Authorization / DeviceId");
+    logWarn("终止：未读取到账号信息");
+    $done();
+}
+
+// ---------- HTTP工具 ----------
 function requestWithRetry({method="GET",url,headers={},body=null,timeout=REQUEST_TIMEOUT}){
     return new Promise((resolve,reject)=>{
         let attempts=0;
@@ -71,133 +121,191 @@ function requestWithRetry({method="GET",url,headers={},body=null,timeout=REQUEST
             if(method==="POST") opts.body=body;
             const cb=(err,resp,data)=>{
                 if(err){
-                    const msg=String(err && (err.error||err.message||err));
+                    const msg=String(err.error||err.message||err);
                     const shouldRetry=/(Socket closed|ECONNRESET|network|timed out|timeout|failed)/i.test(msg);
-                    if(attempts<MAX_RETRY && shouldRetry && (readPS(KEY_ENABLE_RETRY)!=="false")){
-                        logWarn(`请求错误：${msg}，${RETRY_DELAY}ms后重试 (${attempts}/${MAX_RETRY})`);
+                    if(attempts<MAX_RETRY && shouldRetry && cfg.enableRetry){
+                        logWarn(`请求错误：${msg}，${RETRY_DELAY}ms 后重试 (${attempts}/${MAX_RETRY})`);
                         setTimeout(once,RETRY_DELAY);
                         return;
-                    }else{reject(err);return;}
+                    }else{ reject(err); return; }
                 }
                 const respData=JSON.parse(data||"{}");
                 if(!checkTokenValid({code:resp.status,...respData})){
-                    notify(ARG.titlePrefix,"Token失效 ⚠️","Authorization已过期/无效，请重新抓包写入");
+                    notify(cfg.titlePrefix,"Token失效 ⚠️","Authorization已过期/无效，请重新抓包写入");
                     reject(new Error("Token invalid or expired"));
                     return;
                 }
-                resolve(respData);
+                if(resp && resp.status>=500 && attempts<MAX_RETRY && cfg.enableRetry){
+                    logWarn(`服务端 ${resp.status}，${RETRY_DELAY}ms 后重试 (${attempts}/${MAX_RETRY})`);
+                    setTimeout(once,RETRY_DELAY);
+                    return;
+                }
+                try{ resolve(JSON.parse(data||"{}")); }catch(e){ resolve({raw:data}); }
             };
-            if(method==="GET") _HTTP.get(opts,cb); else _HTTP.post(opts,cb);
+            if(method==="GET") $httpClient.get(opts,cb); else $httpClient.post(opts,cb);
         };
         once();
     });
 }
-function httpGet(url,headers={}){return requestWithRetry({method:"GET",url,headers});}
-function httpPost(url,headers={},body={}){return requestWithRetry({method:"POST",url,headers,body});}
+function httpGet(url,headers={}){ return requestWithRetry({method:"GET",url,headers}); }
+function httpPost(url,headers={},body={}){ return requestWithRetry({method:"POST",url,headers,body}); }
 
-// 生成请求 Header
-function makeHeaders(){
-    return {
-        "Authorization": readPS(KEY_AUTH)||"",
-        "Content-Type":"application/octet-stream;tt-data=a",
-        "device_id": readPS(KEY_DEV)||"",
-        "User-Agent":"Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
-        "platform":"h5",
-        "Origin":"https://h5-bj.ninebot.com",
-        "language":"zh"
-    };
+// ---------- 时间工具 ----------
+function todayKey(){
+    const d=new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-// 抓包写入
-if(typeof $request!=="undefined" && $request.url.includes("/portal/api/user-sign/v2/status")){
+// ---------- 盲盒开箱 ----------
+async function openAllAvailableBoxes(headers){
+    logInfo("查询盲盒列表...");
     try{
-        const h=$request.headers||{};
-        const auth=h["Authorization"]||h["authorization"]||"";
-        const dev=h["DeviceId"]||h["deviceid"]||h["device_id"]||"";
-        if(auth) writePS(auth,KEY_AUTH);
-        if(dev) writePS(dev,KEY_DEV);
-        writePS(new Date().toISOString().slice(0,19).replace('T',' '),"ninebot.lastCaptureAt");
-        notify(ARG.titlePrefix,"抓包成功 ✓","数据已写入 BoxJS");
-    }catch(e){
-        logErr("抓包异常：",e);
-        notify(ARG.titlePrefix,"抓包失败 ⚠️",String(e).slice(0,50));
-    }
-    $done({});
+        const boxResp = await httpGet(END.blindBoxList, headers);
+        const notOpened = boxResp?.data?.notOpenedBoxes||[];
+        if(!notOpened.length) return ["📦 盲盒开箱结果：无可开盲盒"];
+        const openResults=[];
+        for(const box of notOpened){
+            const remaining = Number(box.leftDaysToOpen ?? box.remaining ?? 0);
+            if(remaining>0){
+                openResults.push(`📦 ${box.awardDays}天盲盒：无可开盲盒（剩余${remaining}天）`);
+                continue;
+            }
+            if(!cfg.autoOpenBox){
+                openResults.push(`📦 ${box.awardDays}天盲盒：可开启（未自动开启）`);
+                continue;
+            }
+            const openUrl=(Number(box.awardDays??box.totalDays)===7)?END_OPEN.openSeven:END_OPEN.openNormal;
+            const boxId=box.id??box.boxId??"";
+            const timestamp=Date.now();
+            const sign=generateSign(cfg.DeviceId,timestamp);
+            try{
+                const openResp=await httpPost(openUrl,headers,{deviceId:cfg.DeviceId,boxId:boxId,timestamp,sign});
+                if(openResp?.code===0||openResp?.success===true){
+                    const reward=openResp.data?.awardName??"未知奖励";
+                    openResults.push(`✅ ${box.awardDays}天盲盒：${reward}`);
+                }else{
+                    const errMsg=openResp.msg||openResp.message||"开箱失败";
+                    openResults.push(`❌ ${box.awardDays}天盲盒：${errMsg}`);
+                }
+            }catch(e){ openResults.push(`❌ ${box.awardDays}天盲盒：开箱异常`); }
+        }
+        return openResults.length?openResults:["📦 盲盒开箱结果：无可开盲盒"];
+    }catch(e){ logErr("盲盒查询/开启异常：",String(e)); return ["📦 盲盒功能异常"]; }
 }
 
-// 自动签到 + 盲盒开箱
+// ---------- 主流程 ----------
 (async()=>{
     try{
-        const headers=makeHeaders();
-        // 查询签到状态
-        const statusResp=await httpGet(`${END.status}?t=${Date.now()}`,headers);
-        const currentSign=statusResp?.data?.currentSignStatus||statusResp?.data?.currentSign||0;
-        const lastSign=readPS("ninebot.lastSignDate")||"";
-        const todayKey=new Date().toISOString().slice(0,10);
-        let signMsg="";
-        if(currentSign!=1 && lastSign!==todayKey){
-            try{
-                const signResp=await httpPost(END.sign,headers,{deviceId:readPS(KEY_DEV)||""});
-                if(signResp.code===0) {signMsg="✨ 今日签到：成功"; writePS(todayKey,"ninebot.lastSignDate");}
-                else signMsg="✨ 今日签到：已签到";
-            }catch(e){signMsg=`❌ 签到失败：${String(e)}`;}
-        }else{signMsg="✨ 今日签到：已签到";}
+        const headers={
+            "Authorization":cfg.Authorization,
+            "Content-Type":"application/octet-stream;tt-data=a",
+            "device_id":cfg.DeviceId,
+            "User-Agent":cfg.userAgent,
+            "platform":"h5",
+            "Origin":"https://h5-bj.ninebot.com",
+            "language":"zh",
+            "aid":"10000004"
+        };
 
-        // 盲盒开箱
-        let boxMsg="📦 盲盒开箱结果：无可用盲盒";
-        if(readPS(KEY_AUTOBOX)==="true"){
-            const boxResp=await httpGet(END.blindBoxList,headers);
-            const boxes=boxResp?.data?.notOpenedBoxes||[];
-            if(boxes.length>0){
-                const results=[];
-                for(const b of boxes){
-                    const url=b.awardDays==7?END_OPEN.openSeven:END_OPEN.openNormal;
-                    const openResp=await httpPost(url,headers,{deviceId:readPS(KEY_DEV)||"",boxId:b.id,timestamp:Date.now()});
-                    results.push(openResp.data?.awardName?`✅ ${b.awardDays}天盲盒：${openResp.data.awardName}`:`❌ ${b.awardDays}天盲盒开箱失败`);
-                }
-                if(results.length>0) boxMsg="📦 盲盒开箱结果\n"+results.join("\n");
-            }
+        const today=todayKey();
+        let lastSignDate=readPS("ninebot.lastSignDate")||"";
+        let isTodaySigned = lastSignDate===today;
+
+        if(!isTodaySigned){
+            logInfo("查询签到状态...");
+            try{
+                const statusResp = await httpGet(`${END.status}?t=${Date.now()}`, headers);
+                const currentSignStatus = statusResp?.data?.currentSignStatus ?? statusResp?.data?.currentSign ?? null;
+                isTodaySigned = [1,'1',true,'true'].includes(currentSignStatus);
+            }catch(e){ logWarn("签到状态查询异常：",String(e)); }
         }
 
-        // 账户状态
-        let creditData={credit:0,level:0}; let need=0;
-        try{ const cr=await httpGet(END.creditInfo,headers); creditData=cr?.data||{}; need=cr?.data?.credit_upgrade||0; }catch(e){}
-        let bal=0; try{ const b=await httpGet(END.balance,headers); bal=b?.data?.balance||0;}catch(e){}
-
-        // 补签卡/连续签到
-        const signCards=statusResp?.data?.signCardsNum||0;
-        const consecutiveDays=statusResp?.data?.consecutiveDays||0;
-
-        // 盲盒进度
-        let blindProgress="暂无盲盒记录";
+        let consecutiveDays=0, signCards=0;
         try{
-            const boxList=await httpGet(END.blindBoxList,headers);
-            const opened=boxList?.data?.openedBoxes||[];
-            const notOpened=boxList?.data?.notOpenedBoxes||[];
+            const statusResp=await httpGet(`${END.status}?t=${Date.now()}`,headers);
+            consecutiveDays=statusResp?.data?.consecutiveDays ?? statusResp?.data?.continuousDays ?? 0;
+            signCards=statusResp?.data?.signCardsNum ?? statusResp?.data?.remedyCard ?? 0;
+        }catch(e){ logWarn("连续签到天数/补签卡异常：",String(e)); }
+
+        let signMsg="";
+        if(!isTodaySigned){
+            logInfo("今日未签到，执行签到...");
+            try{
+                const signResp=await httpPost(END.sign,headers,{deviceId:cfg.DeviceId});
+                if(signResp.code===0&&Array.isArray(signResp.data?.rewardList)){
+                    writePS(today,"ninebot.lastSignDate");
+                    signMsg="✨ 今日签到：成功";
+                    consecutiveDays+=1;
+                }else if(signResp.code===540004||/已签到/.test(signResp.msg)){
+                    signMsg="✨ 今日签到：已签到（接口重复请求）";
+                    writePS(today,"ninebot.lastSignDate");
+                }else{
+                    const rawMsg=signResp.msg||signResp.message||JSON.stringify(signResp);
+                    signMsg=`❌ 签到失败：${rawMsg}`;
+                    if(!cfg.notifyFail) signMsg="";
+                }
+            }catch(e){
+                const errMsg=String(e);
+                logWarn("签到异常：",errMsg);
+                if(cfg.notifyFail) signMsg=`❌ 签到请求异常：${errMsg}`;
+            }
+        }else{ signMsg="✨ 今日签到：已签到"; }
+
+        const boxOpenResults = await openAllAvailableBoxes(headers);
+        const boxMsg = boxOpenResults.join("\n");
+
+        // 账户状态
+        let creditData={}, need=0;
+        try{
+            const cr = await httpGet(END.creditInfo,headers);
+            creditData=cr?.data||{};
+            const credit=Number(creditData.credit??0);
+            const level=creditData.level??null;
+            if(creditData.credit_upgrade){
+                const m=String(creditData.credit_upgrade).match(/还需\s*([0-9]+)\s*/);
+                if(m&&m[1]) need=Number(m[1]);
+            }else if(creditData.credit_range && Array.isArray(creditData.credit_range)&&creditData.credit_range.length>=2){
+                need=creditData.credit_range[1]-credit;
+            }
+        }catch(e){ logWarn("经验信息查询异常：",String(e)); }
+
+        let balLine="", bal={};
+        try{
+            bal=await httpGet(END.balance,headers);
+            if(bal?.code===0) balLine=`- 当前 N 币：${bal.data?.balance??bal.data?.coin??0}`;
+        }catch(e){ logWarn("余额查询异常：",String(e)); }
+
+        let blindProgress="";
+        try{
+            const boxResp = await httpGet(END.blindBoxList, headers);
+            const notOpened=boxResp?.data?.notOpenedBoxes||[];
+            const opened=boxResp?.data?.openedBoxes||[];
             const openedTypes=[...new Set(opened.map(b=>b.awardDays+"天"))];
             const openedDesc=opened.length>0?`已开${opened.length}个（类型：${openedTypes.join("、")}）`:"暂无已开盲盒";
-            const waitingBoxes=notOpened.map(b=>`- ${b.awardDays}天盲盒（剩余${b.leftDaysToOpen??0}天）`).join("\n");
-            blindProgress=openedDesc+"\n- 待开盲盒：\n"+(waitingBoxes||"无");
-        }catch(e){blindProgress="查询盲盒进度异常";}
+            const waitingBoxes=notOpened.map(b=>{
+                const remaining=Number(b.leftDaysToOpen??0);
+                return `- ${b.awardDays}天盲盒（剩余${remaining}天）`;
+            }).join("\n");
+            blindProgress=openedDesc+(waitingBoxes?`\n- 待开盲盒：\n${waitingBoxes}`:"\n- 待开盲盒：无");
+        }catch(e){ logWarn("盲盒进度查询异常：",String(e)); blindProgress="查询异常"; }
 
-        // 发送通知
-        if(ARG.notify){
-            const notifyBody=`${signMsg}
+        if(cfg.notify){
+            let notifyBody=`${signMsg}
 ${boxMsg}
 📊 账户状态
 - 当前经验：${creditData.credit??0}${creditData.level?`（LV.${creditData.level}）`:''}
 - 距离升级：${need??0} 经验
-- 当前 N币：${bal}
+- 当前 N 币：${bal.data?.balance??bal.data?.coin??0}
 - 补签卡：${signCards} 张
 - 连续签到：${consecutiveDays} 天
 • 盲盒进度
 ${blindProgress}`;
-            notify(ARG.titlePrefix,"",notifyBody);
+            notify(ARG.titlePrefix,"",notifyBody.length>1000?notifyBody.slice(0,997)+'...':notifyBody);
         }
 
         logInfo("九号自动签到任务完成（v2.7 Loon安全版）");
-    }catch(e){
-        logErr("自动签到异常：",e);
-        if(ARG.notify) notify(ARG.titlePrefix,"任务异常 ⚠️",String(e));
+    }catch(e){ 
+        logErr("自动签到主流程异常：",e);
+        if(cfg.notifyFail) notify(ARG.titlePrefix,"任务异常 ⚠️",String(e));
     }
 })();
