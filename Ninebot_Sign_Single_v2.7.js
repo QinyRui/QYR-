@@ -1,22 +1,23 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js （Loon极简版）
+Ninebot_Sign_Single_v2.8.js （环境兼容版）
 2025-12-05 15:30 更新
 核心功能：自动签到、盲盒开箱、资产查询
-适配工具：Loon
+适配工具：Loon/Surge/Quantumult X
 ***********************************************/
 
+const IS_LOON = typeof $argument !== "undefined";
 const IS_REQUEST = typeof $request !== "undefined";
-const IS_ARG = typeof $argument !== "undefined";
 const HAS_PERSIST = typeof $persistentStore !== "undefined";
 const HAS_NOTIFY = typeof $notification !== "undefined";
 const HAS_HTTP = typeof $httpClient !== "undefined";
 
+// 环境适配：Loon使用$argument，其他环境使用默认值
 const ARG = {
-    notify: $argument?.notify === "true",
-    capture: $argument?.capture === "true",
-    titlePrefix: $argument?.titlePrefix || "九号签到助手",
-    cron_time: $argument?.cron_time || "1 0 * * *",
-    logLevel: $argument?.logLevel || "debug"
+    notify: IS_LOON ? ($argument?.notify === "true") : true,
+    capture: IS_LOON ? ($argument?.capture === "true") : false,
+    titlePrefix: IS_LOON ? ($argument?.titlePrefix || "九号签到助手") : "九号签到助手",
+    cron_time: IS_LOON ? ($argument?.cron_time || "1 0 * * *") : "1 0 * * *",
+    logLevel: IS_LOON ? ($argument?.logLevel || "debug") : "debug"
 };
 
 function readPS(key) { try { if (HAS_PERSIST) return $persistentStore.read(key); return null; } catch (e) { return null; } }
@@ -392,7 +393,7 @@ ${blindProgress}`;
             notify(cfg.titlePrefix, "", notifyBody);
         }
 
-        logInfo("九号自动签到任务完成（v2.8 极简版）");
+        logInfo("九号自动签到任务完成（v2.8 环境兼容版）");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e));
