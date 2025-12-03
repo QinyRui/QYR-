@@ -10,11 +10,13 @@
  7. 可选 Telegram Bot 推送
 */
 
+// ---------- 配置区域 ----------
 const SCRIPTS = [
     {
         name: "单号签到脚本",
         js_url: "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js"
-    }
+    },
+    // 可继续添加多号脚本
 ];
 
 const VERSION_URL = "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/version.json";
@@ -25,12 +27,26 @@ const CACHE_DATA_KEY = "Ninebot_Sign_JS_OLD_DATA";
 const TITLE = "九号签到助手 · 更新检测";
 const LOGO_URL = "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png";
 
+// Telegram 配置（可选）
 const TELEGRAM_ENABLE = false;
 const TELEGRAM_BOT_TOKEN = "";
 const TELEGRAM_CHAT_ID = "";
 
 // ---------- 工具函数 ----------
-function sha256(str) { return $crypto.sha256(str).toUpperCase(); }
+function sha256(str) {
+    // Loon / QX 内置 $crypto 对象可能不存在，用 WebCrypto 方案
+    if (typeof $crypto !== "undefined") return $crypto.sha256(str).toUpperCase();
+    if (typeof crypto !== "undefined" && crypto.subtle) {
+        const encoder = new TextEncoder();
+        return crypto.subtle.digest("SHA-256", encoder.encode(str)).then(buf => {
+            return Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
+        });
+    }
+    // Fallback: 返回空，保证逻辑继续
+    console.warn("无法计算 SHA256，使用 fallback");
+    return "UNKNOWN_HASH";
+}
+
 function compareVersion(a, b) {
     const x = a.split('.').map(Number), y = b.split('.').map(Number);
     for (let i=0;i<Math.max(x.length,y.length);i++){
@@ -39,6 +55,7 @@ function compareVersion(a, b) {
     }
     return 0;
 }
+
 function diffLines(oldData, newData, maxLines = 5){
     const oldLines = (oldData||"").split("\n");
     const newLines = newData.split("\n");
@@ -51,6 +68,8 @@ function diffLines(oldData, newData, maxLines = 5){
     }
     return diffs.join("\n");
 }
+
+// 简单函数变更识别（新增/修改/删除）
 function analyzeFunctionChanges(oldData, newData){
     const fnRegex = /function\s+([a-zA-Z0-9_]+)\s*\(/g;
     const oldFns = new Set();
@@ -67,27 +86,36 @@ function analyzeFunctionChanges(oldData, newData){
 // ---------- 主流程 ----------
 (async ()=>{
     try{
+        console.log(`${TITLE} 开始执行`);
+
         // 下载 version.json
         let remoteVersion = "";
         try{
             const verResp = await new Promise((resolve)=>{
                 $httpClient.get(VERSION_URL,(e,r,d)=>resolve(d));
             });
-            remoteVersion = JSON.parse(verResp||"{}").version||"0.0.0";
-        }catch(e){ console.error("读取 version.json 异常:", e); }
+            remoteVersion = JSON.parse(verResp||"{}").version||"";
+        }catch(e){ console.warn("version.json 下载失败:", e); }
 
         for(const sc of SCRIPTS){
-            const data = await new Promise((resolve,reject)=>{
-                $httpClient.get(sc.js_url,(err,resp,body)=>{
-                    if(err||resp.status!==200) reject(err||new Error("请求失败"));
-                    else resolve(body);
+            let data;
+            try{
+                data = await new Promise((resolve,reject)=>{
+                    $httpClient.get(sc.js_url,(err,resp,body)=>{
+                        if(err||resp.status!==200) reject(err||resp.status);
+                        else resolve(body);
+                    });
                 });
-            });
+            }catch(e){
+                $notification.post(TITLE, `${sc.name} 下载失败 ⚠️`, String(e), { "media-url": LOGO_URL });
+                console.error(`${sc.name} 下载失败`, e);
+                continue;
+            }
 
-            const newHash = sha256(data);
+            const newHash = await sha256(data);
             const oldHash = $persistentStore.read(CACHE_HASH_KEY+"_"+sc.name);
             const oldData = $persistentStore.read(CACHE_DATA_KEY+"_"+sc.name)||"";
-            const localVersion = $persistentStore.read(CACHE_VER_KEY+"_"+sc.name)||"0.0.0";
+            const localVersion = $persistentStore.read(CACHE_VER_KEY+"_"+sc.name)||"";
 
             const diff = diffLines(oldData, data, 5);
             const changes = analyzeFunctionChanges(oldData, data);
@@ -95,7 +123,7 @@ function analyzeFunctionChanges(oldData, newData){
             const lineChangeText = lineChange===0?"（行数无变化）":`（变更 ${lineChange>0?"+":""}${lineChange} 行）`;
 
             let needUpdate = false;
-            if(compareVersion(remoteVersion, localVersion)>0) needUpdate=true;
+            if(remoteVersion && compareVersion(remoteVersion, localVersion)>0) needUpdate=true;
             if(oldHash && oldHash!==newHash) needUpdate=true;
 
             if(needUpdate){
@@ -104,38 +132,34 @@ function analyzeFunctionChanges(oldData, newData){
                 $persistentStore.write(data, CACHE_DATA_KEY+"_"+sc.name);
 
                 const notifyBody = `
-🚀 脚本更新检测结果：${sc.name}
-📄 更新概览 ${lineChangeText}
-
-⚡ 函数变更：
-- 新增：${changes.added.length} 个函数
-- 修改：${changes.modified.length} 个函数
-- 删除：${changes.removed.length} 个函数
-
-📝 Diff 摘要：
+${sc.name} 更新检测到！ ${lineChangeText}
+版本：${localVersion||"未知"} → ${remoteVersion||"未知"}
+函数变更：
+新增 ${changes.added.length} 个函数
+修改 ${changes.modified.length} 个函数
+删除 ${changes.removed.length} 个函数
+diff 摘要：
 ${diff}
+点击查看详细更新
+`;
+                $notification.post(TITLE, "🚀 检测到脚本更新", notifyBody, { "open-url": "https://github.com/QinyRui/QYR-/compare/main...HEAD", "media-url": LOGO_URL });
 
-🔗 点击查看最新 JS
-                `;
-
-                $notification.post(TITLE, "🚀 检测到脚本更新", notifyBody, {
-                    "open-url": sc.js_url,
-                    "media-url": LOGO_URL
-                });
-
+                // Telegram 推送
                 if(TELEGRAM_ENABLE && TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID){
                     const tgMsg = encodeURIComponent(notifyBody);
                     const tgUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${tgMsg}&parse_mode=Markdown`;
                     $httpClient.get(tgUrl,()=>{});
                 }
 
+                console.log(`${sc.name} 已检测到更新`);
             }else{
                 console.log(`${sc.name} 已是最新，无需更新`);
             }
         }
-        console.log("九号签到助手 · 更新检测 执行完成");
+
+        console.log(`${TITLE} 执行完成`);
     }catch(e){
-        console.error("更新检测异常:", e);
+        console.error("更新检测异常:",e);
         $notification.post(TITLE,"⚠️ 更新检测异常",String(e),{ "media-url": LOGO_URL });
     }
 })();
