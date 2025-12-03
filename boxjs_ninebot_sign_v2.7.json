@@ -1,23 +1,21 @@
 {
   "id": "Ninebot.Sign.Single",
-  "name": "九号智能电动车 · 单号自动签到（Base64自动捕获）",
+  "name": "九号智能电动车 · 单号自动签到",
   "author": "QinyRui",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
   "repo": "https://t.me/JiuHaoAPP",
   "apps": [
     {
       "id": "ninebot.single",
-      "name": "九号智能电动车（单号·Base64自动捕获）",
+      "name": "九号智能电动车（单号）",
       "keys": [
         "ninebot.authorization",
         "ninebot.deviceId",
         "ninebot.userAgent",
         "ninebot.titlePrefix",
-        "ninebot.debug",
         "ninebot.notify",
         "ninebot.autoOpenBox",
         "ninebot.notifyFail",
-        "ninebot.enableRetry",
         "ninebot.logLevel",
         "ninebot.lastCaptureAt"
       ],
@@ -49,17 +47,6 @@
           "val": "九号签到助手",
           "type": "text",
           "desc": "通知标题前缀，例如：九号签到助手"
-        },
-        {
-          "id": "ninebot.debug",
-          "name": "调试模式",
-          "val": "true",
-          "type": "select",
-          "items": [
-            { "key": "true", "label": "开启（输出完整日志）" },
-            { "key": "false", "label": "关闭（仅输出关键日志）" }
-          ],
-          "desc": "控制日志输出详细程度"
         },
         {
           "id": "ninebot.notify",
@@ -95,20 +82,9 @@
           "desc": "仅在失败时推送通知，避免打扰"
         },
         {
-          "id": "ninebot.enableRetry",
-          "name": "网络重试开关",
-          "val": "true",
-          "type": "select",
-          "items": [
-            { "key": "true", "label": "开启（网络异常自动重试）" },
-            { "key": "false", "label": "关闭（网络异常直接失败）" }
-          ],
-          "desc": "最多重试3次，避免临时网络问题"
-        },
-        {
           "id": "ninebot.logLevel",
           "name": "日志输出级别",
-          "val": "full",
+          "val": "debug",
           "type": "select",
           "items": [
             { "key": "silent", "label": "静默（无日志）" },
@@ -122,7 +98,7 @@
           "name": "最后抓包时间",
           "val": "",
           "type": "text",
-          "desc": "显示最后抓包时间（仅展示，不可修改）"
+          "desc": "所有配置最后抓包更新时间（仅展示，不可修改）"
         }
       ]
     }
