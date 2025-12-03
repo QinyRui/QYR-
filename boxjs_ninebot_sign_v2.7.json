@@ -1,6 +1,4 @@
 {
-  "#": "九号智能电动车 · 单号自动签到（Base64自动捕获）",
-  "#desc": "抓包自动写入教程→打开 Loon 抓包开关→打开九号 APP 签到页，会自动写入 BoxJS。支持日志等级调节、通知自定义标题、抓包最后写入时间显示。",
   "id": "Ninebot.Sign.Single",
   "name": "九号智能电动车 · 单号自动签到（Base64自动捕获）",
   "author": "QinyRui",
@@ -19,7 +17,6 @@
         "ninebot.notify",
         "ninebot.autoOpenBox",
         "ninebot.notifyFail",
-        "ninebot.autoRepair",
         "ninebot.enableRetry",
         "ninebot.logLevel",
         "ninebot.lastCaptureAt"
@@ -51,7 +48,7 @@
           "name": "自定义通知标题",
           "val": "九号签到助手",
           "type": "text",
-          "desc": "通知标题前缀，例如：九号签到助手，修改后会在签到通知中显示"
+          "desc": "通知标题前缀，例如：九号签到助手"
         },
         {
           "id": "ninebot.debug",
@@ -98,17 +95,6 @@
           "desc": "仅在失败时推送通知，避免打扰"
         },
         {
-          "id": "ninebot.autoRepair",
-          "name": "自动补签（预留）",
-          "val": "false",
-          "type": "select",
-          "items": [
-            { "key": "true", "label": "开启（支持时自动补签）" },
-            { "key": "false", "label": "关闭（不自动补签）" }
-          ],
-          "desc": "预留功能，当前暂未实现，默认关闭"
-        },
-        {
           "id": "ninebot.enableRetry",
           "name": "网络重试开关",
           "val": "true",
@@ -129,14 +115,14 @@
             { "key": "simple", "label": "简洁（仅错误日志）" },
             { "key": "full", "label": "完整（所有日志）" }
           ],
-          "desc": "控制主体 JS 日志输出，修改后立即生效"
+          "desc": "细化日志控制"
         },
         {
           "id": "ninebot.lastCaptureAt",
           "name": "最后抓包时间",
           "val": "",
           "type": "text",
-          "desc": "所有配置最后抓包更新时间（仅展示，不可修改）"
+          "desc": "显示最后抓包时间（仅展示，不可修改）"
         }
       ]
     }
