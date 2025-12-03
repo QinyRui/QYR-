@@ -1,8 +1,8 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js （基础精简版）
+Ninebot_Sign_Single_v2.7.js （Loon极简版）
 2025-12-05 15:30 更新
 核心功能：自动签到、盲盒开箱、资产查询
-适配工具：Surge/Quantumult X/Loon
+适配工具：Loon
 ***********************************************/
 
 const IS_REQUEST = typeof $request !== "undefined";
@@ -11,9 +11,17 @@ const HAS_PERSIST = typeof $persistentStore !== "undefined";
 const HAS_NOTIFY = typeof $notification !== "undefined";
 const HAS_HTTP = typeof $httpClient !== "undefined";
 
+const ARG = {
+    notify: $argument?.notify === "true",
+    capture: $argument?.capture === "true",
+    titlePrefix: $argument?.titlePrefix || "九号签到助手",
+    cron_time: $argument?.cron_time || "1 0 * * *",
+    logLevel: $argument?.logLevel || "debug"
+};
+
 function readPS(key) { try { if (HAS_PERSIST) return $persistentStore.read(key); return null; } catch (e) { return null; } }
 function writePS(val, key) { try { if (HAS_PERSIST) return $persistentStore.write(val, key); return false; } catch (e) { return false; } }
-function notify(title, sub, body) { if (HAS_NOTIFY) $notification.post(title, sub, body); }
+function notify(title, sub, body) { if (HAS_NOTIFY && ARG.notify) $notification.post(title, sub, body); }
 function nowStr() { return new Date().toLocaleString(); }
 
 function formatDateTime(date = new Date()) {
@@ -29,15 +37,12 @@ function formatDateTime(date = new Date()) {
 const KEY_AUTH = "ninebot.authorization";
 const KEY_DEV = "ninebot.deviceId";
 const KEY_UA = "ninebot.userAgent";
-const KEY_DEBUG = "ninebot.debug";
-const KEY_NOTIFY = "ninebot.notify";
-const KEY_AUTOBOX = "ninebot.autoOpenBox";
-const KEY_AUTOREPAIR = "ninebot.autoRepair";
-const KEY_NOTIFYFAIL = "ninebot.notifyFail";
 const KEY_TITLE = "ninebot.titlePrefix";
-const KEY_LAST_SIGN_DATE = "ninebot.lastSignDate";
+const KEY_DEBUG = "ninebot.debug";
+const KEY_AUTOBOX = "ninebot.autoOpenBox";
+const KEY_NOTIFYFAIL = "ninebot.notifyFail";
 const KEY_ENABLE_RETRY = "ninebot.enableRetry";
-const KEY_LOG_LEVEL = "ninebot.logLevel"; // 关键配置项
+const KEY_LOG_LEVEL = "ninebot.logLevel";
 
 const END = {
     sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
@@ -55,7 +60,7 @@ const MAX_RETRY = 3, RETRY_DELAY = 1500, REQUEST_TIMEOUT = 12000;
 const LOG_LEVEL_MAP = { silent: 0, simple: 1, full: 2 };
 
 function getLogLevel() {
-    const v = readPS(KEY_LOG_LEVEL) || "full";
+    const v = readPS(KEY_LOG_LEVEL) || ARG.logLevel;
     return LOG_LEVEL_MAP[v] ?? LOG_LEVEL_MAP.full;
 }
 function logInfo(...args) {
@@ -84,7 +89,7 @@ function checkTokenValid(resp) {
     return !(hasInvalidCode || hasInvalidMsg);
 }
 
-const CAPTURE_PATTERNS = ["/portal/api/user-sign/v2/status", "/portal/api/user-sign/v2/sign"];
+const CAPTURE_PATTERNS = ["/portal/api/user-sign/v2/status"];
 const isCaptureRequest = IS_REQUEST && $request && $request.url && CAPTURE_PATTERNS.some(u => $request.url.includes(u));
 if (isCaptureRequest) {
     try {
@@ -93,7 +98,6 @@ if (isCaptureRequest) {
         const dev = h["DeviceId"] || h["deviceid"] || h["device_id"] || "";
         const ua = h["User-Agent"] || h["user-agent"] || "";
         const capUrl = $request.url || "";
-        const capMethod = $request.method || "GET";
 
         let changed = false;
         if (auth && readPS(KEY_AUTH) !== auth) { writePS(auth, KEY_AUTH); changed = true; }
@@ -117,17 +121,15 @@ const cfg = {
     DeviceId: readPS(KEY_DEV) || "",
     userAgent: readPS(KEY_UA) || "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
     debug: (readPS(KEY_DEBUG) === null || readPS(KEY_DEBUG) === undefined) ? true : (readPS(KEY_DEBUG) !== "false"),
-    notify: (readPS(KEY_NOTIFY) === null || readPS(KEY_NOTIFY) === undefined) ? true : (readPS(KEY_NOTIFY) !== "false"),
+    notify: ARG.notify,
     autoOpenBox: readPS(KEY_AUTOBOX) === "true",
-    autoRepair: readPS(KEY_AUTOREPAIR) === "true",
     notifyFail: (readPS(KEY_NOTIFYFAIL) === null || readPS(KEY_NOTIFYFAIL) === undefined) ? true : (readPS(KEY_NOTIFYFAIL) !== "false"),
-    titlePrefix: readPS(KEY_TITLE) || "九号签到助手",
     enableRetry: (readPS(KEY_ENABLE_RETRY) === null || readPS(KEY_ENABLE_RETRY) === undefined) ? true : (readPS(KEY_ENABLE_RETRY) !== "false"),
     logLevel: getLogLevel()
 };
 
 if (!cfg.Authorization || !cfg.DeviceId) {
-    notify(cfg.titlePrefix, "未配置 Token", "请先抓包执行签到/分享动作以写入 Authorization / DeviceId");
+    notify(cfg.titlePrefix, "未配置 Token", "请先抓包执行签到动作以写入 Authorization / DeviceId");
     logWarn("终止：未读取到账号信息");
     $done();
 }
@@ -277,7 +279,7 @@ async function openAllAvailableBoxes(headers) {
     try {
         const headers = makeHeaders();
         const today = todayKey();
-        const lastSignDate = readPS(KEY_LAST_SIGN_DATE) || "";
+        const lastSignDate = readPS("ninebot.lastSignDate") || "";
 
         let isTodaySigned = lastSignDate === today;
         if (!isTodaySigned) {
@@ -306,11 +308,11 @@ async function openAllAvailableBoxes(headers) {
                 const isSignSuccess = signResp.code === 0 && Array.isArray(signResp.data?.rewardList);
                 if (isSignSuccess) {
                     consecutiveDays += 1;
-                    writePS(today, KEY_LAST_SIGN_DATE);
+                    writePS(today, "ninebot.lastSignDate");
                     signMsg = `✨ 今日签到：成功`;
                 } else if (signResp.code === 540004 || /已签到/.test(signResp.msg)) {
                     signMsg = "✨ 今日签到：已签到（接口重复请求）";
-                    writePS(today, KEY_LAST_SIGN_DATE);
+                    writePS(today, "ninebot.lastSignDate");
                 } else {
                     const rawMsg = signResp.msg ?? signResp.message ?? JSON.stringify(signResp);
                     signMsg = `❌ 签到失败：${rawMsg}`;
@@ -390,7 +392,7 @@ ${blindProgress}`;
             notify(cfg.titlePrefix, "", notifyBody);
         }
 
-        logInfo("九号自动签到任务完成（v2.8 基础精简版）");
+        logInfo("九号自动签到任务完成（v2.8 极简版）");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e));
