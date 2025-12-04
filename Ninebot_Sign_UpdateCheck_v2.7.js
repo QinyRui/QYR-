@@ -1,8 +1,3 @@
-/*
- 九号签到助手 · 更新检测脚本
- 每小时自动运行，检测脚本是否更改（自动对比 SHA256）
-*/
-
 (async () => {
     const TITLE = "九号签到助手 · 更新检测";
     const LOGO_URL = "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png";
@@ -32,19 +27,11 @@
 
             if (forceCheck || !oldHash || oldHash !== newHash) {
                 $persistentStore.write(newHash, "Ninebot_Sign_JS_Hash_" + sc.name);
-
                 const notifyBody = `${sc.name} 更新检测到！\n点击查看详细更新`;
-
-                $notification.post(
-                    TITLE,
-                    "🚀 检测到脚本更新",
-                    notifyBody,
-                    {
-                        "open-url": `https://github.com/QinyRui/QYR-/compare/main...HEAD`,
-                        "media-url": LOGO_URL
-                    }
-                );
-
+                $notification.post(TITLE, "🚀 检测到脚本更新", notifyBody, {
+                    "open-url": `https://github.com/QinyRui/QYR-/compare/main...HEAD`,
+                    "media-url": LOGO_URL
+                });
                 console.log(`${sc.name} 已检测到更新`);
             } else {
                 console.log(`${sc.name} 已是最新，无需更新`);
