@@ -1,9 +1,13 @@
+/*
+ 九号签到助手 · 更新检测脚本
+ 每小时自动运行，检测脚本是否更改（自动对比 SHA256）
+*/
 (async () => {
     const TITLE = "九号签到助手 · 更新检测";
     const LOGO_URL = "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png";
 
-    // 配置区
-    const forceCheck = $argument?.forceCheck === "true"; // 插件开关传入
+    const forceCheck = $argument?.forceCheck === "true";
+
     const SCRIPTS = [
         {
             name: "单号签到脚本",
