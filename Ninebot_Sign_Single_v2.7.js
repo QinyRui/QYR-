@@ -1,5 +1,5 @@
 /***********************************************
-Ninebot_Sign_Single_v2.9.2.js 
+Ninebot_Sign_Single_v2.7.js 
 2025-12-05 00:00 更新
 核心变更：修复签到流程中断、优化重试策略、统一通知格式
 适配工具：Surge/Quantumult X/Loon
@@ -542,7 +542,7 @@ ${blindProgress}`;
             logInfo("通知已发送：", notifyBody);
         }
 
-        logInfo("九号自动签到（纯净无分享版 v2.9.2）完成");
+        logInfo("九号自动签到（纯净无分享版 v2.7）完成");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e));
