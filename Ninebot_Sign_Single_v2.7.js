@@ -1,9 +1,10 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js 
-2025-12-04 00:00 更新
-核心变更：后续增加自动开启盲盒
+Ninebot_Sign_Single_v2.9.2.js 
+2025-12-05 00:00 更新
+核心变更：修复签到流程中断、优化重试策略、统一通知格式
 适配工具：Surge/Quantumult X/Loon
 功能覆盖：自动签到、全盲盒开箱、资产查询、美化通知、自动补签
+脚本作者：Qiny Rui
 ***********************************************/
 
 /* ENV wrapper */
@@ -65,7 +66,7 @@ const RETRY_CONFIG = {
     default: { max: 3, delay: 1500 },
     sign: { max: 2, delay: 1000 },
     blindBox: { max: 2, delay: 2000 },
-    query: { max: 1, delay: 1000 }
+    query: { max: 3, delay: 1500 } // 提升签到状态查询重试次数
 };
 const REQUEST_TIMEOUT = 12000;
 const LOG_LEVEL_MAP = { silent: 0, simple: 1, full: 2 };
@@ -369,7 +370,7 @@ async function openAllAvailableBoxes(headers) {
     }
 }
 
-/* 主流程（优化请求合并与错误处理） */
+/* 主流程（修复中断问题，优化错误处理） */
 (async () => {
     try {
         const headers = makeHeaders();
@@ -541,11 +542,12 @@ ${blindProgress}`;
             logInfo("通知已发送：", notifyBody);
         }
 
-        logInfo("九号自动签到（纯净无分享版 v2.7）完成");
+        logInfo("九号自动签到（纯净无分享版 v2.9.2）完成");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e));
     } finally {
+        logInfo("------ Script done -------"); // 新增脚本结束标记
         $done();
     }
 })();
