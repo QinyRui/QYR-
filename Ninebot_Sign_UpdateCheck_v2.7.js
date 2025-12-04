@@ -2,8 +2,8 @@
     const TITLE = "九号签到助手 · 更新检测";
     const LOGO_URL = "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png";
 
-    const forceCheck = $argument?.forceCheck === "true";
-
+    // 配置区
+    const forceCheck = $argument?.forceCheck === "true"; // 插件开关传入
     const SCRIPTS = [
         {
             name: "单号签到脚本",
