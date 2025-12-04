@@ -1,0 +1,21 @@
+#!name = 九号智能电动车 · 单号自动签到（实验插件版）
+#!desc = 完全无 BoxJS · 插件UI调节日志等级 · 自动抓包写入 · 自动签到/盲盒
+#!author = QinyRui
+#!version = 3.0-EXPERIMENT
+#!date = 2025-12-05
+#!system = iOS,iPadOS,macOS
+#!system_version = 15
+
+[Argument]
+notify = switch, "true", "false", tag=通知开关
+capture = switch, "false", "true", tag=抓包写入
+logLevel = select, "debug", "info", "warn", "error", tag=日志等级
+cron_time = input, "1 0 * * *", tag=签到时间（CRON）
+
+[Script]
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status requires-body=1 script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v3.0_EXP.js, tag=九号-抓包写入, enable={capture}
+
+cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v3.0_EXP.js, tag=九号-自动签到, timeout=120
+
+[MITM]
+hostname = cn-cbu-gateway.ninebot.com
