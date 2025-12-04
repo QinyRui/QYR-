@@ -19,7 +19,7 @@ const SCRIPTS = [
     // 可继续添加多号脚本
 ];
 
-const VERSION_URL = "https://raw.githubusercontent.com/QinyRui/QYR-/main/jiuhao/version.json";
+const VERSION_URL = "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/version.json";
 const CACHE_HASH_KEY = "Ninebot_Sign_JS_Hash";
 const CACHE_VER_KEY = "Ninebot_Sign_JS_Version";
 const CACHE_DATA_KEY = "Ninebot_Sign_JS_OLD_DATA";
