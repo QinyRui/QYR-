@@ -14,7 +14,7 @@
 const SCRIPTS = [
     {
         name: "单号签到脚本",
-        js_url: "https://raw.githubusercontent.com/QinyRui/QYR-/main/jiuhao/Ninebot_Sign_Single_v2.7.js"
+        js_url: "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js"
     },
     // 可继续添加多号脚本
 ];
