@@ -1,7 +1,7 @@
 /**
  * 九号智能 - 每日分享任务自动完成（自动抓包更新 v/s/r 版）
  * 作者: QinyRui
- * 版本: 1.0.4（02:19 运行时自动抓包获取最新 v/s/r，兼容 Ninebot.Sign.Single 插件）
+ * 版本: 1.0.5（精准适配接口：https://cn-cbu-gateway.ninebot.com/portal/api/task-center/task/v3/list?typeCode=1&appVersion=609113620&platformType=iOS）
  */
 
 const BOXJS_PREFIX = "ninebot";
@@ -10,8 +10,9 @@ const CONFIG = {
     LOG_URL: "https://snssdk.ninebot.com/service/2/app_log/?aid=10000004",
     REWARD_URL: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/reward",
     TASK_ID: "1823622692036079618",
-    // 抓包目标接口（分享任务页接口，用于获取 v/s/r）
-    TASK_PAGE_URL: "https://h5-bj.ninebot.com/portal/self-service/task/list", // 任务列表接口（根据抓包调整）
+    // 精准适配你的任务列表接口（含完整 Query 参数）
+    TASK_PAGE_URL: "https://cn-cbu-gateway.ninebot.com/portal/api/task-center/task/v3/list?typeCode=1&appVersion=609113620&platformType=iOS",
+    TASK_PAGE_METHOD: "GET", // 接口为 GET 方法
     rewardHeaders: {
         "content-type": "application/json",
         "sys_language": "zh-CN",
@@ -29,9 +30,8 @@ const CONFIG = {
     UA: $persistentStore.read(`${BOXJS_PREFIX}.userAgent`) || "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
     NOTIFY_TITLE: $persistentStore.read(`${BOXJS_PREFIX}.titlePrefix`) || "九号签到助手",
     DELAY_TIME: $persistentStore.read(`${BOXJS_PREFIX}.delayTime`) || 1500,
-    // 自动抓包配置
-    AUTO_CAPTURE: $persistentStore.read(`${BOXJS_PREFIX}.autoCapture`) === "true" || true, // 默认开启自动抓包
-    CAPTURE_EXPIRE: 86400000 // v/s/r 缓存有效期（1天，单位ms）
+    AUTO_CAPTURE: $persistentStore.read(`${BOXJS_PREFIX}.autoCapture`) === "true" || true,
+    CAPTURE_EXPIRE: 86400000 // 1天缓存有效期
 };
 
 function sendNotification(subtitle, content) {
@@ -67,7 +67,6 @@ function getBoxJsConfig() {
     boxConfig.deviceId = $persistentStore.read(`${BOXJS_PREFIX}.deviceId`) || "";
     boxConfig.installId = $persistentStore.read(`${BOXJS_PREFIX}.install_id`) || "7387027437663600641";
     boxConfig.ttreq = $persistentStore.read(`${BOXJS_PREFIX}.ttreq`) || "1$b5f546fbb02eadcb22e472a5b203b899b5c4048e";
-    // 读取缓存的 v/s/r
     boxConfig.v = $persistentStore.read(`${BOXJS_PREFIX}.v`) || "";
     boxConfig.s = $persistentStore.read(`${BOXJS_PREFIX}.s`) || "";
     boxConfig.r = $persistentStore.read(`${BOXJS_PREFIX}.r`) || "";
@@ -75,10 +74,9 @@ function getBoxJsConfig() {
     return boxConfig;
 }
 
-// 自动抓包获取最新 v/s/r
+// 自动抓包获取 v/s/r（适配你的接口响应结构）
 async function captureVSRC(boxConfig) {
     return new Promise((resolve, reject) => {
-        // 检查缓存是否有效
         const now = Date.now();
         if (boxConfig.v && boxConfig.s && boxConfig.r && (now - boxConfig.captureTime < CONFIG.CAPTURE_EXPIRE)) {
             console.log("✅ 使用缓存的 v/s/r（未过期）");
@@ -94,17 +92,15 @@ async function captureVSRC(boxConfig) {
         console.log("🔍 开始自动抓包获取 v/s/r...");
         const params = {
             url: CONFIG.TASK_PAGE_URL,
-            method: "GET",
+            method: CONFIG.TASK_PAGE_METHOD,
             timeout: 10000,
             headers: {
-                "Host": "h5-bj.ninebot.com",
+                "Host": "cn-cbu-gateway.ninebot.com",
                 "Authorization": boxConfig.authorization,
-                "User-Agent": CONFIG.UA,
                 "device_id": boxConfig.deviceId,
-                "sys_language": "zh-CN",
-                "platform": "h5",
-                "origin": "https://h5-bj.ninebot.com",
-                "referer": "https://h5-bj.ninebot.com/",
+                "User-Agent": CONFIG.UA,
+                "platformType": "iOS", // 匹配接口的 platformType 参数
+                "appVersion": "609113620", // 匹配接口的 appVersion 参数
                 "Accept": "application/json"
             }
         };
@@ -116,16 +112,20 @@ async function captureVSRC(boxConfig) {
             }
             try {
                 const res = JSON.parse(data);
-                // 关键：从任务列表接口响应中提取 v/s/r（根据实际接口结构调整字段路径）
-                const task = res.data?.list?.find(item => item.taskId === CONFIG.TASK_ID);
+                // 适配常见任务列表接口响应结构（若你的结构不同，按下方注释调整）
+                // 情况1：响应为 { "code":0, "data": { "taskList": [ ... ] } }
+                const taskList = res.data?.taskList || res.data?.list || res.data?.tasks;
+                if (!taskList) throw new Error("响应中未找到任务列表字段（taskList/list/tasks）");
+                
+                const task = taskList.find(item => item.taskId === CONFIG.TASK_ID);
                 if (!task) throw new Error(`未找到任务ID：${CONFIG.TASK_ID} 的参数`);
                 
-                const v = task.v || task.version;
-                const s = task.s || task.sign;
-                const r = task.r || task.random;
-                if (!v || !s || !r) throw new Error("未从响应中提取到 v/s/r 参数");
+                // 提取 v/s/r（适配常见字段名，若你的字段不同，直接修改字段名）
+                const v = task.v || task.version || task.taskV || "101";
+                const s = task.s || task.sign || task.taskS || "";
+                const r = task.r || task.random || task.taskR || "";
+                if (!s || !r) throw new Error("未从响应中提取到 s/r 参数");
 
-                // 缓存参数（有效期1天）
                 $persistentStore.set(`${BOXJS_PREFIX}.v`, v);
                 $persistentStore.set(`${BOXJS_PREFIX}.s`, s);
                 $persistentStore.set(`${BOXJS_PREFIX}.r`, r);
@@ -134,7 +134,7 @@ async function captureVSRC(boxConfig) {
                 console.log("✅ 自动抓包成功，已缓存 v/s/r");
                 resolve({ v, s, r });
             } catch (e) {
-                reject(new Error(`抓包解析失败：${e.message}`));
+                reject(new Error(`抓包解析失败：${e.message}\n原始响应片段：${data.slice(0, 200)}...`));
             }
         });
     });
@@ -223,12 +223,11 @@ function claimReward(boxConfig, vsr) {
                 } else if (res.code === 2) {
                     subtitle = "领取奖励失败";
                     content = `错误码：${res.code}\n原因：参数错误（v/s/r 无效）\n正在尝试重新抓包更新参数...`;
-                    // 强制清除缓存，重新抓包
                     $persistentStore.remove(`${BOXJS_PREFIX}.v`);
                     $persistentStore.remove(`${BOXJS_PREFIX}.s`);
                     $persistentStore.remove(`${BOXJS_PREFIX}.r`);
                     $persistentStore.remove(`${BOXJS_PREFIX}.captureTime`);
-                    setTimeout(() => main(), 3000); // 3秒后重试
+                    setTimeout(() => main(), 3000);
                 } else if (res.code === 401) {
                     subtitle = "领取奖励失败";
                     content = `错误码：${res.code}\n原因：Authorization 过期，请重新抓包更新`;
@@ -242,7 +241,7 @@ function claimReward(boxConfig, vsr) {
             }
         }
         sendNotification(subtitle, content);
-        if (res?.code !== 2) $done(); // 只有 code=2 时不结束，等待重试
+        if (typeof res === "undefined" || res?.code !== 2) $done();
     });
 }
 
@@ -255,17 +254,13 @@ async function main() {
     }
 
     try {
-        // 自动抓包获取 v/s/r
         const vsr = await captureVSRC(boxConfig);
         console.log("📌 本次使用的 v/s/r 参数：", vsr);
-        // 提交任务报告
         submitTaskReport(boxConfig);
-        // 绑定 vsr 到 claimReward（通过闭包传递）
         const originalClaimReward = claimReward;
         claimReward = (config) => originalClaimReward(config, vsr);
     } catch (e) {
         sendNotification("自动抓包失败", `原因：${e.message}\n将使用缓存参数尝试领取...`);
-        // 缓存失效时，使用默认参数兜底
         const vsr = {
             v: boxConfig.v || "101",
             s: boxConfig.s || "auHj7baygCQwCRY+4BalBgGdicgjzv1Yvh8JEgvzHCQ6TRDeN1cRwibnLhWo2wnkSQxDjtsP0YaklWU2Qt/TSOPz8VKo2/GrPgA+//PkxB6WVK6+77wpk2/Zgz20hrFo8Nphe7wqbVSEYy0/Lmw4RM7iocn7QXwaFNVQ90KMYoU=",
