@@ -1,7 +1,7 @@
 /**
- * 九号智能 - 每日分享任务自动完成（插件集成版）
+ * 九号智能 - 每日分享任务自动完成（自动抓包更新 v/s/r 版）
  * 作者: QinyRui
- * 版本: 1.0.2（与 Ninebot.Sign.Single 插件完全兼容）
+ * 版本: 1.0.4（02:19 运行时自动抓包获取最新 v/s/r，兼容 Ninebot.Sign.Single 插件）
  */
 
 const BOXJS_PREFIX = "ninebot";
@@ -10,8 +10,28 @@ const CONFIG = {
     LOG_URL: "https://snssdk.ninebot.com/service/2/app_log/?aid=10000004",
     REWARD_URL: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/reward",
     TASK_ID: "1823622692036079618",
+    // 抓包目标接口（分享任务页接口，用于获取 v/s/r）
+    TASK_PAGE_URL: "https://h5-bj.ninebot.com/portal/self-service/task/list", // 任务列表接口（根据抓包调整）
+    rewardHeaders: {
+        "content-type": "application/json",
+        "sys_language": "zh-CN",
+        "accept": "application/json, text/plain, */*",
+        "platform": "h5",
+        "origin": "https://h5-bj.ninebot.com",
+        "referer": "https://h5-bj.ninebot.com/",
+        "language": "zh",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-site": "same-site",
+        "sec-fetch-mode": "cors",
+        "accept-language": "zh-CN,zh-Hans;q=0.9",
+        "accept-encoding": "gzip, deflate, br"
+    },
     UA: $persistentStore.read(`${BOXJS_PREFIX}.userAgent`) || "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
-    NOTIFY_TITLE: $persistentStore.read(`${BOXJS_PREFIX}.titlePrefix`) || "九号签到助手"
+    NOTIFY_TITLE: $persistentStore.read(`${BOXJS_PREFIX}.titlePrefix`) || "九号签到助手",
+    DELAY_TIME: $persistentStore.read(`${BOXJS_PREFIX}.delayTime`) || 1500,
+    // 自动抓包配置
+    AUTO_CAPTURE: $persistentStore.read(`${BOXJS_PREFIX}.autoCapture`) === "true" || true, // 默认开启自动抓包
+    CAPTURE_EXPIRE: 86400000 // v/s/r 缓存有效期（1天，单位ms）
 };
 
 function sendNotification(subtitle, content) {
@@ -28,11 +48,16 @@ function sendNotification(subtitle, content) {
     }
 }
 
-function httpPost(params, callback) {
+function httpRequest(params, callback) {
     if (typeof $httpClient !== "undefined") {
-        $httpClient.post(params, callback);
+        if (params.method === "POST") $httpClient.post(params, callback);
+        else $httpClient.get(params, callback);
     } else if (typeof $task !== "undefined") {
-        $task.post(params).then(res => callback(null, res.response, res.data), err => callback(err.error, null, null));
+        if (params.method === "POST") {
+            $task.post(params).then(res => callback(null, res.response, res.data), err => callback(err.error, null, null));
+        } else {
+            $task.get(params).then(res => callback(null, res.response, res.data), err => callback(err.error, null, null));
+        }
     }
 }
 
@@ -42,7 +67,77 @@ function getBoxJsConfig() {
     boxConfig.deviceId = $persistentStore.read(`${BOXJS_PREFIX}.deviceId`) || "";
     boxConfig.installId = $persistentStore.read(`${BOXJS_PREFIX}.install_id`) || "7387027437663600641";
     boxConfig.ttreq = $persistentStore.read(`${BOXJS_PREFIX}.ttreq`) || "1$b5f546fbb02eadcb22e472a5b203b899b5c4048e";
+    // 读取缓存的 v/s/r
+    boxConfig.v = $persistentStore.read(`${BOXJS_PREFIX}.v`) || "";
+    boxConfig.s = $persistentStore.read(`${BOXJS_PREFIX}.s`) || "";
+    boxConfig.r = $persistentStore.read(`${BOXJS_PREFIX}.r`) || "";
+    boxConfig.captureTime = $persistentStore.read(`${BOXJS_PREFIX}.captureTime`) || 0;
     return boxConfig;
+}
+
+// 自动抓包获取最新 v/s/r
+async function captureVSRC(boxConfig) {
+    return new Promise((resolve, reject) => {
+        // 检查缓存是否有效
+        const now = Date.now();
+        if (boxConfig.v && boxConfig.s && boxConfig.r && (now - boxConfig.captureTime < CONFIG.CAPTURE_EXPIRE)) {
+            console.log("✅ 使用缓存的 v/s/r（未过期）");
+            resolve({ v: boxConfig.v, s: boxConfig.s, r: boxConfig.r });
+            return;
+        }
+
+        if (!CONFIG.AUTO_CAPTURE) {
+            reject(new Error("自动抓包已关闭，请手动更新 v/s/r 参数"));
+            return;
+        }
+
+        console.log("🔍 开始自动抓包获取 v/s/r...");
+        const params = {
+            url: CONFIG.TASK_PAGE_URL,
+            method: "GET",
+            timeout: 10000,
+            headers: {
+                "Host": "h5-bj.ninebot.com",
+                "Authorization": boxConfig.authorization,
+                "User-Agent": CONFIG.UA,
+                "device_id": boxConfig.deviceId,
+                "sys_language": "zh-CN",
+                "platform": "h5",
+                "origin": "https://h5-bj.ninebot.com",
+                "referer": "https://h5-bj.ninebot.com/",
+                "Accept": "application/json"
+            }
+        };
+
+        httpRequest(params, (err, resp, data) => {
+            if (err) {
+                reject(new Error(`抓包请求失败：${err}`));
+                return;
+            }
+            try {
+                const res = JSON.parse(data);
+                // 关键：从任务列表接口响应中提取 v/s/r（根据实际接口结构调整字段路径）
+                const task = res.data?.list?.find(item => item.taskId === CONFIG.TASK_ID);
+                if (!task) throw new Error(`未找到任务ID：${CONFIG.TASK_ID} 的参数`);
+                
+                const v = task.v || task.version;
+                const s = task.s || task.sign;
+                const r = task.r || task.random;
+                if (!v || !s || !r) throw new Error("未从响应中提取到 v/s/r 参数");
+
+                // 缓存参数（有效期1天）
+                $persistentStore.set(`${BOXJS_PREFIX}.v`, v);
+                $persistentStore.set(`${BOXJS_PREFIX}.s`, s);
+                $persistentStore.set(`${BOXJS_PREFIX}.r`, r);
+                $persistentStore.set(`${BOXJS_PREFIX}.captureTime`, Date.now().toString());
+
+                console.log("✅ 自动抓包成功，已缓存 v/s/r");
+                resolve({ v, s, r });
+            } catch (e) {
+                reject(new Error(`抓包解析失败：${e.message}`));
+            }
+        });
+    });
 }
 
 function submitTaskReport(boxConfig) {
@@ -63,34 +158,57 @@ function submitTaskReport(boxConfig) {
         body: CONFIG.TASK_COMPLETE_BODY_A,
         "body-base64": true
     };
-    httpPost(params, (err, resp, data) => {
+    httpRequest(params, (err, resp, data) => {
         if (err) {
             sendNotification("分享任务失败", `提交报告失败：${err}`);
             $done();
             return;
         }
+        try {
+            const reportRes = JSON.parse(data);
+            if (reportRes.e !== 0) throw new Error(`报告提交失败：${reportRes.message || '未知错误'}`);
+        } catch (e) {
+            sendNotification("分享任务失败", `报告提交异常：${e.message}`);
+            $done();
+            return;
+        }
         sendNotification("分享任务进度", "已提交完成报告，等待领取奖励...");
-        setTimeout(() => claimReward(boxConfig), 1500);
+        setTimeout(() => claimReward(boxConfig), CONFIG.DELAY_TIME);
     });
 }
 
-function claimReward(boxConfig) {
+function claimReward(boxConfig, vsr) {
+    const hasClaimed = $persistentStore.read(`${BOXJS_PREFIX}.task${CONFIG.TASK_ID}_claimed`);
+    if (hasClaimed === "true") {
+        sendNotification("⚠️ 已领取过奖励", `任务ID：${CONFIG.TASK_ID} 今日已领取，无需重复运行`);
+        $done();
+        return;
+    }
+
+    const headers = {
+        ...CONFIG.rewardHeaders,
+        "Host": "cn-cbu-gateway.ninebot.com",
+        "Authorization": boxConfig.authorization,
+        "User-Agent": CONFIG.UA,
+        "device_id": boxConfig.deviceId
+    };
+
+    const requestBody = JSON.stringify({
+        v: vsr.v,
+        s: vsr.s,
+        r: vsr.r,
+        taskId: CONFIG.TASK_ID
+    });
+
     const params = {
         url: CONFIG.REWARD_URL,
         method: "POST",
         timeout: 8000,
-        headers: {
-            "Host": "cn-cbu-gateway.ninebot.com",
-            "Content-Type": "application/json",
-            "Authorization": boxConfig.authorization,
-            "User-Agent": CONFIG.UA,
-            "device_id": boxConfig.deviceId,
-            "Accept": "application/json",
-            "Accept-Language": "zh-CN,zh-Hans;q=0.9"
-        },
-        body: JSON.stringify({ taskId: CONFIG.TASK_ID })
+        headers: headers,
+        body: requestBody
     };
-    httpPost(params, (err, resp, data) => {
+
+    httpRequest(params, (err, resp, data) => {
         let subtitle = "", content = "";
         if (err) {
             subtitle = "领取奖励失败";
@@ -99,30 +217,64 @@ function claimReward(boxConfig) {
             try {
                 const res = JSON.parse(data);
                 if (res.code === 0 && res.msg === "Success") {
-                    subtitle = "分享任务完成";
-                    content = `任务ID：${CONFIG.TASK_ID}\n✅ 奖励已发放`;
+                    subtitle = "✅ 分享任务+奖励领取双成功";
+                    content = `任务ID：${CONFIG.TASK_ID}\n📅 完成时间：${new Date().toLocaleString()}\n🎁 奖励状态：已发放（APP端刷新查看）\n💡 提示：若未显示领取，等待5分钟后重试`;
+                    $persistentStore.set(`${BOXJS_PREFIX}.task${CONFIG.TASK_ID}_claimed`, "true");
+                } else if (res.code === 2) {
+                    subtitle = "领取奖励失败";
+                    content = `错误码：${res.code}\n原因：参数错误（v/s/r 无效）\n正在尝试重新抓包更新参数...`;
+                    // 强制清除缓存，重新抓包
+                    $persistentStore.remove(`${BOXJS_PREFIX}.v`);
+                    $persistentStore.remove(`${BOXJS_PREFIX}.s`);
+                    $persistentStore.remove(`${BOXJS_PREFIX}.r`);
+                    $persistentStore.remove(`${BOXJS_PREFIX}.captureTime`);
+                    setTimeout(() => main(), 3000); // 3秒后重试
+                } else if (res.code === 401) {
+                    subtitle = "领取奖励失败";
+                    content = `错误码：${res.code}\n原因：Authorization 过期，请重新抓包更新`;
                 } else {
                     subtitle = "领取奖励失败";
-                    content = `错误码：${res.code}\n原因：${res.msg || "未知错误"}`;
+                    content = `错误码：${res.code}\n原因：${res.msg || "未知错误"}\n响应数据：${JSON.stringify(res)}`;
                 }
             } catch (e) {
                 subtitle = "解析响应失败";
-                content = `数据异常：${e.message}`;
+                content = `数据异常：${e.message}\n原始响应：${data}`;
             }
         }
         sendNotification(subtitle, content);
-        $done();
+        if (res?.code !== 2) $done(); // 只有 code=2 时不结束，等待重试
     });
 }
 
-function main() {
+async function main() {
     const boxConfig = getBoxJsConfig();
     if (!boxConfig.authorization || !boxConfig.deviceId) {
         sendNotification("配置错误", "核心配置缺失，请先通过抓包写入 Token/DeviceId");
         $done();
         return;
     }
-    submitTaskReport(boxConfig);
+
+    try {
+        // 自动抓包获取 v/s/r
+        const vsr = await captureVSRC(boxConfig);
+        console.log("📌 本次使用的 v/s/r 参数：", vsr);
+        // 提交任务报告
+        submitTaskReport(boxConfig);
+        // 绑定 vsr 到 claimReward（通过闭包传递）
+        const originalClaimReward = claimReward;
+        claimReward = (config) => originalClaimReward(config, vsr);
+    } catch (e) {
+        sendNotification("自动抓包失败", `原因：${e.message}\n将使用缓存参数尝试领取...`);
+        // 缓存失效时，使用默认参数兜底
+        const vsr = {
+            v: boxConfig.v || "101",
+            s: boxConfig.s || "auHj7baygCQwCRY+4BalBgGdicgjzv1Yvh8JEgvzHCQ6TRDeN1cRwibnLhWo2wnkSQxDjtsP0YaklWU2Qt/TSOPz8VKo2/GrPgA+//PkxB6WVK6+77wpk2/Zgz20hrFo8Nphe7wqbVSEYy0/Lmw4RM7iocn7QXwaFNVQ90KMYoU=",
+            r: boxConfig.r || "H5Yi6myGxbbl62EghEcfoaZWe/ndD0ZC4fDeI9ux6Zt4+iqWsP+xJJVpIdQVYaAye4oUc4bqDzqjZVCp78eudE9BVXWm33JRYlUNYepjKGbjXV97LLb4Ijn9NzeYI0J+"
+        };
+        submitTaskReport(boxConfig);
+        const originalClaimReward = claimReward;
+        claimReward = (config) => originalClaimReward(config, vsr);
+    }
 }
 
 main();
