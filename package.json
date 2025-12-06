@@ -1,29 +1,48 @@
-#!name = {{@package 'displayName'}}
-#!desc = {{inline (@package 'description')}}
+{
+  "displayName": "九号智能电动车 · 单号自动签到（极简自动版）",
+  "description": "自动签到、抓包写入、盲盒开箱、分享任务适配等功能。",
+  "version": "2.8",
+  "organizationName": "Ninebot",
+  "contributors": "QinyRui",
+  "homepage": "https://t.me/JiuHaoAPP",
+  "openUrl": "https://t.me/JiuHaoAPP",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
+  "system": "iOS,iPadOS,macOS",
 
-注：此插件将在你打开九号 App 签到页时自动抓取 Token 并写入 BoxJS。
-支持签到任务、分享任务、盲盒开箱、经验/N币统计等。
-开启抓包写入后，会自动更新匹配到的加密参数。
+  "arguments": {
+    "notify": {
+      "type": "switch",
+      "default": true,
+      "label": "通知开关（开启后将推送签到结果）"
+    },
+    "capture": {
+      "type": "switch",
+      "default": false,
+      "label": "抓包写入开关（用于自动写入 Token / Base64）"
+    },
+    "titlePrefix": {
+      "type": "input",
+      "default": "九号签到助手",
+      "label": "通知标题前缀"
+    },
+    "cron_time": {
+      "type": "input",
+      "default": "1 0 * * *",
+      "label": "签到执行时间（CRON 表达式）"
+    },
+    "logLevel": {
+      "type": "select",
+      "options": ["info", "debug", "warn", "error"],
+      "default": "info",
+      "label": "脚本日志等级（debug 最详细，error 仅报错）"
+    }
+  },
 
-#!openUrl = {{@package 'openUrl'}}
-#!author = {{@package 'contributors'}}
-#!homepage = {{@package 'homepage'}}
-#!icon = {{@package 'icon'}}
-#!tag = {{@package 'organizationName'}}
-#!system = {{@package 'system'}}
-#!date = {{now "yyyy-MM-dd HH:mm:ss"}}
-#!version = {{@package 'version'}}
-
-[Argument]
-{{{arguments}}}
-
-[Script]
-
-#（1）抓包写入（仅当 capture = true）
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=10, tag=九号-抓包写入, enable={{capture}}, argument={{{scriptParams}}}
-
-#（2）自动签到（自动盲盒开箱）
-cron {{cron_time}} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=100, tag=九号-自动签到, argument={{{scriptParams}}}
-
-[MITM]
-hostname = cn-cbu-gateway.ninebot.com
+  "scriptParams": {
+    "notify": "{{notify}}",
+    "capture": "{{capture}}",
+    "titlePrefix": "{{titlePrefix}}",
+    "cron_time": "{{cron_time}}",
+    "logLevel": "{{logLevel}}"
+  }
+}
