@@ -494,7 +494,7 @@ async function openAllAvailableBoxes(headers) {
                     : "  - 无";
 
                 openedBoxesStr = opened.length 
-                   ? `• 已开盲盒 ：${opened.length} 个\n  类型：${openedTypes.join("、")}`
+                   ? `• 已开盲盒 ：${opened.length} 个\n  (类型：${openedTypes.join("、")})`
                     : "• 已开盲盒 ：0 个";
 
             } catch (e) {
@@ -515,7 +515,6 @@ ${boxMsg}
 • 连续签到 ：${consecutiveDays} 天
 ──────── 盲盒进度 ────────
 ${blindProgress}`;
-
             const MAX_LEN = 1000;
             if (notifyBody.length > MAX_LEN) notifyBody = notifyBody.slice(0, MAX_LEN - 3) + "...";
             
