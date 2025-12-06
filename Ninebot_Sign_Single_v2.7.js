@@ -469,7 +469,7 @@ async function openAllAvailableBoxes(headers) {
         const boxOpenResults = await openAllAvailableBoxes(headers);
         const boxMsg = boxOpenResults.length > 0 
             ? `📦 开箱     ：\n${boxOpenResults.map(r => `  ${r}`).join("\n")}` 
-            : "📦 开箱     ：无可用盲盒";
+            : "📦 开箱     ：待开启";
 
         // 8. 发送通知
         if (cfg.notify) {
