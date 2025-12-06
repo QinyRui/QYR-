@@ -8,64 +8,40 @@
       "id": "ninebot.share.capture",
       "name": "九号分享任务抓包中心",
       "keys": [
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent",
+        "ninebot.titlePrefix",
+        "ninebot.notify",
+        "ninebot.notifyFail",
+        "ninebot.logLevel",
         "ninebot.install_id",
         "ninebot.ttreq",
         "ninebot.v",
         "ninebot.s",
         "ninebot.r",
         "ninebot.task_complete_body",
-        "ninebot.lastCaptureTime"
+        "ninebot.lastCaptureTime",
+        "ninebot.lastResetDate",
+        "ninebot.task1823622692036079618_claimed"
       ],
       "settings": [
-        {
-          "id": "ninebot.install_id",
-          "name": "Install ID",
-          "val": "7387027437663600641",
-          "type": "text",
-          "desc": "Cookie参数（抓包自动更新）"
-        },
-        {
-          "id": "ninebot.ttreq",
-          "name": "TT Request",
-          "val": "1$b5f546fbb02eadcb22e472a5b203b899b5c4048e",
-          "type": "text",
-          "desc": "Cookie参数（抓包自动更新）"
-        },
-        {
-          "id": "ninebot.v",
-          "name": "加密参数v",
-          "val": "",
-          "type": "text",
-          "desc": "奖励领取必填（抓包自动写入）"
-        },
-        {
-          "id": "ninebot.s",
-          "name": "加密参数s",
-          "val": "",
-          "type": "text",
-          "desc": "奖励领取必填（抓包自动写入）"
-        },
-        {
-          "id": "ninebot.r",
-          "name": "加密参数r",
-          "val": "",
-          "type": "text",
-          "desc": "奖励领取必填（抓包自动写入）"
-        },
-        {
-          "id": "ninebot.task_complete_body",
-          "name": "任务提交Body",
-          "val": "",
-          "type": "text",
-          "desc": "Base64编码（抓包自动写入）"
-        },
-        {
-          "id": "ninebot.lastCaptureTime",
-          "name": "最后更新时间",
-          "val": "",
-          "type": "text",
-          "desc": "参数更新时间戳（仅展示）"
-        }
+        { "id": "ninebot.authorization", "name": "Authorization", "val": "", "type": "text", "desc": "账号鉴权Token（抓包自动写入）" },
+        { "id": "ninebot.deviceId", "name": "DeviceId", "val": "", "type": "text", "desc": "设备ID（抓包自动写入）" },
+        { "id": "ninebot.userAgent", "name": "User-Agent", "val": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0", "type": "text", "desc": "请求UA（默认可用）" },
+        { "id": "ninebot.titlePrefix", "name": "通知标题", "val": "九号签到助手", "type": "text", "desc": "自定义通知标题前缀" },
+        { "id": "ninebot.notify", "name": "开启签到通知", "val": "true", "type": "select", "items": [{ "key": "true", "label": "开启" }, { "key": "false", "label": "关闭" }], "desc": "推送签到结果通知" },
+        { "id": "ninebot.notifyFail", "name": "失败通知开关", "val": "true", "type": "select", "items": [{ "key": "true", "label": "开启" }, { "key": "false", "label": "关闭" }], "desc": "仅失败时推送通知" },
+        { "id": "ninebot.logLevel", "name": "日志级别", "val": "debug", "type": "select", "items": [{ "key": "silent", "label": "静默" }, { "key": "simple", "label": "简洁" }, { "key": "full", "label": "完整" }], "desc": "日志输出控制" },
+        { "id": "ninebot.install_id", "name": "Install ID", "val": "7387027437663600641", "type": "text", "desc": "Cookie参数（抓包自动更新）" },
+        { "id": "ninebot.ttreq", "name": "TT Request", "val": "1$b5f546fbb02eadcb22e472a5b203b899b5c4048e", "type": "text", "desc": "Cookie参数（抓包自动更新）" },
+        { "id": "ninebot.v", "name": "加密参数v", "val": "", "type": "text", "desc": "奖励领取必填（抓包自动写入）" },
+        { "id": "ninebot.s", "name": "加密参数s", "val": "", "type": "text", "desc": "奖励领取必填（抓包自动写入）" },
+        { "id": "ninebot.r", "name": "加密参数r", "val": "", "type": "text", "desc": "奖励领取必填（抓包自动写入）" },
+        { "id": "ninebot.task_complete_body", "name": "任务提交Body", "val": "", "type": "text", "desc": "Base64编码（抓包自动写入）" },
+        { "id": "ninebot.lastCaptureTime", "name": "最后更新时间", "val": "", "type": "text", "desc": "参数更新时间戳（仅展示）" },
+        { "id": "ninebot.lastResetDate", "name": "最后重置日期", "val": "", "type": "text", "desc": "每日任务重置记录（仅展示）" },
+        { "id": "ninebot.task1823622692036079618_claimed", "name": "今日领取状态", "val": "false", "type": "text", "desc": "任务领取状态（自动维护）" }
       ]
     }
   ]
