@@ -1,7 +1,7 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.js 
-2025-12-06 12:00 更新
-核心变更：通知格式优化（适配用户排版）、盲盒进度展示增强
+Ninebot_Sign_Single_v2.9.4.js 
+2025-12-06 18:00 更新
+核心变更：通知格式精简（移除已开盲盒统计）、排版细节优化
 适配工具：Surge/Quantumult X/Loon
 功能覆盖：自动签到、全盲盒开箱、资产查询、美化通知、自动补签
 脚本作者：QinyRui
@@ -147,7 +147,7 @@ const cfg = {
     enableRetry: (readPS(KEY_ENABLE_RETRY) === null)? true : (readPS(KEY_ENABLE_RETRY)!== "false")
 };
 
-logInfo("九号自动签到（纯净无分享版 v2.7）开始");
+logInfo("九号自动签到（纯净无分享版 v2.9.4）开始");
 logInfo("当前配置：", {
     notify: cfg.notify,
     autoOpenBox: cfg.autoOpenBox,
@@ -469,40 +469,28 @@ async function openAllAvailableBoxes(headers) {
         const boxOpenResults = await openAllAvailableBoxes(headers);
         const boxMsg = boxOpenResults.length > 0 
             ? `📦 开箱     ：\n${boxOpenResults.map(r => `  ${r}`).join("\n")}` 
-            : "📦 开箱     ：待开启";
+            : "📦 开箱     ：无可用盲盒";
 
-        // 8. 发送通知
+        // 8. 发送通知（按用户最新格式优化）
         if (cfg.notify) {
             const rewardDetail = `🎁 奖励     ：${todayGainExp || 0} 经验 / ${todayGainNcoin || 0} N 币`;
 
-            // 盲盒进度格式化
+            // 盲盒进度格式化（仅保留待开盲盒）
             let blindProgress = "";
             let waitingBoxesStr = "";
-            let openedBoxesStr = "";
-            let openedCount = 0;
-            let openedTypes = [];
             try {
                 const boxResp = await httpGet(END.blindBoxList, headers);
                 const notOpened = boxResp?.data?.notOpenedBoxes || [];
-                const opened = boxResp?.data?.openedBoxes || [];
-
-                openedCount = opened.length;
-                openedTypes = [...new Set(opened.map(b => `${b.awardDays}天`))];
 
                 waitingBoxesStr = notOpened.length 
                    ? notOpened.map(b => `  - ${b.awardDays || "未知"}天盲盒（剩余${Number(b.leftDaysToOpen?? 0)}天）`).join("\n")
                     : "  - 无";
 
-                openedBoxesStr = opened.length 
-                   ? `• 已开盲盒 ：${opened.length} 个\n  (类型：${openedTypes.join("、")})`
-                    : "• 已开盲盒 ：0 个";
-
             } catch (e) {
                 waitingBoxesStr = "  - 查询异常";
-                openedBoxesStr = "• 已开盲盒 ：查询异常";
             }
 
-            blindProgress = `• 待开盲盒：\n${waitingBoxesStr}\n\n${openedBoxesStr}`;
+            blindProgress = `• 待开盲盒：\n${waitingBoxesStr}`;
 
             let notifyBody = `✨ 签到     ：${signMsg}
 ${repairMsg? `${repairMsg}\n` : ""}${rewardDetail}
@@ -515,6 +503,7 @@ ${boxMsg}
 • 连续签到 ：${consecutiveDays} 天
 ──────── 盲盒进度 ────────
 ${blindProgress}`;
+
             const MAX_LEN = 1000;
             if (notifyBody.length > MAX_LEN) notifyBody = notifyBody.slice(0, MAX_LEN - 3) + "...";
             
@@ -522,7 +511,7 @@ ${blindProgress}`;
             logInfo("通知已发送：", notifyBody);
         }
 
-        logInfo("九号自动签到（纯净无分享版 v2.7）完成");
+        logInfo("九号自动签到（纯净无分享版 v2.9.4）完成");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e).slice(0, 50));
