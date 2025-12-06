@@ -1,5 +1,5 @@
 /***********************************************
-Ninebot_Sign_Single_v2.9.3.js 
+Ninebot_Sign_Single_v2.7.js 
 2025-12-06 12:00 更新
 核心变更：通知格式优化（适配用户排版）、盲盒进度展示增强
 适配工具：Surge/Quantumult X/Loon
@@ -147,7 +147,7 @@ const cfg = {
     enableRetry: (readPS(KEY_ENABLE_RETRY) === null)? true : (readPS(KEY_ENABLE_RETRY)!== "false")
 };
 
-logInfo("九号自动签到（纯净无分享版 v2.9.3）开始");
+logInfo("九号自动签到（纯净无分享版 v2.7）开始");
 logInfo("当前配置：", {
     notify: cfg.notify,
     autoOpenBox: cfg.autoOpenBox,
@@ -522,7 +522,7 @@ ${blindProgress}`;
             logInfo("通知已发送：", notifyBody);
         }
 
-        logInfo("九号自动签到（纯净无分享版 v2.9.3）完成");
+        logInfo("九号自动签到（纯净无分享版 v2.7）完成");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e).slice(0, 50));
