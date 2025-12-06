@@ -507,14 +507,12 @@ async function openAllAvailableBoxes(headers) {
             let notifyBody = `✨ 签到     ：${signMsg}
 ${repairMsg? `${repairMsg}\n` : ""}${rewardDetail}
 ${boxMsg}
-
 ──────── 账户状态 ────────
 • 当前经验 ：${creditData.credit?? 0}${creditData.level? `（LV.${creditData.level}）` : ""}
 • 升级所需 ：${need?? 0} 经验
 • N 币     ：${nCoinBalance || 0}
 • 补签卡   ：${signCards} 张
 • 连续签到 ：${consecutiveDays} 天
-
 ──────── 盲盒进度 ────────
 ${blindProgress}`;
 
