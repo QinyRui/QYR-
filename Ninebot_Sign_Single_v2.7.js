@@ -494,7 +494,7 @@ async function openAllAvailableBoxes(headers) {
                     : "  - 无";
 
                 openedBoxesStr = opened.length 
-                   ? `• 已开盲盒 ：${opened.length} 个\n  （类型：${openedTypes.join("、")}）`
+                   ? `• 已开盲盒 ：${opened.length} 个\n  （${openedTypes.join("、")}）`
                     : "• 已开盲盒 ：0 个";
 
             } catch (e) {
@@ -507,17 +507,14 @@ async function openAllAvailableBoxes(headers) {
             let notifyBody = `✨ 签到     ：${signMsg}
 ${repairMsg? `${repairMsg}\n` : ""}${rewardDetail}
 ${boxMsg}
-
 ──────── 账户状态 ────────
 • 当前经验 ：${creditData.credit?? 0}${creditData.level? `（LV.${creditData.level}）` : ""}
 • 升级所需 ：${need?? 0} 经验
 • N 币     ：${nCoinBalance || 0}
 • 补签卡   ：${signCards} 张
 • 连续签到 ：${consecutiveDays} 天
-
 ──────── 盲盒进度 ────────
 ${blindProgress}`;
-
             const MAX_LEN = 1000;
             if (notifyBody.length > MAX_LEN) notifyBody = notifyBody.slice(0, MAX_LEN - 3) + "...";
             
