@@ -1,10 +1,7 @@
 /**
- * SGCC 多模式抓包脚本（安全版）
- * 作者：QinyRui
- * 功能：
- * - 自动识别 JSON / Form / 加密 / 空 Body
- * - 自动写入 BoxJS（raw + account）
- * - 手动运行也不会报 $request 错误
+ * SGCC 多模式抓包（升级版）
+ * 支持明文 JSON / Form / 加密 Body
+ * 自动写入 BoxJS（raw + account）
  */
 
 if (typeof $request === "undefined") {
@@ -27,34 +24,30 @@ LOG(`📩 Method: ${method}`);
 LOG(`📥 Body Length: ${bodyRaw?.length || 0}`);
 
 function parseBody() {
+    if (!bodyRaw) return { type: "empty", data: "" };
+
+    // 尝试 JSON
     try {
-        if (!bodyRaw) return { type: "empty", data: "" };
+        const json = JSON.parse(bodyRaw);
+        return { type: "json", data: json };
+    } catch (e) {}
 
-        // 尝试 JSON
-        try {
-            const json = JSON.parse(bodyRaw);
-            return { type: "json", data: json };
-        } catch (e) {}
-
-        // 尝试表单
-        if (bodyRaw.includes("&") && bodyRaw.includes("=")) {
-            let obj = {};
-            bodyRaw.split("&").forEach(kv => {
-                const [k, v] = kv.split("=");
-                obj[k] = decodeURIComponent(v || "");
-            });
-            return { type: "form", data: obj };
-        }
-
-        // 可能是加密网关或大数据流
-        if (/^[0-9A-F]+$/i.test(bodyRaw) || bodyRaw.length > 200) {
-            return { type: "encrypted", data: bodyRaw };
-        }
-
-        return { type: "text", data: bodyRaw };
-    } catch (e) {
-        return { type: "unknown", data: bodyRaw };
+    // 尝试表单
+    if (bodyRaw.includes("&") && bodyRaw.includes("=")) {
+        let obj = {};
+        bodyRaw.split("&").forEach(kv => {
+            const [k, v] = kv.split("=");
+            obj[k] = decodeURIComponent(v || "");
+        });
+        return { type: "form", data: obj };
     }
+
+    // 判断 HEX / Base64 / 加密数据
+    if (/^[0-9A-Fa-f]+$/.test(bodyRaw) || bodyRaw.length > 200) {
+        return { type: "encrypted", data: bodyRaw };
+    }
+
+    return { type: "text", data: bodyRaw };
 }
 
 const parsed = parseBody();
@@ -71,26 +64,23 @@ let data = {
     cookie: headers["Cookie"] || headers["cookie"] || ""
 };
 
-// 从 header 提取 token
+// 从 header 捕获 token
 ["Authorization", "authorization"].forEach(k => {
     if (headers[k]) {
         data.token = headers[k].replace(/Bearer /i, "");
-        LOG(`🔑 从 header 捕获 token: ${data.token}`);
+        LOG(`🔑 捕获 header token: ${data.token}`);
     }
 });
 
-// 从 JSON / Form 提取字段
+// 解析 JSON / Form 字段
 if (parsed.type === "json" || parsed.type === "form") {
-    let obj = parsed.data;
-    const keys = Object.keys(obj);
+    const obj = parsed.data;
+    Object.keys(obj).forEach(k => {
+        const v = obj[k];
+        const keyLower = k.toLowerCase();
 
-    keys.forEach(k => {
-        let keyLower = k.toLowerCase();
-        let v = obj[k];
-
-        if (keyLower.includes("token") && typeof v === "string") {
-            if (keyLower.includes("refresh")) data.refreshToken = v;
-            else data.token = v;
+        if (keyLower.includes("token")) {
+            keyLower.includes("refresh") ? data.refreshToken = v : data.token = v;
         }
         if (keyLower.includes("customer")) data.customerId = v;
         if (keyLower.includes("province")) data.provinceCode = v;
@@ -98,45 +88,26 @@ if (parsed.type === "json" || parsed.type === "form") {
         if (keyLower.includes("elec") || keyLower.includes("account")) data.elecId = v;
         if (keyLower.includes("meter")) data.meterId = v;
     });
-
-    LOG(`📦 抓取到字段解析完成`);
+    LOG(`📦 JSON/Form 字段解析完成`);
 }
 
-// 如果所有字段都为空 → 可能加密接口
-const nothing =
-    !data.token &&
-    !data.refreshToken &&
-    !data.customerId &&
-    !data.elecId &&
-    !data.cookie;
+// 检查是否抓到有效字段
+const hasData = data.token || data.customerId || data.elecId || data.meterId;
+if (!hasData && parsed.type === "encrypted") {
+    LOG(`⚠️ Body 为加密数据，无法解析字段，可查看 raw 数据`);
+}
 
-if (nothing) LOG(`⚠️ 未抓到明确字段（可能加密或无关接口）`);
-
-// 读取旧数据
+// 读取旧数据并更新
 let old = JSON.parse($persistentStore.read(KEY_DATA) || "{}");
+Object.assign(old, data);
 
-// 自动更新最新 token
-if (data.token) old.token = data.token;
-if (data.refreshToken) old.refreshToken = data.refreshToken;
-if (data.customerId) old.customerId = data.customerId;
-if (data.provinceCode) old.provinceCode = data.provinceCode;
-if (data.cityCode) old.cityCode = data.cityCode;
-if (data.elecId) old.elecId = data.elecId;
-if (data.meterId) old.meterId = data.meterId;
-if (data.cookie) old.cookie = data.cookie;
-
-// 保存结果
+// 写入 BoxJS
 $persistentStore.write(JSON.stringify(old, null, 2), KEY_DATA);
 LOG(`💾 已写入 BoxJS: ${KEY_DATA}`);
 
-$persistentStore.write(
-    JSON.stringify(
-        { url, method, headers, parsedBody: parsed, final: old },
-        null,
-        2
-    ),
-    KEY_RAW
-);
+$persistentStore.write(JSON.stringify({
+    url, method, headers, parsedBody: parsed, final: old
+}, null, 2), KEY_RAW);
 LOG(`🗂 已备份到 BoxJS (raw)：${KEY_RAW}`);
 
 $done({});
