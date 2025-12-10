@@ -1,8 +1,16 @@
 /**
- * 国家电网 SGCC 多模式自动抓包脚本
- * 作者：QinyRui  ·  自定义仓库版
- * Key：wangshangguowang
+ * SGCC 多模式抓包脚本（安全版）
+ * 作者：QinyRui
+ * 功能：
+ * - 自动识别 JSON / Form / 加密 / 空 Body
+ * - 自动写入 BoxJS（raw + account）
+ * - 手动运行也不会报 $request 错误
  */
+
+if (typeof $request === "undefined") {
+    console.log("[SGCC-Capture] ❌ 请确保脚本被 HTTP-REQUEST 触发");
+    $done({});
+}
 
 const KEY_RAW = "wangshangguowang.raw";
 const KEY_DATA = "wangshangguowang.account";
@@ -11,9 +19,8 @@ const url = $request.url || "";
 const method = ($request.method || "").toUpperCase();
 const headers = $request.headers || {};
 const bodyRaw = $request.body || "";
-let bodyText = "";
 
-function LOG(msg) { console.log(`[SGCC] ${msg}`); }
+function LOG(msg) { console.log(`[SGCC-Capture] ${msg}`); }
 
 LOG(`⚡ 拦截到请求：${url}`);
 LOG(`📩 Method: ${method}`);
@@ -39,7 +46,7 @@ function parseBody() {
             return { type: "form", data: obj };
         }
 
-        // 可能是加密网关
+        // 可能是加密网关或大数据流
         if (/^[0-9A-F]+$/i.test(bodyRaw) || bodyRaw.length > 200) {
             return { type: "encrypted", data: bodyRaw };
         }
@@ -95,7 +102,7 @@ if (parsed.type === "json" || parsed.type === "form") {
     LOG(`📦 抓取到字段解析完成`);
 }
 
-// 如果所有字段都为空 → 但是数据可能是加密模式
+// 如果所有字段都为空 → 可能加密接口
 const nothing =
     !data.token &&
     !data.refreshToken &&
@@ -103,12 +110,12 @@ const nothing =
     !data.elecId &&
     !data.cookie;
 
-if (nothing) LOG(`⚠️ 未抓到明确字段（可能因为此接口是加密网关 / 无关接口）`);
+if (nothing) LOG(`⚠️ 未抓到明确字段（可能加密或无关接口）`);
 
 // 读取旧数据
 let old = JSON.parse($persistentStore.read(KEY_DATA) || "{}");
 
-// 自动更新最新 token（不为空才覆盖）
+// 自动更新最新 token
 if (data.token) old.token = data.token;
 if (data.refreshToken) old.refreshToken = data.refreshToken;
 if (data.customerId) old.customerId = data.customerId;
@@ -118,7 +125,7 @@ if (data.elecId) old.elecId = data.elecId;
 if (data.meterId) old.meterId = data.meterId;
 if (data.cookie) old.cookie = data.cookie;
 
-// 保存最终结果
+// 保存结果
 $persistentStore.write(JSON.stringify(old, null, 2), KEY_DATA);
 LOG(`💾 已写入 BoxJS: ${KEY_DATA}`);
 
