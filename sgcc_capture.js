@@ -1,91 +1,135 @@
-/*******************************
- 网上国网自动抓包 · 日志版
- BoxJS Key: wangshangguowang
- Author: QinyRui
-*******************************/
+/**
+ * 国家电网 SGCC 多模式自动抓包脚本
+ * 作者：QinyRui  ·  自定义仓库版
+ * Key：wangshangguowang
+ */
 
-if (typeof $request === "undefined") {
-    console.log("[SGCC] ❌ 当前环境不支持 $request，请确保类型是 HTTP-REQUEST 并且 URL 匹配");
-    $notification.post("网上国网抓包 ❌", "脚本必须放在 HTTP-REQUEST 类型", "");
-    $done({});
-    return;
-}
+const KEY_RAW = "wangshangguowang.raw";
+const KEY_DATA = "wangshangguowang.account";
 
-const KEY = "wangshangguowang";
-
-// 打印拦截 URL
-console.log(`[SGCC] ⚡ 拦截到请求：${$request.url}`);
-
-// 解析 headers
+const url = $request.url || "";
+const method = ($request.method || "").toUpperCase();
 const headers = $request.headers || {};
-let token = headers["Authorization"] || headers["authorization"] || "";
-let cookie = headers["Cookie"] || headers["cookie"] || "";
+const bodyRaw = $request.body || "";
+let bodyText = "";
 
-// 解析 body
-let body = $request.body || "";
-let json = {};
-try {
-    if (body) json = JSON.parse(body);
-} catch (e) {
-    console.log(`[SGCC] ⚠️ Body JSON 解析错误：${e}`);
+function LOG(msg) { console.log(`[SGCC] ${msg}`); }
+
+LOG(`⚡ 拦截到请求：${url}`);
+LOG(`📩 Method: ${method}`);
+LOG(`📥 Body Length: ${bodyRaw?.length || 0}`);
+
+function parseBody() {
+    try {
+        if (!bodyRaw) return { type: "empty", data: "" };
+
+        // 尝试 JSON
+        try {
+            const json = JSON.parse(bodyRaw);
+            return { type: "json", data: json };
+        } catch (e) {}
+
+        // 尝试表单
+        if (bodyRaw.includes("&") && bodyRaw.includes("=")) {
+            let obj = {};
+            bodyRaw.split("&").forEach(kv => {
+                const [k, v] = kv.split("=");
+                obj[k] = decodeURIComponent(v || "");
+            });
+            return { type: "form", data: obj };
+        }
+
+        // 可能是加密网关
+        if (/^[0-9A-F]+$/i.test(bodyRaw) || bodyRaw.length > 200) {
+            return { type: "encrypted", data: bodyRaw };
+        }
+
+        return { type: "text", data: bodyRaw };
+    } catch (e) {
+        return { type: "unknown", data: bodyRaw };
+    }
 }
 
-// 抓取字段
-let found = {
-    token: token || json?.token || json?.accessToken || "",
-    refreshToken: json?.refreshToken || "",
-    customerId: json?.customerId || json?.data?.customerId || "",
-    provinceCode: json?.provinceCode || "",
-    cityCode: json?.cityCode || "",
-    elecId: json?.elecId || json?.data?.elecId || "",
-    meterId: json?.meterId || json?.data?.meterId || "",
-    cookie: cookie
+const parsed = parseBody();
+LOG(`🔍 Body 类型判定：${parsed.type}`);
+
+let data = {
+    token: "",
+    refreshToken: "",
+    customerId: "",
+    provinceCode: "",
+    cityCode: "",
+    elecId: "",
+    meterId: "",
+    cookie: headers["Cookie"] || headers["cookie"] || ""
 };
 
-console.log(`[SGCC] 🔍 抓取到字段：`);
-console.log(JSON.stringify(found, null, 2));
+// 从 header 提取 token
+["Authorization", "authorization"].forEach(k => {
+    if (headers[k]) {
+        data.token = headers[k].replace(/Bearer /i, "");
+        LOG(`🔑 从 header 捕获 token: ${data.token}`);
+    }
+});
 
-// 如果没抓到关键字段，直接结束
-if (!found.token && !found.elecId && !found.meterId) {
-    console.log(`[SGCC] ❌ 未抓到有效字段`);
-    $done({});
-    return;
+// 从 JSON / Form 提取字段
+if (parsed.type === "json" || parsed.type === "form") {
+    let obj = parsed.data;
+    const keys = Object.keys(obj);
+
+    keys.forEach(k => {
+        let keyLower = k.toLowerCase();
+        let v = obj[k];
+
+        if (keyLower.includes("token") && typeof v === "string") {
+            if (keyLower.includes("refresh")) data.refreshToken = v;
+            else data.token = v;
+        }
+        if (keyLower.includes("customer")) data.customerId = v;
+        if (keyLower.includes("province")) data.provinceCode = v;
+        if (keyLower.includes("city")) data.cityCode = v;
+        if (keyLower.includes("elec") || keyLower.includes("account")) data.elecId = v;
+        if (keyLower.includes("meter")) data.meterId = v;
+    });
+
+    LOG(`📦 抓取到字段解析完成`);
 }
 
-// 读取 BoxJS 旧数据
-let oldData = $persistentStore.read(KEY);
-let data = oldData && isJson(oldData) ? JSON.parse(oldData) : {};
-data.time = Date.now();
-if (found.token) data.token = found.token;
-if (found.refreshToken) data.refreshToken = found.refreshToken;
-if (found.customerId) data.customerId = found.customerId;
-if (found.provinceCode) data.provinceCode = found.provinceCode;
-if (found.cityCode) data.cityCode = found.cityCode;
-if (found.cookie) data.cookie = found.cookie;
+// 如果所有字段都为空 → 但是数据可能是加密模式
+const nothing =
+    !data.token &&
+    !data.refreshToken &&
+    !data.customerId &&
+    !data.elecId &&
+    !data.cookie;
 
-// 电表信息
-data.meters ||= [];
-if (found.elecId || found.meterId) {
-    const item = { elecId: found.elecId, meterId: found.meterId, update: Date.now() };
-    // 去重
-    data.meters = data.meters.filter(m => m.elecId !== found.elecId);
-    data.meters.push(item);
-    console.log(`[SGCC] 🔁 电表信息已更新（去重成功）`);
-}
+if (nothing) LOG(`⚠️ 未抓到明确字段（可能因为此接口是加密网关 / 无关接口）`);
 
-// 写入 BoxJS
-const save = $persistentStore.write(JSON.stringify(data), KEY);
-if (save) {
-    console.log(`[SGCC] ✅ 写入成功：${KEY}`);
-    $notification.post("网上国网抓包 ✅", "数据已写入 BoxJS", `共 ${data.meters.length} 个电表`);
-} else {
-    console.log(`[SGCC] ❌ 写入失败`);
-    $notification.post("网上国网抓包 ❌", "写入 BoxJS 失败", "请检查 Key 或 BoxJS");
-}
+// 读取旧数据
+let old = JSON.parse($persistentStore.read(KEY_DATA) || "{}");
+
+// 自动更新最新 token（不为空才覆盖）
+if (data.token) old.token = data.token;
+if (data.refreshToken) old.refreshToken = data.refreshToken;
+if (data.customerId) old.customerId = data.customerId;
+if (data.provinceCode) old.provinceCode = data.provinceCode;
+if (data.cityCode) old.cityCode = data.cityCode;
+if (data.elecId) old.elecId = data.elecId;
+if (data.meterId) old.meterId = data.meterId;
+if (data.cookie) old.cookie = data.cookie;
+
+// 保存最终结果
+$persistentStore.write(JSON.stringify(old, null, 2), KEY_DATA);
+LOG(`💾 已写入 BoxJS: ${KEY_DATA}`);
+
+$persistentStore.write(
+    JSON.stringify(
+        { url, method, headers, parsedBody: parsed, final: old },
+        null,
+        2
+    ),
+    KEY_RAW
+);
+LOG(`🗂 已备份到 BoxJS (raw)：${KEY_RAW}`);
 
 $done({});
-
-function isJson(str) {
-    if (!str) return false;
-    try { JSON.parse(str); return true; } catch { return false; }
-}
