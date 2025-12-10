@@ -1,5 +1,5 @@
 /**
- * 九号智能分享任务参数自动写入 BoxJS（Loon 专用）
+ * 九号智能分享任务参数自动写入 BoxJS（Loon 专用，修复变量名问题）
  * 作者: QinyRui
  * 适配版本: Loon 2.1.0+
  * 功能: 捕获分享任务接口参数并自动更新到 BoxJS
@@ -82,12 +82,12 @@ function handleRewardClaimRequest(request) {
     return request;
 }
 
-// 入口：根据请求URL分发处理逻辑
-const requestUrl = $request.url;
+// 入口：根据请求URL分发处理逻辑（关键修改：将 $request 改为 $httpRequest）
+const requestUrl = $httpRequest.url;
 if (requestUrl.includes("snssdk.ninebot.com/service/2/app_log")) {
-    handleTaskReportRequest($request);
+    handleTaskReportRequest($httpRequest);
 } else if (requestUrl.includes("cn-cbu-gateway.ninebot.com/portal/self-service/task/reward")) {
-    handleRewardClaimRequest($request);
+    handleRewardClaimRequest($httpRequest);
 }
 
 // 放行请求（不修改原始请求）
