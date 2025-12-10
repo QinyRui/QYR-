@@ -1,0 +1,33 @@
+{
+  "id": "wangshangguowang.box",
+  "name": "网上国网 · 数据抓取",
+  "author": "YourName",
+  "icon": "https://raw.githubusercontent.com/YourRepo/icon/sgcc.png",
+  "repo": "https://github.com/YourRepo",
+  "apps": [
+    {
+      "id": "wangshangguowang",
+      "name": "网上国网账户",
+      "keys": [
+        "wangshangguowang"
+      ],
+      "author": "@You",
+      "descs_html": [
+        "📌 <b>网上国网数据抓包</b>",
+        "",
+        "自动写入 token、电表号、户号、meterId、elecId 等。",
+        "",
+        "只需在 APP 内正常使用，自动抓包后会写入本面板。",
+        "",
+        "⚡ 支持自动更新最新 Token、自动去重电表/户号信息。"
+      ],
+      "settings": [
+        {
+          "id": "wangshangguowang",
+          "name": "抓包数据（JSON）",
+          "type": "textarea"
+        }
+      ]
+    }
+  ]
+}
