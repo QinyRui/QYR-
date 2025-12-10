@@ -1,55 +1,38 @@
 /*******************************
- 网上国网自动抓包 · 带详细日志版
- 保存 Key：wangshangguowang
- 作者：QinyRui 自用
- *******************************/
+ 网上国网自动抓包 · 日志版
+ BoxJS Key: wangshangguowang
+ Author: QinyRui
+*******************************/
 
-const KEY = "wangshangguowang";
-
-// 判断是否国家电网接口
-const host = $request.hostname || "";
-const url = $request.url || "";
-
-if (!/sgcc|95598|power|electric/i.test(host + url)) {
-    console.log(`[SGCC] ❌ 非国家电网接口，跳过：${host}${url}`);
+if (typeof $request === "undefined") {
+    console.log("[SGCC] ❌ 当前环境不支持 $request，请确保类型是 HTTP-REQUEST 并且 URL 匹配");
+    $notification.post("网上国网抓包 ❌", "脚本必须放在 HTTP-REQUEST 类型", "");
     $done({});
     return;
 }
 
-console.log(`\n==============================`);
-console.log(`[SGCC] ⚡ 拦截到请求：${url}`);
-console.log("==============================\n");
+const KEY = "wangshangguowang";
 
-// 解析 header
+// 打印拦截 URL
+console.log(`[SGCC] ⚡ 拦截到请求：${$request.url}`);
+
+// 解析 headers
 const headers = $request.headers || {};
 let token = headers["Authorization"] || headers["authorization"] || "";
 let cookie = headers["Cookie"] || headers["cookie"] || "";
 
 // 解析 body
-let body = "";
-try {
-    if ($request.body) {
-        body = $request.body;
-        console.log(`[SGCC] 📦 请求体：${body}`);
-    }
-} catch (e) {
-    console.log(`[SGCC] ⚠️ 请求体解析失败：${e}`);
-}
-
-// 尝试从 body 中解析 JSON（部分国网接口 token 在 body 中）
+let body = $request.body || "";
 let json = {};
 try {
-    if (isJson(body)) {
-        json = JSON.parse(body);
-        console.log(`[SGCC] 📄 Body JSON 解析成功`);
-    }
+    if (body) json = JSON.parse(body);
 } catch (e) {
     console.log(`[SGCC] ⚠️ Body JSON 解析错误：${e}`);
 }
 
-// 从 JSON 内找关键字段
+// 抓取字段
 let found = {
-    token: token || json?.token || json?.accessToken,
+    token: token || json?.token || json?.accessToken || "",
     refreshToken: json?.refreshToken || "",
     customerId: json?.customerId || json?.data?.customerId || "",
     provinceCode: json?.provinceCode || "",
@@ -62,27 +45,16 @@ let found = {
 console.log(`[SGCC] 🔍 抓取到字段：`);
 console.log(JSON.stringify(found, null, 2));
 
-// 如果什么都没抓到，直接结束
+// 如果没抓到关键字段，直接结束
 if (!found.token && !found.elecId && !found.meterId) {
-    console.log(`[SGCC] ❌ 未发现有效字段，不写入`);
+    console.log(`[SGCC] ❌ 未抓到有效字段`);
     $done({});
     return;
 }
 
-// 读取旧存储
+// 读取 BoxJS 旧数据
 let oldData = $persistentStore.read(KEY);
-let data = {};
-
-if (oldData && isJson(oldData)) {
-    data = JSON.parse(oldData);
-    console.log(`[SGCC] 📚 当前已有数据：`);
-    console.log(JSON.stringify(data, null, 2));
-} else {
-    console.log(`[SGCC] 🆕 BoxJS 里没有旧数据，将新建`);
-    data = {};
-}
-
-// 更新字段（覆盖最新）
+let data = oldData && isJson(oldData) ? JSON.parse(oldData) : {};
 data.time = Date.now();
 if (found.token) data.token = found.token;
 if (found.refreshToken) data.refreshToken = found.refreshToken;
@@ -91,51 +63,29 @@ if (found.provinceCode) data.provinceCode = found.provinceCode;
 if (found.cityCode) data.cityCode = found.cityCode;
 if (found.cookie) data.cookie = found.cookie;
 
-// 处理电表数组
+// 电表信息
 data.meters ||= [];
-
 if (found.elecId || found.meterId) {
-    const item = {
-        elecId: found.elecId,
-        meterId: found.meterId,
-        update: Date.now()
-    };
-
-    // 去重（以 elecId 为准）
+    const item = { elecId: found.elecId, meterId: found.meterId, update: Date.now() };
+    // 去重
     data.meters = data.meters.filter(m => m.elecId !== found.elecId);
     data.meters.push(item);
-
-    console.log(`[SGCC] 🔁 电表信息已更新（自动去重）`);
+    console.log(`[SGCC] 🔁 电表信息已更新（去重成功）`);
 }
 
 // 写入 BoxJS
 const save = $persistentStore.write(JSON.stringify(data), KEY);
-
 if (save) {
     console.log(`[SGCC] ✅ 写入成功：${KEY}`);
-    $notification.post(
-        "网上国网 · 抓包成功",
-        "数据已写入 BoxJS",
-        `点击查看：${KEY}`
-    );
+    $notification.post("网上国网抓包 ✅", "数据已写入 BoxJS", `共 ${data.meters.length} 个电表`);
 } else {
-    console.log(`[SGCC] ❌ 写入失败，请检查 Key 或 BoxJS`);
-    $notification.post(
-        "网上国网 · 抓包失败",
-        "写入 BoxJS 失败",
-        "请查看脚本日志"
-    );
+    console.log(`[SGCC] ❌ 写入失败`);
+    $notification.post("网上国网抓包 ❌", "写入 BoxJS 失败", "请检查 Key 或 BoxJS");
 }
 
 $done({});
 
-
 function isJson(str) {
     if (!str) return false;
-    try {
-        JSON.parse(str);
-        return true;
-    } catch {
-        return false;
-    }
+    try { JSON.parse(str); return true; } catch { return false; }
 }
