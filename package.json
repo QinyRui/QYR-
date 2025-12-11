@@ -1,0 +1,11 @@
+{
+  "name": "cloudflare-ai-proxy",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker反向代理，支持OpenAI/OpenRouter",
+  "scripts": {
+    "deploy": "npx wrangler deploy src/index.js"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
