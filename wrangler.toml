@@ -1,0 +1,10 @@
+name = "my-worker"
+main = "workers.js"
+compatibility_date = "2025-12-12"
+
+# 如果你使用 Git 自动部署，可选：
+type = "javascript"
+
+# 可选：绑定 KV 或其他环境变量
+# [env.production]
+# kv_namespaces = []
