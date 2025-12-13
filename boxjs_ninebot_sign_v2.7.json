@@ -10,13 +10,16 @@
       "name": "九号智能电动车（单号）",
       "keys": [
         "#ComponentService",
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent",
         "ninebot.titlePrefix",
         "ninebot.notify",
         "ninebot.autoOpenBox",
         "ninebot.notifyFail",
         "ninebot.logLevel",
-        "ninebot.captureEnable",
-        "ninebot.lastCaptureAt"
+        "ninebot.lastCaptureAt",
+        "ninebot.captureEnable"
       ],
       "settings": [
         {
@@ -25,17 +28,38 @@
           "val": "true",
           "type": "select",
           "items": [
-            {"key": "true", "label": "开启（自动抓包写入）"},
-            {"key": "false", "label": "关闭（仅手动填写）"}
+            { "key": "true", "label": "开启（自动抓取凭证）" },
+            { "key": "false", "label": "关闭（仅手动填写）" }
           ],
-          "desc": "开启后访问九号签到页自动抓取凭证，无需手动触发抓包"
+          "desc": "开启后访问九号签到页将自动写入凭证，无需手动抓包"
+        },
+        {
+          "id": "ninebot.authorization",
+          "name": "Authorization",
+          "val": "",
+          "type": "text",
+          "desc": "账号鉴权Token（自动抓包优先写入ComponentService，也可手动填写）"
+        },
+        {
+          "id": "ninebot.deviceId",
+          "name": "DeviceId",
+          "val": "",
+          "type": "text",
+          "desc": "设备ID（自动抓包优先写入ComponentService，也可手动填写）"
+        },
+        {
+          "id": "ninebot.userAgent",
+          "name": "User-Agent",
+          "val": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
+          "type": "text",
+          "desc": "请求UA（自动抓包覆盖ComponentService，默认值可直接使用）"
         },
         {
           "id": "ninebot.titlePrefix",
           "name": "自定义通知标题",
           "val": "九号签到助手",
           "type": "text",
-          "desc": "通知标题前缀，如“九号签到助手”"
+          "desc": "通知标题前缀，例如：九号签到助手"
         },
         {
           "id": "ninebot.notify",
@@ -43,21 +67,21 @@
           "val": "true",
           "type": "select",
           "items": [
-            {"key": "true", "label": "开启（推送结果）"},
-            {"key": "false", "label": "关闭（不推送）"}
+            { "key": "true", "label": "开启（推送签到结果）" },
+            { "key": "false", "label": "关闭（不推送通知）" }
           ],
           "desc": "是否推送签到结果通知"
         },
         {
           "id": "ninebot.autoOpenBox",
           "name": "自动开启盲盒",
-          "val": "true",
+          "val": "false",
           "type": "select",
           "items": [
-            {"key": "true", "label": "开启（自动开箱）"},
-            {"key": "false", "label": "关闭（手动开箱）"}
+            { "key": "true", "label": "开启（所有可用盲盒自动开箱）" },
+            { "key": "false", "label": "关闭（手动开箱）" }
           ],
-          "desc": "支持所有可开启盲盒自动领取奖励"
+          "desc": "支持7天盲盒+普通盲盒，满足条件自动开启"
         },
         {
           "id": "ninebot.notifyFail",
@@ -65,29 +89,29 @@
           "val": "true",
           "type": "select",
           "items": [
-            {"key": "true", "label": "开启（失败提醒）"},
-            {"key": "false", "label": "关闭（不提醒）"}
+            { "key": "true", "label": "开启（失败时推送通知）" },
+            { "key": "false", "label": "关闭（失败时不推送）" }
           ],
-          "desc": "仅在任务失败时推送通知"
+          "desc": "仅在失败时推送通知，避免打扰"
         },
         {
           "id": "ninebot.logLevel",
           "name": "日志输出级别",
-          "val": "simple",
+          "val": "debug",
           "type": "select",
           "items": [
-            {"key": "silent", "label": "静默（无日志）"},
-            {"key": "simple", "label": "简洁（仅错误）"},
-            {"key": "full", "label": "完整（所有日志）"}
+            { "key": "silent", "label": "静默（无日志）" },
+            { "key": "simple", "label": "简洁（仅错误日志）" },
+            { "key": "full", "label": "完整（所有日志）" }
           ],
-          "desc": "控制日志详细程度"
+          "desc": "细化日志控制"
         },
         {
           "id": "ninebot.lastCaptureAt",
           "name": "最后抓包时间",
           "val": "",
           "type": "text",
-          "desc": "凭证最后更新时间（仅展示，自动同步）"
+          "desc": "所有配置最后抓包更新时间（仅展示，不可修改，自动同步ComponentService）"
         }
       ]
     }
