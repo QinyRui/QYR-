@@ -1,13 +1,23 @@
 {
-  "id": "Ninebot.Sign.Single",
-  "name": "九号智能电动车 · 单号签到",
-  "author": "QinyRui",
+  "id": "ByteValley.DataCollection",
+  "name": "组件服务·九号智能电动车",
+  "author": "@QinyRui",
+  "description": "九号智能电动车账号凭证采集与管理，供自动签到脚本复用",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
   "repo": "https://t.me/JiuHaoAPP",
   "apps": [
     {
-      "id": "ninebot.single",
-      "name": "九号智能电动车（单号）",
+      "id": "DataCollection.Ninebot",
+      "name": "九号智能电动车",
+      "descs_html": [
+        "用于保存九号智能电动车 App 抓取到的 <code>Authorization</code>、<code>DeviceId</code> 等核心凭证，支持自动签到、盲盒开箱等功能。",
+        "<b>凭证获取方式：</b><br/>1）确保客户端已配置九号自动抓包脚本并开启开关；<br/>2）打开<b>九号智能电动车官方 App</b>，进入「签到」页面触发接口；<br/>3）脚本会自动将凭证写入以下字段，无需手动填写。",
+        "<b>注意事项：</b><br/>• 凭证有有效期，若签到失败可重新进入签到页触发更新；<br/>• 字段不可随意修改，清空后需重新抓包获取。"
+      ],
+      "icons": [
+        "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
+        "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png"
+      ]
       "keys": [
         "#ComponentService",
         "ninebot.authorization",
