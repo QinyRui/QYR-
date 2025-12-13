@@ -17,7 +17,7 @@
       "icons": [
         "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
         "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png"
-      ]
+      ],
       "keys": [
         "#ComponentService",
         "ninebot.authorization",
@@ -45,53 +45,53 @@
         },
         {
           "id": "ninebot.authorization",
-          "name": "Authorization",
+          "name": "Authorization 鉴权Token",
           "val": "",
           "type": "text",
-          "desc": "账号鉴权Token（自动抓包优先写入ComponentService，也可手动填写）"
+          "desc": "账号核心鉴权凭证，自动抓包优先写入，手动填写仅用于调试"
         },
         {
           "id": "ninebot.deviceId",
-          "name": "DeviceId",
+          "name": "DeviceId 设备标识",
           "val": "",
           "type": "text",
-          "desc": "设备ID（自动抓包优先写入ComponentService，也可手动填写）"
+          "desc": "设备唯一ID，与账号鉴权强关联，自动抓包优先写入"
         },
         {
           "id": "ninebot.userAgent",
-          "name": "User-Agent",
+          "name": "User-Agent 请求头",
           "val": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
           "type": "text",
-          "desc": "请求UA（自动抓包覆盖ComponentService，默认值可直接使用）"
+          "desc": "请求UA标识，自动抓包会覆盖默认值，默认值可直接使用"
         },
         {
           "id": "ninebot.titlePrefix",
           "name": "自定义通知标题",
           "val": "九号签到助手",
           "type": "text",
-          "desc": "通知标题前缀，例如：九号签到助手"
+          "desc": "签到结果通知的标题前缀，例如：我的九号签到"
         },
         {
           "id": "ninebot.notify",
-          "name": "开启签到通知",
+          "name": "签到结果通知开关",
           "val": "true",
           "type": "select",
           "items": [
             { "key": "true", "label": "开启（推送签到结果）" },
             { "key": "false", "label": "关闭（不推送通知）" }
           ],
-          "desc": "是否推送签到结果通知"
+          "desc": "是否推送签到成功/失败的通知"
         },
         {
           "id": "ninebot.autoOpenBox",
-          "name": "自动开启盲盒",
+          "name": "自动盲盒开箱开关",
           "val": "false",
           "type": "select",
           "items": [
-            { "key": "true", "label": "开启（所有可用盲盒自动开箱）" },
+            { "key": "true", "label": "开启（自动开启所有可领取盲盒）" },
             { "key": "false", "label": "关闭（手动开箱）" }
           ],
-          "desc": "支持7天盲盒+普通盲盒，满足条件自动开启"
+          "desc": "支持7天盲盒和普通盲盒，满足条件时自动开启"
         },
         {
           "id": "ninebot.notifyFail",
@@ -99,29 +99,29 @@
           "val": "true",
           "type": "select",
           "items": [
-            { "key": "true", "label": "开启（失败时推送通知）" },
+            { "key": "true", "label": "开启（仅失败时推送通知）" },
             { "key": "false", "label": "关闭（失败时不推送）" }
           ],
-          "desc": "仅在失败时推送通知，避免打扰"
+          "desc": "仅在签到或开箱失败时推送通知，避免成功时打扰"
         },
         {
           "id": "ninebot.logLevel",
           "name": "日志输出级别",
-          "val": "debug",
+          "val": "simple",
           "type": "select",
           "items": [
             { "key": "silent", "label": "静默（无日志）" },
             { "key": "simple", "label": "简洁（仅错误日志）" },
-            { "key": "full", "label": "完整（所有日志）" }
+            { "key": "full", "label": "完整（所有流程日志）" }
           ],
-          "desc": "细化日志控制"
+          "desc": "控制脚本日志的详细程度，调试时可选择完整"
         },
         {
           "id": "ninebot.lastCaptureAt",
-          "name": "最后抓包时间",
+          "name": "最后抓包更新时间",
           "val": "",
           "type": "text",
-          "desc": "所有配置最后抓包更新时间（仅展示，不可修改，自动同步ComponentService）"
+          "desc": "凭证最后更新的时间戳，仅展示不可修改，自动同步"
         }
       ]
     }
