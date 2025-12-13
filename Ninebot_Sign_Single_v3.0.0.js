@@ -1,8 +1,8 @@
 /***********************************************
-Ninebot_Sign_Single_v3.0.2.js 
+Ninebot_Sign_Single_v3.0.3.js 
 
-更新时间：2025-12-14
-修复凭证写入路径，确保与BoxJS配置项完全对齐
+更新时间：2025-12-15
+彻底修复BoxJS联动问题，强制对齐配置项id
 适配工具：Surge/Quantumult X/Loon
 功能覆盖：自动抓包、自动签到、盲盒开箱、资产查询
 ***********************************************/
@@ -99,7 +99,7 @@ else {
     })();
 }
 
-// 自动抓包写入BoxJS配置项（直接对齐配置id）
+// 自动抓包写入BoxJS配置项（直接对齐界面显示的id）
 function captureNinebotToken() {
     try {
         const headers = $request.headers || {};
@@ -116,7 +116,7 @@ function captureNinebotToken() {
             return;
         }
 
-        // 直接写入BoxJS配置项的id（与界面配置项完全对齐）
+        // 直接写入BoxJS界面配置项的id（与界面完全一致）
         $.write(auth, "@DataCollection.Ninebot.Settings.Authorization");
         $.write(deviceId, "@DataCollection.Ninebot.Settings.DeviceId");
         $.write(ua, "@DataCollection.Ninebot.Settings.UserAgent");
@@ -132,12 +132,12 @@ function captureNinebotToken() {
     }
 }
 
-// 读取配置（直接从BoxJS配置项id读取）
+// 读取配置（直接从BoxJS界面配置项的id读取）
 function getConfig() {
     const config = {
-        Authorization: $.read("@DataCollection.Ninebot.Settings.Authorization") || $.read("ninebot.authorization") || "",
-        DeviceId: $.read("@DataCollection.Ninebot.Settings.DeviceId") || $.read("ninebot.deviceId") || "",
-        UserAgent: $.read("@DataCollection.Ninebot.Settings.UserAgent") || $.read("ninebot.userAgent") || "Ninebot/3620",
+        Authorization: $.read("@DataCollection.Ninebot.Settings.Authorization") || "",
+        DeviceId: $.read("@DataCollection.Ninebot.Settings.DeviceId") || "",
+        UserAgent: $.read("@DataCollection.Ninebot.Settings.UserAgent") || "Ninebot/3620",
         titlePrefix: $.read("ninebot.titlePrefix") || "九号签到助手",
         notify: $.read("ninebot.notify") !== "false",
         autoOpenBox: $.read("ninebot.autoOpenBox") === "true",
