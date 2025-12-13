@@ -1,8 +1,8 @@
 /***********************************************
-Ninebot_Sign_Single_v3.0.1.js 
+Ninebot_Sign_Single_v3.0.2.js 
 
-更新时间：0:00
-修复凭证提取逻辑、参数传递错误，适配九号最新API
+更新时间：2025-12-14
+修复凭证写入路径，确保与BoxJS配置项完全对齐
 适配工具：Surge/Quantumult X/Loon
 功能覆盖：自动抓包、自动签到、盲盒开箱、资产查询
 ***********************************************/
@@ -73,8 +73,7 @@ function API(name = "untitled", debug = false) {
 
 // 初始化API实例
 const APIKey = "NinebotSign";
-const ROOT_KEY = "#ComponentService";
-$ = new API(APIKey, true); // 开启debug日志，便于排查
+const $ = new API(APIKey, true); // 开启debug日志，便于排查
 
 // 配置常量
 const CAPTURE_PATTERNS = ["/portal/api/user-sign/v2/status", "/portal/api/user-sign/v2/sign"];
@@ -100,7 +99,7 @@ else {
     })();
 }
 
-// 自动抓包写入ComponentService（强化凭证校验）
+// 自动抓包写入BoxJS配置项（直接对齐配置id）
 function captureNinebotToken() {
     try {
         const headers = $request.headers || {};
@@ -117,42 +116,28 @@ function captureNinebotToken() {
             return;
         }
 
-        // 读取ComponentService根节点
-        let root = {};
-        const rootRaw = $.read(ROOT_KEY);
-        if (rootRaw) root = JSON.parse(rootRaw);
-
-        // 写入九号凭证
-        if (!root.Ninebot) root.Ninebot = {};
-        if (!root.Ninebot.Settings) root.Ninebot.Settings = {};
-        root.Ninebot.Settings.Authorization = auth;
-        root.Ninebot.Settings.DeviceId = deviceId;
-        root.Ninebot.Settings.UserAgent = ua;
-        root.Ninebot.Settings.LastCaptureAt = new Date().toLocaleString();
-
-        // 持久化并同步到BoxJS展示字段
-        $.write(JSON.stringify(root), ROOT_KEY);
-        $.write(root.Ninebot.Settings.LastCaptureAt, "ninebot.lastCaptureAt");
+        // 直接写入BoxJS配置项的id（与界面配置项完全对齐）
+        $.write(auth, "@DataCollection.Ninebot.Settings.Authorization");
+        $.write(deviceId, "@DataCollection.Ninebot.Settings.DeviceId");
+        $.write(ua, "@DataCollection.Ninebot.Settings.UserAgent");
+        const captureTime = new Date().toLocaleString();
+        $.write(captureTime, "@DataCollection.Ninebot.Settings.LastCaptureAt");
+        $.write(captureTime, "ninebot.lastCaptureAt"); // 同步到展示字段
         
-        $.notify("九号电动车", "凭证抓取成功", `最后更新：${root.Ninebot.Settings.LastCaptureAt}`);
-        $.log("凭证已写入ComponentService.Ninebot.Settings");
+        $.notify("九号电动车", "凭证抓取成功", `最后更新：${captureTime}`);
+        $.log("凭证已写入BoxJS配置项");
     } catch (e) {
         $.notify("九号电动车", "抓包失败", `错误：${String(e).slice(0, 50)}`);
         $.log(`抓包异常：${e}`);
     }
 }
 
-// 读取配置（兼容ComponentService和旧key，新增日志输出）
+// 读取配置（直接从BoxJS配置项id读取）
 function getConfig() {
-    let root = {};
-    const rootRaw = $.read(ROOT_KEY);
-    if (rootRaw) root = JSON.parse(rootRaw);
-    const ninebotSettings = root.Ninebot?.Settings || {};
-
     const config = {
-        Authorization: ninebotSettings.Authorization || $.read("ninebot.authorization") || "",
-        DeviceId: ninebotSettings.DeviceId || $.read("ninebot.deviceId") || "",
-        UserAgent: ninebotSettings.UserAgent || $.read("ninebot.userAgent") || "Ninebot/3620",
+        Authorization: $.read("@DataCollection.Ninebot.Settings.Authorization") || $.read("ninebot.authorization") || "",
+        DeviceId: $.read("@DataCollection.Ninebot.Settings.DeviceId") || $.read("ninebot.deviceId") || "",
+        UserAgent: $.read("@DataCollection.Ninebot.Settings.UserAgent") || $.read("ninebot.userAgent") || "Ninebot/3620",
         titlePrefix: $.read("ninebot.titlePrefix") || "九号签到助手",
         notify: $.read("ninebot.notify") !== "false",
         autoOpenBox: $.read("ninebot.autoOpenBox") === "true",
