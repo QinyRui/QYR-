@@ -1,5 +1,6 @@
 /***********************************************
-Ninebot_Sign_Single_v2.9.2.js 
+Ninebot_Sign_Single_v2.7.0.js 
+// version: 2.7.0
 2025-12-05 12:00 更新
 核心变更：适配新盲盒领取接口（blind-box/receive）、修复自动开箱功能
 适配工具：Surge/Quantumult X/Loon
