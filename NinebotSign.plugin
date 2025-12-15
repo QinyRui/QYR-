@@ -1,35 +1,47 @@
-# 九号电动车签到组件插件
-# 版本: 1.0.0
-# 作者: ByteValley
-# 描述: 自动签到+抓包写入BoxJs+跨域同步，适配九号小组件
-# 图标: scooter
-# 主页: https://github.com/QinyRui/QYR-
+#!name = 九号智能电动车 · 单号自动签到（自动抓包版）
+#!desc = 抓包自动写入教程→无需手动开抓包开关，直接打开九号APP签到页，凭证将自动写入ComponentService
+#!openUrl = https://t.me/JiuHaoAPP
+#!author = QinyRui
+#!homepage = https://t.me/JiuHaoAPP
+#!tag = 九号智能电动车
+#!system = iOS,iPadOS,macOS
+#!date = 2025-12-14 10:00:00
+#!version = 2.7.0
+#!system_version = 15
+
+[Argument]
+notify = switch, "true", "false", tag=通知开关
+capture = switch, "true", "false", tag=自动抓包开关
+titlePrefix = input, "九号签到助手", tag=自定义通知标题
+cron_time = input, "1 0 * * *", tag=签到时间（CRON）
+
+# 定义插件可视化参数（与小组件配置页联动）
+notify = switch, "true", "false", tag=通知开关, desc=是否推送签到结果通知
+capture = switch, "false", "true", tag=自动抓包开关, desc=开启后访问九号签到接口自动写入鉴权信息到BoxJs
+titlePrefix = input, "九号签到助手", tag=自定义通知标题, desc=签到结果通知的标题前缀
+cron_time = input, "30 7 * * *", tag=签到时间（CRON）, desc=每日自动签到的执行时间（Cron表达式）
+refreshInterval = input, "1440", tag=小组件刷新间隔（分钟）, desc=小组件自动刷新的时间间隔
 
 [General]
 name=九号电动车签到组件
-author=ByteValley
+author=QinyRui
 version=1.0.0
 description=自动签到、抓包鉴权、BoxJs跨域同步，联动桌面小组件
 icon=scooter
 homepage=https://github.com/QinyRui/QYR-
 updateUrl=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/NinebotSign.plugin
 
-[Settings]
-# 开关变量配置
-variable:capture:bool:false:抓包模式开关|开启后访问九号签到接口自动写入鉴权信息到BoxJs
-variable:auto_sign:bool:true:自动签到开关|每日7:30自动执行签到+盲盒开箱
-
 [Script]
-# 1. 抓包写入BoxJs - 拦截签到接口提取Authorization/DeviceId
-http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=10, tag=九号-抓包写入, enable=capture, script-update-interval=0, requires-body=true
+# 1. 抓包写入BoxJs（联动capture开关和titlePrefix）
+http-request ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/status script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=10, tag=九号-抓包写入, enable=capture, script-update-interval=0, requires-body=true, argument=({notify},{titlePrefix})
 
-# 2. 每日自动签到+盲盒开箱 - 7:30执行，避开接口高峰
-cron "30 7 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=120, tag=九号-自动签到, enable=auto_sign, script-update-interval=0
+# 2. 每日自动签到+盲盒开箱（联动cron_time、notify、titlePrefix）
+cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.7.js, timeout=120, tag=九号-自动签到, enable=true, script-update-interval=0, argument=({notify},{titlePrefix})
 
-# 3. BoxJs跨域重写 - 解决小组件读取配置跨域问题
+# 3. BoxJs跨域重写
 http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/jiuhao\/Ninebot\.boxjs\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/BoxJsCors.js, tag=九号-BoxJs跨域, enable=true, script-update-interval=0
 
-# 4. 可选：脚本更新检查 - 每周日0点检查更新
+# 4. 脚本更新检查
 cron "0 0 * * 0" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/CheckUpdate.js, tag=九号-脚本更新检查, enable=true
 
 [Rewrite]
