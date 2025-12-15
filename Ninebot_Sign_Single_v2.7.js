@@ -2,9 +2,9 @@
 Ninebot_Sign_Single_v2.7.0.js 
 // version: 2.7.0
 2025-12-05 12:00 更新
-核心变更：适配新盲盒领取接口（blind-box/receive）、修复自动开箱功能
+核心变更：适配新盲盒领取接口（blind-box/receive）、修复自动开箱功能、集成BoxJs写入
 适配工具：Surge/Quantumult X/Loon
-功能覆盖：自动签到、全盲盒开箱、资产查询、美化通知、自动补签
+功能覆盖：自动签到、全盲盒开箱、资产查询、美化通知、自动补签、BoxJs鉴权同步
 脚本作者：QinyRui
 ***********************************************/
 
@@ -30,6 +30,10 @@ function formatDateTime(date = new Date()) {
     return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 }
 
+/* BoxJS 配置 - 新增 */
+const BOXJS_ROOT_KEY = "ComponentService";
+const BOXJS_NINEBOT_KEY = "ninebot";
+const BOXJS_URL = "http://boxjs.com"; // 可改为你的私有BoxJs地址
 /* BoxJS keys */
 const KEY_AUTH = "ninebot.authorization";
 const KEY_DEV = "ninebot.deviceId";
@@ -101,12 +105,65 @@ function checkTokenValid(resp) {
     return!(hasInvalidCode || hasInvalidMsg);
 }
 
-/* 抓包处理 */
+/* ========== 新增 BoxJs 写入函数 ========== */
+async function writeToBoxJs(auth, deviceId, ua) {
+    if (!HAS_HTTP) {
+        logWarn("当前环境不支持 HTTP 请求，跳过 BoxJs 写入");
+        return false;
+    }
+    try {
+        // 1. 读取 BoxJs 现有数据
+        let boxData = {};
+        const queryUrl = `${BOXJS_URL}/query/data/${BOXJS_ROOT_KEY}`;
+        await new Promise((resolve) => {
+            $httpClient.get({ url: queryUrl, headers: { "Accept": "application/json" } }, (err, res, data) => {
+                if (!err && res?.status === 200) {
+                    try { boxData = JSON.parse(data)?.val || {}; } catch (e) { logWarn("解析 BoxJs 现有数据失败", e); }
+                }
+                resolve();
+            });
+        });
+
+        // 2. 更新九号鉴权信息
+        boxData[BOXJS_NINEBOT_KEY] = {
+            authorization: auth,
+            deviceId: deviceId,
+            userAgent: ua,
+            updateTime: formatDateTime()
+        };
+
+        // 3. 写入 BoxJs
+        const updateUrl = `${BOXJS_URL}/update/data/${BOXJS_ROOT_KEY}`;
+        await new Promise((resolve) => {
+            $httpClient.post({
+                url: updateUrl,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ val: boxData })
+            }, (err, res) => {
+                if (!err && res?.status === 200) {
+                    logInfo("鉴权信息成功写入 BoxJs");
+                    notify("九号 BoxJs 同步", "成功 ✓", "Authorization/DeviceId 已更新");
+                    resolve(true);
+                } else {
+                    logErr("写入 BoxJs 失败", err || `状态码: ${res?.status}`);
+                    notify("九号 BoxJs 同步", "失败 ⚠️", "请检查 BoxJs 服务是否正常");
+                    resolve(false);
+                }
+            });
+        });
+        return true;
+    } catch (e) {
+        logErr("BoxJs 写入异常", e);
+        return false;
+    }
+}
+
+/* 抓包处理 - 集成 BoxJs 写入 */
 const CAPTURE_PATTERNS = ["/portal/api/user-sign/v2/status", "/portal/api/user-sign/v2/sign", "/blind-box/receive"];
 const isCaptureRequest = IS_REQUEST && $request && $request.url && CAPTURE_PATTERNS.some(u => $request.url.includes(u));
 if (isCaptureRequest) {
     try {
-        logInfo("进入抓包写入流程（含盲盒接口）");
+        logInfo("进入抓包写入流程（含盲盒接口+BoxJs同步）");
         const h = $request.headers || {};
         const auth = h["Authorization"] || h["authorization"] || "";
         const dev = h["DeviceId"] || h["deviceid"] || h["device_id"] || "";
@@ -121,10 +178,10 @@ if (isCaptureRequest) {
         if (changed) {
             const currentTime = formatDateTime();
             writePS(currentTime, KEY_LAST_CAPTURE);
-            notify("九号智能电动车", "抓包成功 ✓", `数据已写入 BoxJS\n最后抓包时间：${currentTime}`);
-            logInfo("抓包写入成功，最后抓包时间：", currentTime);
+            // 新增：写入 BoxJs
+            await writeToBoxJs(auth, dev, ua);
         } else {
-            logInfo("抓包数据无变化");
+            logInfo("抓包数据无变化，跳过 BoxJs 写入");
         }
     } catch (e) {
         logErr("抓包异常：", e);
