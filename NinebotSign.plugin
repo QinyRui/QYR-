@@ -5,10 +5,11 @@
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
-#!date = 2025-12-15 10:00:00
+#!date = 2025-12-16 10:00:00
 #!version = 2.7.0
 #!system_version = 15
 
+[Argument]
 # 定义插件可视化参数（与小组件配置页联动）
 capture = switch, "false", "true", tag=自动抓包开关, desc=开启后访问九号签到接口自动写入鉴权信息到BoxJs
 notify = switch, "true", "false", tag=通知开关, desc=是否推送签到结果通知
