@@ -1,9 +1,0 @@
-{
-  "name": "my-worker",
-  "version": "1.0.0",
-  "main": "workers.js",
-  "scripts": {
-    "build": "echo 'No build needed for single file Worker'"
-  },
-  "dependencies": {}
-}
