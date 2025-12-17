@@ -1,4 +1,4 @@
-// BoxJs 跨域重写脚本（完整匹配版）
+// 跨域重写脚本（和你提供的一致）
 const match = $request.url.indexOf("boxjs.com/api/boxjs/get") > -1;
 if (match) {
     const res = {
