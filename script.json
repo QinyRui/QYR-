@@ -1,0 +1,23 @@
+{
+  "description" : null,
+  "localizedDescriptions" : null,
+  "icon" : "square.2.layers.3d.fill",
+  "author" : {
+    "homepage" : "https:\/\/github.com\/QinyRui\/QYR-",
+    "name" : "QinyRui",
+    "email" : "602839678@qq.com"
+  },
+  "contributors" : [
+
+  ],
+  "localizedNames" : null,
+  "version" : "1.0.0",
+  "iconImage" : null,
+  "remoteResource" : null,
+  "runInApp" : false,
+  "color" : "rgba(230, 190, 1,1)",
+  "intentInputTypes" : [
+
+  ],
+  "name" : "九号 APP①①"
+}
