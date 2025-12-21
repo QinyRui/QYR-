@@ -1,18 +1,18 @@
 {
   "id": "ByteValley.DataCollection",
-  "name": "组件服务·九号（双账号版）",
+  "name": "组件服务·九号",
   "author": "@QinyRui",
-  "description": "九号智能电动车双账号凭证采集与管理，支持两个账号独立签到",
+  "description": "九号智能电动车账号凭证采集与管理，供自动签到脚本复用",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
   "repo": "https://t.me/JiuHaoAPP",
   "updateUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot.boxjs.json",
   "apps": [
     {
-      "id": "DataCollection.Ninebot.Account1",
-      "name": "九号智能电动车（账号1）",
+      "id": "DataCollection.Ninebot",
+      "name": "九号智能电动车",
       "descs_html": [
-        "用于保存**第一个九号账号**的 Authorization、DeviceId 等核心凭证，支持自动签到、盲盒开箱等功能。",
-        "<b>凭证获取方式：</b><br/>1）确保客户端已配置九号自动抓包脚本并开启开关；<br/>2）打开<b>九号智能电动车官方 App</b>，登录第一个账号后进入「签到」页面触发接口；<br/>3）脚本会自动将凭证写入以下字段，无需手动填写。",
+        "用于保存九号智能电动车 App 抓取到的 <code>Authorization</code>、<code>DeviceId</code> 等核心凭证，支持自动签到、盲盒开箱等功能。",
+        "<b>凭证获取方式：</b><br/>1）确保客户端已配置九号自动抓包脚本并开启开关；<br/>2）打开<b>九号智能电动车官方 App</b>，进入「签到」页面触发接口；<br/>3）脚本会自动将凭证写入以下字段，无需手动填写。",
         "<b>注意事项：</b><br/>• 凭证有有效期，若签到失败可重新进入签到页触发更新；<br/>• 字段不可随意修改，清空后需重新抓包获取。"
       ],
       "icons": [
@@ -21,346 +21,132 @@
       ],
       "keys": [
         "#ComponentService",
-        "ninebot.account1.authorization",
-        "ninebot.account1.deviceId",
-        "ninebot.account1.userAgent",
-        "ninebot.account1.titlePrefix",
-        "ninebot.account1.notify",
-        "ninebot.account1.autoOpenBox",
-        "ninebot.account1.notifyFail",
-        "ninebot.account1.logLevel",
-        "ninebot.account1.lastCaptureAt",
-        "ninebot.account1.captureEnable",
-        "ninebot.account1.autoRepair"
+        "ninebot.authorization",
+        "ninebot.deviceId",
+        "ninebot.userAgent",
+        "ninebot.titlePrefix",
+        "ninebot.notify",
+        "ninebot.autoOpenBox",
+        "ninebot.notifyFail",
+        "ninebot.logLevel",
+        "ninebot.lastCaptureAt",
+        "ninebot.captureEnable",
+        "ninebot.autoRepair"
       ],
       "settings": [
         {
-          "id": "ninebot.account1.captureEnable",
+          "id": "ninebot.captureEnable",
           "name": "自动抓包开关",
           "val": "true",
           "type": "select",
           "items": [
-            {
-              "key": "true",
-              "label": "开启（自动抓取凭证）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（仅手动填写）"
-            }
+            { "key": "true", "label": "开启（自动抓取凭证）" },
+            { "key": "false", "label": "关闭（仅手动填写）" }
           ],
           "desc": "开启后访问九号签到页将自动写入凭证，无需手动抓包"
         },
         {
-          "id": "ninebot.account1.authorization",
+          "id": "ninebot.authorization",
           "name": "Authorization 鉴权Token",
           "val": "",
           "type": "text",
           "isSecret": true,
-          "desc": "账号1核心鉴权凭证，自动抓包优先写入"
+          "desc": "账号核心鉴权凭证，自动抓包优先写入，手动填写仅用于调试"
         },
         {
-          "id": "ninebot.account1.deviceId",
+          "id": "ninebot.deviceId",
           "name": "DeviceId 设备标识",
           "val": "",
           "type": "text",
           "isSecret": true,
-          "desc": "账号1设备唯一ID，与账号鉴权强关联"
+          "desc": "设备唯一ID，与账号鉴权强关联，自动抓包优先写入"
         },
         {
-          "id": "ninebot.account1.userAgent",
+          "id": "ninebot.userAgent",
           "name": "User-Agent 请求头",
           "val": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
           "type": "text",
-          "desc": "账号1请求UA标识，自动抓包会覆盖默认值"
+          "desc": "请求UA标识，自动抓包会覆盖默认值，默认值可直接使用"
         },
         {
-          "id": "ninebot.account1.titlePrefix",
+          "id": "ninebot.titlePrefix",
           "name": "自定义通知标题",
-          "val": "九号签到助手（账号1）",
+          "val": "九号签到助手",
           "type": "text",
-          "desc": "账号1签到结果通知的标题前缀"
+          "desc": "签到结果通知的标题前缀，例如：我的九号签到"
         },
         {
-          "id": "ninebot.account1.notify",
+          "id": "ninebot.notify",
           "name": "签到结果通知开关",
           "val": "true",
           "type": "select",
           "items": [
-            {
-              "key": "true",
-              "label": "开启（推送签到结果）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（不推送通知）"
-            }
+            { "key": "true", "label": "开启（推送签到结果）" },
+            { "key": "false", "label": "关闭（不推送通知）" }
           ],
-          "desc": "账号1是否推送签到成功/失败的通知"
+          "desc": "是否推送签到成功/失败的通知"
         },
         {
-          "id": "ninebot.account1.autoOpenBox",
+          "id": "ninebot.autoOpenBox",
           "name": "自动盲盒开箱开关",
           "val": "false",
           "type": "select",
           "items": [
-            {
-              "key": "true",
-              "label": "开启（自动开启所有可领取盲盒）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（手动开箱）"
-            }
+            { "key": "true", "label": "开启（自动开启所有可领取盲盒）" },
+            { "key": "false", "label": "关闭（手动开箱）" }
           ],
-          "desc": "账号1支持7天盲盒和普通盲盒自动开启"
+          "desc": "支持7天盲盒和普通盲盒，满足条件时自动开启"
         },
         {
-          "id": "ninebot.account1.autoRepair",
+          "id": "ninebot.autoRepair",
           "name": "自动补签开关",
           "val": "false",
           "type": "select",
           "items": [
-            {
-              "key": "true",
-              "label": "开启（自动使用补签卡）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（不自动补签）"
-            }
+            { "key": "true", "label": "开启（自动使用补签卡）" },
+            { "key": "false", "label": "关闭（不自动补签）" }
           ],
-          "desc": "账号1签到失败时自动使用补签卡"
+          "desc": "签到失败时自动使用补签卡，需确保补签卡数量充足"
         },
         {
-          "id": "ninebot.account1.notifyFail",
+          "id": "ninebot.notifyFail",
           "name": "失败通知开关",
           "val": "true",
           "type": "select",
           "items": [
-            {
-              "key": "true",
-              "label": "开启（仅失败时推送通知）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（失败时不推送）"
-            }
+            { "key": "true", "label": "开启（仅失败时推送通知）" },
+            { "key": "false", "label": "关闭（失败时不推送）" }
           ],
-          "desc": "账号1仅在签到或开箱失败时推送通知"
+          "desc": "仅在签到或开箱失败时推送通知，避免成功时打扰"
         },
         {
-          "id": "ninebot.account1.logLevel",
+          "id": "ninebot.logLevel",
           "name": "日志输出级别",
           "val": "simple",
           "type": "select",
           "items": [
-            {
-              "key": "silent",
-              "label": "静默（无日志）"
-            },
-            {
-              "key": "simple",
-              "label": "简洁（仅错误日志）"
-            },
-            {
-              "key": "full",
-              "label": "完整（所有流程日志）"
-            }
+            { "key": "silent", "label": "静默（无日志）" },
+            { "key": "simple", "label": "简洁（仅错误日志）" },
+            { "key": "full", "label": "完整（所有流程日志）" }
           ],
-          "desc": "账号1控制脚本日志的详细程度"
+          "desc": "控制脚本日志的详细程度，调试时可选择完整"
         },
         {
-          "id": "ninebot.account1.lastCaptureAt",
+          "id": "ninebot.lastCaptureAt",
           "name": "最后抓包更新时间",
           "val": "",
           "type": "text",
           "isReadonly": true,
-          "desc": "账号1凭证最后更新的时间戳，自动同步"
-        }
-      ]
-    },
-    {
-      "id": "DataCollection.Ninebot.Account2",
-      "name": "九号智能电动车（账号2）",
-      "descs_html": [
-        "用于保存**第二个九号账号**的 Authorization、DeviceId 等核心凭证，支持自动签到、盲盒开箱等功能。",
-        "<b>凭证获取方式：</b><br/>1）确保客户端已配置九号自动抓包脚本并开启开关；<br/>2）打开<b>九号智能电动车官方 App</b>，登录第二个账号后进入「签到」页面触发接口；<br/>3）脚本会自动将凭证写入以下字段，无需手动填写。",
-        "<b>注意事项：</b><br/>• 凭证有有效期，若签到失败可重新进入签到页触发更新；<br/>• 字段不可随意修改，清空后需重新抓包获取。"
-      ],
-      "icons": [
-        "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
-        "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png"
-      ],
-      "keys": [
-        "#ComponentService",
-        "ninebot.account2.authorization",
-        "ninebot.account2.deviceId",
-        "ninebot.account2.userAgent",
-        "ninebot.account2.titlePrefix",
-        "ninebot.account2.notify",
-        "ninebot.account2.autoOpenBox",
-        "ninebot.account2.notifyFail",
-        "ninebot.account2.logLevel",
-        "ninebot.account2.lastCaptureAt",
-        "ninebot.account2.captureEnable",
-        "ninebot.account2.autoRepair"
-      ],
-      "settings": [
-        {
-          "id": "ninebot.account2.captureEnable",
-          "name": "自动抓包开关",
-          "val": "true",
-          "type": "select",
-          "items": [
-            {
-              "key": "true",
-              "label": "开启（自动抓取凭证）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（仅手动填写）"
-            }
-          ],
-          "desc": "开启后访问九号签到页将自动写入凭证，无需手动抓包"
-        },
-        {
-          "id": "ninebot.account2.authorization",
-          "name": "Authorization 鉴权Token",
-          "val": "",
-          "type": "text",
-          "isSecret": true,
-          "desc": "账号2核心鉴权凭证，自动抓包优先写入"
-        },
-        {
-          "id": "ninebot.account2.deviceId",
-          "name": "DeviceId 设备标识",
-          "val": "",
-          "type": "text",
-          "isSecret": true,
-          "desc": "账号2设备唯一ID，与账号鉴权强关联"
-        },
-        {
-          "id": "ninebot.account2.userAgent",
-          "name": "User-Agent 请求头",
-          "val": "Ninebot/3620 CFNetwork/3860.200.71 Darwin/25.1.0",
-          "type": "text",
-          "desc": "账号2请求UA标识，自动抓包会覆盖默认值"
-        },
-        {
-          "id": "ninebot.account2.titlePrefix",
-          "name": "自定义通知标题",
-          "val": "九号签到助手（账号2）",
-          "type": "text",
-          "desc": "账号2签到结果通知的标题前缀"
-        },
-        {
-          "id": "ninebot.account2.notify",
-          "name": "签到结果通知开关",
-          "val": "true",
-          "type": "select",
-          "items": [
-            {
-              "key": "true",
-              "label": "开启（推送签到结果）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（不推送通知）"
-            }
-          ],
-          "desc": "账号2是否推送签到成功/失败的通知"
-        },
-        {
-          "id": "ninebot.account2.autoOpenBox",
-          "name": "自动盲盒开箱开关",
-          "val": "false",
-          "type": "select",
-          "items": [
-            {
-              "key": "true",
-              "label": "开启（自动开启所有可领取盲盒）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（手动开箱）"
-            }
-          ],
-          "desc": "账号2支持7天盲盒和普通盲盒自动开启"
-        },
-        {
-          "id": "ninebot.account2.autoRepair",
-          "name": "自动补签开关",
-          "val": "false",
-          "type": "select",
-          "items": [
-            {
-              "key": "true",
-              "label": "开启（自动使用补签卡）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（不自动补签）"
-            }
-          ],
-          "desc": "账号2签到失败时自动使用补签卡"
-        },
-        {
-          "id": "ninebot.account2.notifyFail",
-          "name": "失败通知开关",
-          "val": "true",
-          "type": "select",
-          "items": [
-            {
-              "key": "true",
-              "label": "开启（仅失败时推送通知）"
-            },
-            {
-              "key": "false",
-              "label": "关闭（失败时不推送）"
-            }
-          ],
-          "desc": "账号2仅在签到或开箱失败时推送通知"
-        },
-        {
-          "id": "ninebot.account2.logLevel",
-          "name": "日志输出级别",
-          "val": "simple",
-          "type": "select",
-          "items": [
-            {
-              "key": "silent",
-              "label": "静默（无日志）"
-            },
-            {
-              "key": "simple",
-              "label": "简洁（仅错误日志）"
-            },
-            {
-              "key": "full",
-              "label": "完整（所有流程日志）"
-            }
-          ],
-          "desc": "账号2控制脚本日志的详细程度"
-        },
-        {
-          "id": "ninebot.account2.lastCaptureAt",
-          "name": "最后抓包更新时间",
-          "val": "",
-          "type": "text",
-          "isReadonly": true,
-          "desc": "账号2凭证最后更新的时间戳，自动同步"
+          "desc": "凭证最后更新的时间戳，仅展示不可修改，自动同步"
         }
       ]
     }
   ],
-  "rewrite": [
-    {
-      "name": "九号电动车配置跨域重写",
-      "author": "@QinyRui",
-      "script": "const res={headers:{...$response.headers,\"Access-Control-Allow-Origin\":\"*\",\"Access-Control-Allow-Methods\":\"GET,OPTIONS\"},body:$response.body};$done(res);",
-      "match": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot.boxjs.json",
-      "type": "response"
-    }
-  ]
+  "rewrite": {
+    "name": "九号电动车配置跨域重写",
+    "author": "@QinyRui",
+    "script": "const res={headers:{...$response.headers,\"Access-Control-Allow-Origin\":\"*\",\"Access-Control-Allow-Methods\":\"GET,OPTIONS\"},body:$response.body};$done(res);",
+    "match": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot.boxjs.json",
+    "type": "response"
+  }
 }
