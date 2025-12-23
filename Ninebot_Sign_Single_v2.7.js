@@ -573,7 +573,7 @@ ${blindProgress}`;
             logInfo("通知已发送：", notifyBody);
         }
 
-        logInfo("九号自动签到（纯净无分享版 v2.9.2）完成");
+        logInfo("九号自动签到（纯净无分享版 v2.7）完成");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e).slice(0, 50));
