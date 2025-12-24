@@ -1,9 +1,9 @@
 {
   "id": "ByteValley.DataCollection",
-  "name": "组件服务·九号",
+  "name": "九号·智能",
   "author": "@QinyRui",
   "description": "九号智能电动车账号凭证采集与管理，供自动签到脚本复用",
-  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/logo_128.png",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/Q/IMG_1706.png",
   "repo": "https://t.me/JiuHaoAPP",
   "updateUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot.boxjs.json",
   "apps": [
