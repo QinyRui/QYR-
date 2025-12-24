@@ -5,7 +5,7 @@
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
-#!date = 2025-12-25 10:00:00
+#!date = 2025-12-25 00:00:00
 #!version = 2.7.0
 #!system_version = 15
 
@@ -23,7 +23,6 @@ author=QinyRui
 version=1.0.0
 description=自动签到、抓包鉴权、BoxJs跨域同步，联动桌面小组件
 icon=https://raw.githubusercontent.com/QinyRui/QYR-/Q/IMG_1706.png
-icon=scooter
 homepage=https://github.com/QinyRui/QYR-
 updateUrl=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/NinebotSign.plugin
 
