@@ -22,7 +22,7 @@ name=九号电动车签到组件
 author=QinyRui
 version=1.0.0
 description=自动签到、抓包鉴权、BoxJs跨域同步，联动桌面小组件
-icon=scooter
+icon=https://raw.githubusercontent.com/QinyRui/QYR-/Q/IMG_1706.png
 homepage=https://github.com/QinyRui/QYR-
 updateUrl=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/NinebotSign.plugin
 
