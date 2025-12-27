@@ -1,8 +1,8 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.1.js 
-// version: 2.7.1
-2025-12-27 12:00 更新
-核心变更：适配自定义通知格式、新增最近7天N币收入明细
+Ninebot_Sign_Single_v2.7.2.js 
+// version: 2.7.2
+2025-12-27 18:00 更新
+核心变更：优化通知签到状态行，首次签到显示经验、无经验仅展示状态
 适配工具：Surge/Quantumult X/Loon
 功能覆盖：自动签到、全盲盒开箱、资产查询、美化通知、自动补签、BoxJs写入
 脚本作者：QinyRui
@@ -204,7 +204,7 @@ const cfg = {
     enableRetry: (readPS(KEY_ENABLE_RETRY) === null)? true : (readPS(KEY_ENABLE_RETRY)!== "false")
 };
 
-logInfo("九号自动签到（纯净无分享版 v2.7.1）开始");
+logInfo("九号自动签到（纯净无分享版 v2.7.2）开始");
 logInfo("当前配置：", {
     notify: cfg.notify,
     autoOpenBox: cfg.autoOpenBox,
@@ -477,10 +477,11 @@ async function getRecent7DaysNcoinRecords(headers) {
                     writePS(today, KEY_LAST_SIGN_DATE);
                     const signExp = signResp.data.rewardList.filter(r => r.rewardType === 1).reduce((s, r) => s + Number(r.rewardValue), 0);
                     todayGainExp = signExp;
-                    signMsg = `成功`;
+                    signMsg = "成功";
                     logInfo("签到成功", `+${signExp}经验`);
                 } else if (signResp.code === 540004 || /已签到/.test(signResp.msg || signResp.message || "")) {
                     signMsg = "已完成";
+                    todayGainExp = 0;
                     writePS(today, KEY_LAST_SIGN_DATE);
                 } else {
                     const errMsg = signResp.msg || signResp.message || "未知错误";
@@ -497,6 +498,7 @@ async function getRecent7DaysNcoinRecords(headers) {
             }
         } else {
             signMsg = "已完成";
+            todayGainExp = 0;
             logInfo("今日已签到，跳过");
             try {
                 const creditResp = await httpPost(END.creditLst, headers, { page: 1, size: 100 });
@@ -567,9 +569,14 @@ async function getRecent7DaysNcoinRecords(headers) {
                 waitingBoxes = ["- 获取盲盒列表失败"];
             }
 
+            // 核心修改：动态拼接签到状态行
+            const signStatusLine = todayGainExp > 0 
+               ? `✨ 今日签到状态：${signMsg} | 经验：+${todayGainExp}` 
+                : `✨ 今日签到状态：${signMsg}`;
+
             // 组装最终通知内容
             const notifyBody = `${cfg.titlePrefix}
-✨ 今日签到状态：${signMsg} | 签到经验：+${todayGainExp || 0}
+${signStatusLine}
 📊 账户状态
 - 当前经验：${creditData.credit?? 0}${creditData.level? `（LV.${creditData.level}）` : ""}
 - 当前 N 币：${nCoinBalance || 0}
@@ -584,7 +591,7 @@ ${recent7DaysRecords.join("\n")}`;
             logInfo("通知已发送：", notifyBody);
         }
 
-        logInfo("九号自动签到（纯净无分享版 v2.7.1）完成");
+        logInfo("九号自动签到（纯净无分享版 v2.7.2）完成");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e).slice(0, 50));
