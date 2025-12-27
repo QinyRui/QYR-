@@ -1,10 +1,10 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.3.js 
-// version: 2.7.3
-2025-12-28 更新
-核心变更：新增通知幂等性控制，避免重复发送
+Ninebot_Sign_Single_v2.7.1.js 
+// version: 2.7.1
+2025-12-27 20:00 更新
+核心变更：优化通知格式（首次签到展示经验、新增7天N币明细、简化状态展示）
 适配工具：Surge/Quantumult X/Loon
-功能覆盖：自动签到、全盲盒开箱、资产查询、美化通知、自动补签、BoxJs写入
+功能覆盖：自动签到、全盲盒开箱、资产查询、美化通知、自动补签、BoxJs鉴权同步
 脚本作者：QinyRui
 ***********************************************/
 
@@ -28,7 +28,8 @@ function formatDateTime(date = new Date()) {
     const minute = String(date.getMinutes()).padStart(2, "0");
     const second = String(date.getSeconds()).padStart(2, "0");
     return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-}    
+}
+
 /* BoxJS 配置 - 新增 */
 const BOXJS_ROOT_KEY = "ComponentService";
 const BOXJS_NINEBOT_KEY = "ninebot";
@@ -48,7 +49,6 @@ const KEY_LOG_LEVEL = "ninebot.logLevel";
 const KEY_LAST_SIGN_DATE = "ninebot.lastSignDate";
 const KEY_ENABLE_RETRY = "ninebot.enableRetry";
 const KEY_AUTO_REPAIR = "ninebot.autoRepairCard"; // 自动补签开关
-const KEY_LAST_NOTIFY = "ninebot.lastNotifyTime"; // 新增：记录上次通知时间
 
 /* Endpoints（更新盲盒领取接口） */
 const END = {
@@ -178,8 +178,8 @@ if (isCaptureRequest) {
         if (changed) {
             const currentTime = formatDateTime();
             writePS(currentTime, KEY_LAST_CAPTURE);
-            // 新增：写入 BoxJs 改为非阻塞执行
-            writeToBoxJs(auth, dev, ua).catch(err => logErr("BoxJs 写入失败", err));
+            // 新增：写入 BoxJs
+            await writeToBoxJs(auth, dev, ua);
         } else {
             logInfo("抓包数据无变化，跳过 BoxJs 写入");
         }
@@ -205,7 +205,7 @@ const cfg = {
     enableRetry: (readPS(KEY_ENABLE_RETRY) === null)? true : (readPS(KEY_ENABLE_RETRY)!== "false")
 };
 
-logInfo("九号自动签到（纯净无分享版 v2.7.3）开始");
+logInfo("九号自动签到（纯净无分享版 v2.7.1）开始");
 logInfo("当前配置：", {
     notify: cfg.notify,
     autoOpenBox: cfg.autoOpenBox,
@@ -257,9 +257,9 @@ function requestWithRetry({ method = "GET", url, headers = {}, body = null, time
             const cb = (err, resp, data) => {
                 if (err) {
                     const msg = String(err && (err.error || err.message || err));
-                    const shouldRetry = /(Socket closed|ECONNRESET|network|timed out|timeout|failed|502)/i.test(msg);
-                    if (shouldRetry && attempts < MAX_RETRY && cfg.enableRetry) {
-                        logWarn(`请求失败：${msg}，${RETRY_DELAY}ms 后重试`);
+                    const shouldRetry = /(Socket closed|ECONNRESET|network|timed out|timeout|failed|502|504)/i.test(msg);
+                    if (attempts < MAX_RETRY && shouldRetry && cfg.enableRetry) {
+                        logWarn(`请求错误：${msg}，${RETRY_DELAY}ms 后重试`);
                         setTimeout(once, RETRY_DELAY);
                         return;
                     }
@@ -308,13 +308,16 @@ function toDateKeyAny(ts) {
     try {
         let d;
         if (typeof ts === "number") {
-            // 区分毫秒和秒级时间戳（13位为毫秒，10位为秒）
-            ts = ts.toString().length === 13? ts : ts * 1000;
-            d = new Date(ts);
+            ts = ts > 1e12? Math.floor(ts / 1000) : ts;
+            d = new Date(ts * 1000);
         } else if (typeof ts === "string") {
-            d = new Date(ts);
-        } else {
-            d = new Date(ts);
+            if (/^\d+$/.test(ts)) {
+                let n = Number(ts);
+                n = n > 1e12? Math.floor(n / 1000) : n;
+                d = new Date(n * 1000);
+            } else {
+                d = new Date(ts);
+            }
         }
         return!isNaN(d.getTime()) 
            ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
@@ -331,7 +334,7 @@ function todayKey() {
 
 /* 自动补签功能 */
 async function autoRepairSign(headers, signCards) {
-    if (!cfg.autoRepair || Number(signCards) <= 0) {
+    if (!cfg.autoRepair || signCards <= 0) {
         logInfo(cfg.autoRepair? "补签卡数量不足，跳过自动补签" : "自动补签已关闭，跳过");
         return "";
     }
@@ -370,14 +373,14 @@ async function openAllAvailableBoxes(headers) {
 
         const openResults = [];
         for (const box of availableBoxes) {
-            const rewardId = box.rewardId?? box.id?? box.reward_id?? ""; // 增加备选字段
+            const rewardId = box.rewardId?? box.id?? ""; // 关键：获取盲盒rewardId
             if (!rewardId) {
                 openResults.push(`❌ ${box.awardDays || "未知"}天盲盒：缺失rewardId`);
                 logWarn("盲盒rewardId为空，跳过");
                 continue;
             }
 
-            logInfo(`  └─ 开启${box.awardDays || "未知"}天盲盒（rewardId：${rewardId}）`);
+            logInfo(`开启${box.awardDays || "未知"}天盲盒（rewardId：${rewardId}）`);
             try {
                 // 调用新盲盒领取接口，请求体与抓包一致
                 const openResp = await httpPost(END.blindBoxReceive, headers, {
@@ -388,19 +391,17 @@ async function openAllAvailableBoxes(headers) {
                     const rewardType = openResp.data?.rewardType === 1? "经验" : "N币";
                     const rewardValue = openResp.data?.rewardValue || 0;
                     openResults.push(`✅ ${box.awardDays || "未知"}天盲盒：+${rewardValue}${rewardType}`);
-                    logInfo(`  └─ 开启成功：+${rewardValue}${rewardType}`);
+                    logInfo(`盲盒开启成功，奖励：+${rewardValue}${rewardType}`);
                 } else {
                     const errMsg = openResp.msg || openResp.message || "开箱失败";
                     openResults.push(`❌ ${box.awardDays || "未知"}天盲盒：${errMsg}`);
-                    logWarn(`  └─ 开启失败：${errMsg}`);
+                    logWarn(`盲盒开启失败：${errMsg}`);
                 }
             } catch (e) {
                 openResults.push(`❌ ${box.awardDays || "未知"}天盲盒：${String(e).slice(0, 30)}`);
-                logErr("  └─ 开启异常：", e);
+                logErr("盲盒开启异常：", e);
             }
-            // 随机延迟，降低风控概率
-            const delay = 1000 + Math.floor(Math.random() * 1000);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await new Promise(resolve => setTimeout(resolve, 1500)); // 避免接口限流
         }
         return openResults;
     } catch (e) {
@@ -409,30 +410,51 @@ async function openAllAvailableBoxes(headers) {
     }
 }
 
-/* 新增：获取最近7天N币收入明细 */
-async function getRecent7DaysNcoinRecords(headers) {
+/* ========== 新增：获取最近7天N币收入明细 ========== */
+async function getRecent7DaysNCoinRecords(headers) {
     try {
+        // 1. 获取当前日期和7天前日期
+        const today = new Date();
+        const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const sevenDaysAgoKey = toDateKeyAny(sevenDaysAgo);
+
+        // 2. 调用N币记录接口（扩大查询范围到20条，确保覆盖7天）
         const nCoinResp = await httpPost(END.nCoinRecord, headers, { tranType: 1, size: 20, page: 1 }, "query");
         const nCoinList = Array.isArray(nCoinResp?.data?.list)? nCoinResp.data.list : [];
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const sevenDaysAgoKey = toDateKeyAny(sevenDaysAgo.getTime());
 
-        // 筛选7天内的记录并格式化
-        return nCoinList
-           .filter(it => {
-                const recordDate = toDateKeyAny(it.occurrenceTime);
-                return recordDate && recordDate >= sevenDaysAgoKey;
-            })
-           .map(it => {
-                const date = toDateKeyAny(it.occurrenceTime) || "未知日期";
-                const source = it.source || "未知来源";
-                return `${date} N币 +${it.count || 0}（来源：${source}）`;
-            })
-           .slice(0, 7); // 最多取7条
+        // 3. 筛选7天内的收入记录（排除支出）
+        const validRecords = nCoinList.filter(record => {
+            const recordDateKey = toDateKeyAny(record.occurrenceTime);
+            // 日期在7天内 + 收入（count为正）
+            return recordDateKey && recordDateKey >= sevenDaysAgoKey && Number(record.count?? 0) > 0;
+        });
+
+        // 4. 按日期倒序排序，格式化显示
+        validRecords.sort((a, b) => {
+            const dateA = new Date(toDateKeyAny(a.occurrenceTime));
+            const dateB = new Date(toDateKeyAny(b.occurrenceTime));
+            return dateB - dateA; // 最新的在前
+        });
+
+        // 5. 格式化记录（优化来源显示）
+        return validRecords.map(record => {
+            const date = toDateKeyAny(record.occurrenceTime);
+            const count = Number(record.count?? 0);
+            // 来源映射：优化显示名称
+            const sourceMap = {
+                "分享": "分享",
+                "盲盒": "盲盒开箱",
+                "连续签到": "连续签到盲盒",
+                "每日签到": "每日签到",
+                "任务": "任务完成",
+                "活动": "活动奖励"
+            };
+            const source = sourceMap[record.source] || record.source || "未知来源";
+            return `${date} N币 +${count}（来源：${source}）`;
+        });
     } catch (e) {
-        logWarn("获取7天收入明细异常：", String(e));
-        return ["获取收入明细失败"];
+        logErr("获取7天N币明细异常：", e);
+        return ["⚠️  7天收入明细查询失败"];
     }
 }
 
@@ -468,7 +490,7 @@ async function getRecent7DaysNcoinRecords(headers) {
         }
 
         // 3. 执行签到/补签
-        let signMsg = "", repairMsg = "", todayGainExp = 0, todayGainNcoin = 0;
+        let signStatus = "", signExpStr = "", repairMsg = "", todayGainExp = 0, todayGainNcoin = 0;
         if (!isTodaySigned) {
             logInfo("今日未签到，执行签到...");
             try {
@@ -478,28 +500,31 @@ async function getRecent7DaysNcoinRecords(headers) {
                     writePS(today, KEY_LAST_SIGN_DATE);
                     const signExp = signResp.data.rewardList.filter(r => r.rewardType === 1).reduce((s, r) => s + Number(r.rewardValue), 0);
                     todayGainExp = signExp;
-                    signMsg = "成功";
-                    logInfo("签到成功", `+${signExp}经验`);
+                    signStatus = "成功";
+                    signExpStr = `+${signExp}`; // 首次签到展示经验
+                    logInfo("签到成功，经验+", signExp);
                 } else if (signResp.code === 540004 || /已签到/.test(signResp.msg || signResp.message || "")) {
-                    signMsg = "已完成";
-                    todayGainExp = 0;
+                    signStatus = "已完成（重复请求）";
+                    signExpStr = "无"; // 重复请求不展示经验
                     writePS(today, KEY_LAST_SIGN_DATE);
                 } else {
                     const errMsg = signResp.msg || signResp.message || "未知错误";
-                    signMsg = "失败";
+                    signStatus = `失败：${errMsg}`;
+                    signExpStr = "无";
                     logWarn("签到失败", errMsg);
-                    if (cfg.autoRepair && Number(signCards) > 0) {
+                    if (cfg.autoRepair && signCards > 0) {
                         repairMsg = await autoRepairSign(headers, signCards);
                         signCards -= 1;
                     }
                 }
             } catch (e) {
-                signMsg = "失败";
+                signStatus = `异常：${String(e).slice(0, 30)}`;
+                signExpStr = "无";
                 logErr("签到请求异常", e);
             }
         } else {
-            signMsg = "已完成";
-            todayGainExp = 0;
+            signStatus = "已完成";
+            signExpStr = "无"; // 已签到不展示经验
             logInfo("今日已签到，跳过");
             try {
                 const creditResp = await httpPost(END.creditLst, headers, { page: 1, size: 100 });
@@ -509,10 +534,10 @@ async function getRecent7DaysNcoinRecords(headers) {
                 if (signRecords.length > 0) {
                     const exp = signRecords.reduce((sum, it) => sum + (Number(it.credit?? 0) || 0), 0);
                     todayGainExp = exp;
-                    logInfo(`已签到时统计经验：+${exp}（去重后）`);
+                    logInfo(`已签到时统计经验：+${exp}（仅日志显示，通知不展示）`);
                 }
             } catch (e) { logWarn("已签到时统计经验异常：", e); }
-        }    
+        }
 
         // 4. 统计今日分享获得的N币
         try {
@@ -551,59 +576,54 @@ async function getRecent7DaysNcoinRecords(headers) {
             logWarn("N币余额查询异常：", String(e)); 
         }
 
-        // 7. 自动开启盲盒（核心修复）
+        // 7. 自动开启盲盒（核心修复）- 仅执行，通知不展示开箱结果
         const boxOpenResults = await openAllAvailableBoxes(headers);
-        logInfo("盲盒开箱结果：", boxOpenResults);
+        logInfo("盲盒开箱结果：", boxOpenResults); // 仅日志显示
 
-        // 8. 发送自定义格式通知（新增幂等性控制）
+        // 8. 获取最近7天N币收入明细
+        const recentNCoinRecords = await getRecent7DaysNCoinRecords(headers);
+
+        // 9. 待开盲盒简化展示
+        let waitingBlindBoxes = "无";
+        try {
+            const boxResp = await httpGet(END.blindBoxList, headers);
+            const notOpened = boxResp?.data?.notOpenedBoxes || [];
+            if (notOpened.length > 0) {
+                waitingBlindBoxes = notOpened.map(b => {
+                    const days = b.awardDays || "未知";
+                    const leftDays = Number(b.leftDaysToOpen?? b.remaining?? 0);
+                    return `${days}天盲盒（剩余${leftDays}天）`;
+                }).join("\n- ");
+                waitingBlindBoxes = `- ${waitingBlindBoxes}`; // 加前缀对齐格式
+            }
+        } catch (e) {
+            waitingBlindBoxes = "查询异常";
+            logWarn("待开盲盒查询异常：", e);
+        }
+
+        // 10. 发送优化后通知
         if (cfg.notify) {
-            // 检查是否在1分钟内已发送过通知
-            const lastNotifyTime = readPS(KEY_LAST_NOTIFY);
-            const now = new Date().getTime();
-            if (lastNotifyTime && now - Number(lastNotifyTime) < 60 * 1000) {
-                logInfo("1分钟内已发送过通知，跳过本次");
-                $done();
-                return;
-            }
-
-            // 获取最近7天收入明细
-            const recent7DaysRecords = await getRecent7DaysNcoinRecords(headers);
-            // 获取待开盲盒列表
-            let waitingBoxes = [];
-            try {
-                const boxResp = await httpGet(END.blindBoxList, headers);
-                waitingBoxes = (boxResp?.data?.notOpenedBoxes || []).map(b => 
-                    `- ${b.awardDays || "未知"}天盲盒（剩余${Number(b.leftDaysToOpen?? 0)}天）`
-                );
-            } catch (e) {
-                waitingBoxes = ["- 获取盲盒列表失败"];
-            }
-
-            // 核心修改：动态拼接签到状态行
-            const signStatusLine = todayGainExp > 0 
-               ? `✨ 今日签到状态：${signMsg} | 经验：+${todayGainExp}` 
-                : `✨ 今日签到状态：${signMsg}`;
-
-            // 组装最终通知内容
-            const notifyBody = `${cfg.titlePrefix}
-${signStatusLine}
-📊 账户状态
+            // 核心签到状态行（首次签到展示经验，否则不展示）
+            let notifyBody = `✨ 今日签到状态：${signStatus} | 签到经验：${signExpStr}
+${repairMsg? `${repairMsg}\n` : ""}📊 账户状态
 - 当前经验：${creditData.credit?? 0}${creditData.level? `（LV.${creditData.level}）` : ""}
+- 距离升级：${need?? 0} 经验
 - 当前 N 币：${nCoinBalance || 0}
 - 补签卡：${signCards} 张
 - 连续签到：${consecutiveDays} 天
 - 待开盲盒：
-${waitingBoxes.join("\n")}
+${waitingBlindBoxes}
 📈 最近7天收入明细：
-${recent7DaysRecords.join("\n")}`;
+${recentNCoinRecords.length > 0? recentNCoinRecords.join("\n") : "暂无收入记录"}`;
 
+            const MAX_LEN = 1000;
+            if (notifyBody.length > MAX_LEN) notifyBody = notifyBody.slice(0, MAX_LEN - 3) + "...";
+            
             notify(cfg.titlePrefix, "", notifyBody);
-            // 记录本次通知时间
-            writePS(now.toString(), KEY_LAST_NOTIFY);
-            logInfo("通知已发送：", notifyBody);
+            logInfo("优化后通知已发送：", notifyBody);
         }
 
-        logInfo("九号自动签到（纯净无分享版 v2.7.3）完成");
+        logInfo("九号自动签到（纯净无分享版 v2.7.1）完成");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e).slice(0, 50));
