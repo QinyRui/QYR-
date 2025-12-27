@@ -575,8 +575,7 @@ async function getRecent7DaysNcoinRecords(headers) {
                 : `✨ 今日签到状态：${signMsg}`;
 
             // 组装最终通知内容
-            const notifyBody = `${cfg.titlePrefix}
-${signStatusLine}
+            const notifyBody = `${signStatusLine}
 📊 账户状态
 - 当前经验：${creditData.credit?? 0}${creditData.level? `（LV.${creditData.level}）` : ""}
 - 当前 N 币：${nCoinBalance || 0}
