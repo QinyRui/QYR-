@@ -1,8 +1,8 @@
 /***********************************************
-Ninebot_Sign_Single_v2.7.2.js 
-// version: 2.7.2
-2025-12-27 18:00 更新
-核心变更：优化通知签到状态行，首次签到显示经验、无经验仅展示状态
+Ninebot_Sign_Single_v2.7.3.js 
+// version: 2.7.3
+2025-12-28 更新
+核心变更：新增通知幂等性控制，避免重复发送
 适配工具：Surge/Quantumult X/Loon
 功能覆盖：自动签到、全盲盒开箱、资产查询、美化通知、自动补签、BoxJs写入
 脚本作者：QinyRui
@@ -48,6 +48,7 @@ const KEY_LOG_LEVEL = "ninebot.logLevel";
 const KEY_LAST_SIGN_DATE = "ninebot.lastSignDate";
 const KEY_ENABLE_RETRY = "ninebot.enableRetry";
 const KEY_AUTO_REPAIR = "ninebot.autoRepairCard"; // 自动补签开关
+const KEY_LAST_NOTIFY = "ninebot.lastNotifyTime"; // 新增：记录上次通知时间
 
 /* Endpoints（更新盲盒领取接口） */
 const END = {
@@ -204,7 +205,7 @@ const cfg = {
     enableRetry: (readPS(KEY_ENABLE_RETRY) === null)? true : (readPS(KEY_ENABLE_RETRY)!== "false")
 };
 
-logInfo("九号自动签到（纯净无分享版 v2.7.2）开始");
+logInfo("九号自动签到（纯净无分享版 v2.7.3）开始");
 logInfo("当前配置：", {
     notify: cfg.notify,
     autoOpenBox: cfg.autoOpenBox,
@@ -554,8 +555,17 @@ async function getRecent7DaysNcoinRecords(headers) {
         const boxOpenResults = await openAllAvailableBoxes(headers);
         logInfo("盲盒开箱结果：", boxOpenResults);
 
-        // 8. 发送自定义格式通知
+        // 8. 发送自定义格式通知（新增幂等性控制）
         if (cfg.notify) {
+            // 检查是否在1分钟内已发送过通知
+            const lastNotifyTime = readPS(KEY_LAST_NOTIFY);
+            const now = new Date().getTime();
+            if (lastNotifyTime && now - Number(lastNotifyTime) < 60 * 1000) {
+                logInfo("1分钟内已发送过通知，跳过本次");
+                $done();
+                return;
+            }
+
             // 获取最近7天收入明细
             const recent7DaysRecords = await getRecent7DaysNcoinRecords(headers);
             // 获取待开盲盒列表
@@ -588,10 +598,12 @@ ${waitingBoxes.join("\n")}
 ${recent7DaysRecords.join("\n")}`;
 
             notify(cfg.titlePrefix, "", notifyBody);
+            // 记录本次通知时间
+            writePS(now.toString(), KEY_LAST_NOTIFY);
             logInfo("通知已发送：", notifyBody);
         }
 
-        logInfo("九号自动签到（纯净无分享版 v2.7.2）完成");
+        logInfo("九号自动签到（纯净无分享版 v2.7.3）完成");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e).slice(0, 50));
