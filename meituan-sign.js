@@ -1,14 +1,11 @@
-// 美团签到脚本 | 强制调试版 + 本地存储兜底 | Loon专用
+// 美团签到脚本 | 适配cube.meituan.com接口 + 修复语法错误 | Loon专用
 // 仓库: https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-sign.js
-const $ = new Env("美团签到");
-const API_HOST = "https://api.meituan.com";
 const STORE_PREFIX = "meituan_";
-
-// 强制开启调试（忽略插件参数，优先定位问题）
+// 强制调试配置
 const NOTIFY_SWITCH = true;
 const LOG_LEVEL = 2;
 
-// 接收插件参数（仅作备份，调试完成后可恢复）
+// 接收插件参数（仅作备份）
 const args = $argument ? (() => {
     try {
         return JSON.parse($argument);
@@ -18,111 +15,108 @@ const args = $argument ? (() => {
     }
 })() : { notify: "true", log_level: "2" };
 
+// 初始化环境（扩展内置$对象）
+Env("美团签到");
+
 (async function() {
     try {
         log(1, "【调试】脚本开始执行，时间：", new Date().toLocaleString());
-        log(1, "【调试】插件传递参数：", args);
+        log(1, "【调试】目标接口：cube.meituan.com/taskCenter/getUserTaskByScene");
 
-        // 1. 读取BoxJS鉴权字段（增加日志输出）
+        // 1. 读取鉴权字段
         const authData = await loadAuthData();
-        log(1, "【调试】从BoxJS读取的所有字段：", JSON.stringify(authData));
         log(1, "【调试】非空鉴权字段：", getExistKeys(authData));
 
-        // 2. 本地存储兜底（若BoxJS无数据，尝试读取Loon本地存储）
-        if (!Object.values(authData).some(v => v)) {
-            log(1, "【调试】BoxJS无数据，尝试读取Loon本地存储...");
-            const localToken = $persistentStore.read("meituan_token_temp") || "";
-            if (localToken) {
-                authData.token = localToken;
-                log(1, "【调试】从本地存储读取到token：", localToken.substring(0, 50) + "...");
-            } else {
-                throw new Error("BoxJS和本地存储均无鉴权字段，请先打开美团App触发抓包脚本");
-            }
+        // 2. 验证核心字段
+        if (!authData.token && !authData.cookie && !authData.deviceId) {
+            throw new Error("无有效鉴权字段（token/cookie/deviceId），请先触发抓包");
         }
 
-        // 3. 构造请求头（强制携带User-Agent和基础字段）
+        // 3. 构造请求URL（带真实接口参数）
+        const requestUrl = buildRequestUrl(authData);
+        log(2, "【调试】最终请求URL：", requestUrl);
+
+        // 4. 构造请求头
         const headers = {
-            "User-Agent": authData.userAgent || "Meituan/9.0.0 iOS/18.0",
+            "User-Agent": authData.userAgent || "Meituan/12.49.410 iOS/18.0",
             "Content-Type": "application/json;charset=utf-8",
             "Accept": "*/*",
             "Connection": "keep-alive"
         };
         if (authData.token) headers.token = authData.token;
-        if (authData.authorization) headers.Authorization = authData.authorization;
         if (authData.cookie) headers.Cookie = authData.cookie;
         if (authData.deviceId) headers["Device-ID"] = authData.deviceId;
-        log(2, "【调试】最终请求头：", JSON.stringify(headers));
+        // 补充美团接口必传头
+        headers["csecplatform"] = authData.csecplatform || "2";
+        headers["csecversion"] = authData.csecversion || "1.0.18";
+        headers["csecpkgname"] = authData.csecpkgname || "com.meituan.imeituan";
+        log(2, "【调试】请求头：", JSON.stringify(headers));
 
-        // 4. 构造请求体（适配美团最新接口参数）
-        const body = {
-            appVersion: authData.appVersion || "9.0.0",
-            platform: "iOS",
-            signType: "DAILY_SIGN",
-            deviceType: 2,
-            ctype: "iphone",
-            deviceId: authData.deviceId || "unknown",
-            uuid: authData.uuid || "00000000-0000-0000-0000-000000000000"
-        };
-        if (authData.mtFingerprint) body.mtFingerprint = authData.mtFingerprint;
-        log(2, "【调试】最终请求体：", JSON.stringify(body));
-
-        // 5. 执行签到请求（增加超时和错误捕获）
-        log(1, "【调试】发起签到请求，接口地址：", `${API_HOST}/user/sign/v2/sign`);
+        // 5. 执行签到请求（GET方式，适配该接口）
         const signRes = await $task.fetch({
-            url: `${API_HOST}/user/sign/v2/sign`,
-            method: "POST",
+            url: requestUrl,
+            method: "GET",
             headers: headers,
-            body: JSON.stringify(body),
-            timeout: 10 // 超时时间10秒
+            timeout: 15
         });
 
-        // 6. 解析响应（强制输出原始响应）
-        log(2, "【调试】接口原始响应：", signRes.statusCode, signRes.body);
-        if (signRes.statusCode !== 200) throw new Error(`接口返回非200状态码：${signRes.statusCode}`);
-        
-        const signData = JSON.parse(signRes.body);
-        if (signData.code !== 0) throw new Error(`签到失败：${signData.msg || "未知错误，code=" + signData.code}`);
-
-        // 7. 结果处理
-        let notifyMsg = "✅ 美团签到成功！";
-        log(1, notifyMsg);
-        
-        // 尝试领取神券（单独捕获错误，不影响主流程）
-        try {
-            const couponRes = await $task.fetch({
-                url: `${API_HOST}/coupon/sign/receive`,
-                method: "GET",
-                headers: headers,
-                timeout: 5
-            });
-            const couponData = JSON.parse(couponRes.body);
-            if (couponData.code === 0 && couponData.data) {
-                notifyMsg += `\n🎫 领取神券：${couponData.data.couponName || "美团通用神券"}`;
-            } else {
-                notifyMsg += `\n🎫 ${couponData.msg || "今日无可用神券"}`;
-            }
-        } catch (e) {
-            notifyMsg += `\n🎫 神券领取失败：${e.message}`;
-            log(1, "【调试】神券领取失败：", e.message);
+        // 6. 解析响应
+        log(2, "【调试】接口响应状态：", signRes.statusCode);
+        log(2, "【调试】接口响应内容：", signRes.body);
+        if (signRes.statusCode !== 200) {
+            throw new Error(`接口返回非200状态码：${signRes.statusCode}`);
         }
 
-        // 推送通知
-        $notification.post("美团签到·调试结果", "", notifyMsg);
-        log(1, "【调试】脚本执行完成，通知已推送");
+        const signData = JSON.parse(signRes.body);
+        // 适配美团接口响应格式（不同接口返回码规则不同）
+        if (signData.code === 0 || signData.success || signData.data) {
+            let notifyMsg = "✅ 美团签到接口请求成功！";
+            // 提取签到结果
+            if (signData.data && signData.data.signStatus) {
+                notifyMsg += `\n📌 签到状态：${signData.data.signStatus === 1 ? "已签到" : "未签到/签到成功"}`;
+            }
+            if (signData.data && signData.data.reward) {
+                notifyMsg += `\n🎁 签到奖励：${JSON.stringify(signData.data.reward)}`;
+            }
+            // 推送通知
+            $.notify("美团签到·结果", "", notifyMsg);
+            log(1, notifyMsg);
+        } else {
+            throw new Error(`签到失败：${signData.msg || "接口返回无签到数据"}`);
+        }
 
     } catch (error) {
-        const errMsg = `❌ 签到脚本执行失败：${error.message}`;
+        const errMsg = `❌ 签到失败：${error.message}`;
         log(1, errMsg);
-        $notification.post("美团签到·调试错误", "", errMsg);
+        $.notify("美团签到·错误", "", errMsg);
     } finally {
         log(1, "【调试】脚本执行结束");
         $done({});
     }
 })();
 
-// 从BoxJS加载鉴权字段（增加错误捕获）
+// 构造请求URL（拼接接口参数）
+function buildRequestUrl(authData) {
+    const baseUrl = "https://cube.meituan.com/topcube/api/toc/taskCenter/getUserTaskByScene";
+    const params = new URLSearchParams();
+    // 接口必传参数
+    params.append("k", "member_1");
+    params.append("csecpkgname", authData.csecpkgname || "com.meituan.imeituan");
+    params.append("csecplatform", authData.csecplatform || "2");
+    params.append("csecversion", authData.csecversion || "1.0.18");
+    params.append("csecversionname", authData.csecversionname || "12.49.410");
+    // 补充抓取到的参数
+    if (authData.uuid) params.append("uuid", authData.uuid);
+    if (authData.mtFingerprint) params.append("mtFingerprint", authData.mtFingerprint);
+    return `${baseUrl}?${params.toString()}`;
+}
+
+// 从BoxJS加载鉴权字段
 async function loadAuthData() {
-    const keys = ["token", "authorization", "deviceId", "uuid", "mtFingerprint", "userAgent", "cookie", "appVersion"];
+    const keys = [
+        "token", "authorization", "deviceId", "uuid", "mtFingerprint", 
+        "userAgent", "cookie", "csecplatform", "csecversion", "csecpkgname", "csecversionname"
+    ];
     const authData = {};
     for (const key of keys) {
         try {
@@ -132,10 +126,13 @@ async function loadAuthData() {
             authData[key] = "";
         }
     }
+    // 本地存储兜底
+    authData.token = authData.token || $persistentStore.read("meituan_token_temp") || "";
+    authData.deviceId = authData.deviceId || $persistentStore.read("meituan_deviceId_temp") || "";
     return authData;
 }
 
-// BoxJS读取函数（优化Promise逻辑）
+// BoxJS读取函数
 function getBoxJSData(key) {
     return new Promise(resolve => {
         try {
@@ -153,14 +150,16 @@ function getExistKeys(obj) {
     return Object.keys(obj).filter(key => obj[key] && obj[key] !== "");
 }
 
-// 强制日志输出函数
+// 日志函数
 function log(level, ...msg) {
-    console.log(`[美团签到-${new Date().toLocaleTimeString()}] [LV${level}]`, ...msg);
+    if (level <= LOG_LEVEL) {
+        console.log(`[美团签到-${new Date().toLocaleTimeString()}] [LV${level}]`, ...msg);
+    }
 }
 
-// Loon环境适配
+// 环境适配函数
 function Env(name) {
-    this.name = name;
-    this.log = msg => console.log(msg);
-    this.notify = (t, s, m) => $notification.post(t, s, m);
+    $.name = name;
+    $.log = msg => console.log(`[${name}] ${msg}`);
+    $.notify = (title, sub, msg) => $notification.post(title, sub, msg);
 }
