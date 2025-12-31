@@ -1,4 +1,4 @@
-// 美团多维度鉴权抓取 | 抓取csec全量参数 | Loon专用
+// 美团抓包脚本 | 适配真实请求头 | 提取全量鉴权字段 | Loon专用
 // 仓库: https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-capture.js
 const STORE_PREFIX = "meituan_";
 const NOTIFY_SWITCH = true;
@@ -20,64 +20,94 @@ function notify(title, sub, msg) {
     try {
         log(1, "【抓包调试】脚本启动，匹配URL：", $request.url);
         const authData = {
-            // 基础鉴权字段
+            // 核心鉴权字段（从真实请求头提取）
             token: "",
-            deviceId: "",
-            uuid: "",
-            mtFingerprint: "",
-            userAgent: "",
+            mini_program_token: "",
+            mt_c_token: "",
+            lt: "",
+            w_token: "",
             cookie: "",
-            // cube接口专属csec字段
+            uuid: "",
+            iuuid: "",
+            userid: "",
+            csecuserid: "",
+            csecuuid: "",
+            // csec系列参数
             csecpkgname: "",
             csecplatform: "",
             csecversion: "",
             csecversionname: "",
-            // 补充字段
+            // 设备/版本字段
+            userAgent: "",
             appVersion: "",
-            activityKey: ""
+            ctype: "",
+            cityId: "",
+            lat: "",
+            lng: "",
+            // 其他关键字段
+            mtgsig: "",
+            yodaversion: ""
         };
 
-        // 解析请求头
+        // 1. 解析请求头（优先提取，真实请求的核心字段在请求头）
         if ($request.headers) {
-            authData.token = $request.headers.token || $request.headers.Token || "";
-            authData.deviceId = $request.headers.deviceid || $request.headers["Device-ID"] || "";
-            authData.userAgent = $request.headers["User-Agent"] || "";
-            authData.cookie = $request.headers.Cookie || "";
-            authData.csecpkgname = $request.headers.csecpkgname || "";
-            authData.csecplatform = $request.headers.csecplatform || "";
-            authData.csecversion = $request.headers.csecversion || "";
+            const headers = $request.headers;
+            // 鉴权Token类
+            authData.token = headers.token || "";
+            authData.mini_program_token = headers["mini_program_token"] || "";
+            authData.mt_c_token = headers["mt_c_token"] || "";
+            authData.lt = headers.lt || "";
+            authData.w_token = headers["w_token"] || "";
+            // Cookie（合并所有Cookie字段）
+            authData.cookie = headers.Cookie || headers.cookie || "";
+            if (typeof authData.cookie === "object") authData.cookie = Object.values(authData.cookie).join("; ");
+            // csec参数
+            authData.csecpkgname = headers.csecpkgname || "";
+            authData.csecplatform = headers.csecplatform || "";
+            authData.csecversion = headers.csecversion || "";
+            authData.csecversionname = headers.csecversionname || "";
+            // 其他关键字段
+            authData.uuid = headers.uuid || "";
+            authData.iuuid = headers.iuuid || "";
+            authData.csecuserid = headers.csecuserid || "";
+            authData.csecuuid = headers.csecuuid || "";
+            authData.userAgent = headers["User-Agent"] || "";
+            authData.mtgsig = headers.mtgsig || "";
+            authData.yodaversion = headers.yodaversion || "";
         }
 
-        // 解析URL参数（核心提取csec字段）
+        // 2. 解析URL参数（补充请求头中缺失的字段）
         if ($request.url) {
             const urlObj = new URL(decodeURIComponent($request.url));
             Object.keys(authData).forEach(key => {
-                authData[key] = urlObj.searchParams.get(key) || authData[key];
+                if (!authData[key]) authData[key] = urlObj.searchParams.get(key) || "";
             });
+            // 补充URL中的cityId/lat/lng等参数
+            authData.cityId = urlObj.searchParams.get("cityId") || authData.cityId;
+            authData.lat = urlObj.searchParams.get("lat") || authData.lat;
+            authData.lng = urlObj.searchParams.get("lng") || authData.lng;
+            authData.ctype = urlObj.searchParams.get("ctype") || authData.ctype;
+            authData.appVersion = urlObj.searchParams.get("appVersion") || authData.appVersion;
         }
 
-        // 从UA提取appVersion
-        if (authData.userAgent) {
-            const uaMatch = authData.userAgent.match(/Meituan\/(\d+\.\d+\.\d+)/);
-            if (uaMatch) authData.appVersion = uaMatch[1];
-        }
-
-        // 验证核心字段
-        const coreKeys = ["token", "deviceId", "csecplatform", "csecpkgname"];
+        // 3. 验证核心鉴权字段（基于真实请求的必传项）
+        const coreKeys = ["token", "cookie", "uuid", "csecpkgname", "csecplatform"];
         const validKeys = coreKeys.filter(k => authData[k]);
-        if (validKeys.length === 0) throw new Error("无核心鉴权字段，请打开美团签到页重试");
+        if (validKeys.length < 3) throw new Error(`核心字段不足（仅${validKeys.length}个），请确保访问美团会员/签到页`);
 
-        // 双存储写入
+        // 4. 双存储写入（BoxJS + 本地临时存储，防止丢失）
         await Promise.all(Object.keys(authData).map(key => {
             if (!authData[key]) return Promise.resolve();
-            return new Promise(resolve => $persistentStore.write(authData[key], STORE_PREFIX + key, resolve));
+            return new Promise(resolve => {
+                $persistentStore.write(authData[key], STORE_PREFIX + key, resolve);
+            });
         }));
-        // 本地临时存储兜底
         coreKeys.forEach(k => {
             if (authData[k]) $persistentStore.write(authData[k], `${STORE_PREFIX}${k}_temp`);
         });
 
-        const successMsg = `✅ 抓包成功\n有效字段：${validKeys.join(", ")}`;
+        // 5. 推送结果通知
+        const successMsg = `✅ 抓包成功\n核心字段：${validKeys.join(", ")}\nCookie长度：${authData.cookie.length}字符`;
         notify("美团抓包结果", "", successMsg);
         log(1, "【抓包调试】执行完成：", successMsg);
 
