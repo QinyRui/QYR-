@@ -1,27 +1,91 @@
 {
-  "id": "meituan-sign",
-  "name": "美团签到Cookie管理",
-  "domain": "meituan-sign",
-  "keys": [
+  "id": "QinyRui.MeituanSign",
+  "name": "美团·签到",
+  "author": "@QinyRui",
+  "description": "美团App自动签到领神券账号凭证采集与管理，供Loon脚本复用",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-icon.png",
+  "repo": "https://github.com/QinyRui/QYR-/tree/Q",
+  "updateUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-boxjs.json",
+  "apps": [
     {
-      "key": "cookie",
-      "name": "美团Cookie",
-      "type": "string",
-      "default": ""
-    },
-    {
-      "key": "logLevel",
-      "name": "日志等级",
-      "type": "number",
-      "default": 1,
-      "desc": "0=静默 1=基础 2=详细"
-    },
-    {
-      "key": "notifySwitch",
-      "name": "通知开关",
-      "type": "boolean",
-      "default": true,
-      "desc": "true=开启通知 false=关闭"
+      "id": "DataCollection.Meituan",
+      "name": "美团签到领神券",
+      "descs_html": [
+        "用于保存美团App抓取到的 <code>Cookie</code> 核心凭证，支持自动签到、领取神券等功能。",
+        "<b>凭证获取方式：</b><br1）确保Loon已配置美团自动抓包脚本并开启开关；<br2）打开<b>美团官方App</b>，进入首页触发任意接口请求；<br3）脚本会自动将Cookie写入以下字段，无需手动填写。",
+        "<b>注意事项：</b><br• Cookie有7-15天有效期，若签到失败可重新打开美团App触发更新；<br• 字段不可随意修改，清空后需重新抓包获取。"
+      ],
+      "icons": [
+        "https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-icon.png",
+        "https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-icon.png"
+      ],
+      "keys": [
+        "#ComponentService",
+        "meituan.cookie",
+        "meituan.logLevel",
+        "meituan.notifySwitch",
+        "meituan.lastCaptureAt",
+        "meituan.captureEnable"
+      ],
+      "settings": [
+        {
+          "id": "meituan.captureEnable",
+          "name": "自动抓包开关",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（自动抓取Cookie）" },
+            { "key": "false", "label": "关闭（仅手动填写）" }
+          ],
+          "desc": "开启后访问美团接口将自动写入Cookie，无需手动抓包"
+        },
+        {
+          "id": "meituan.cookie",
+          "name": "美团Cookie凭证",
+          "val": "",
+          "type": "text",
+          "isSecret": true,
+          "desc": "账号核心登录凭证，自动抓包优先写入，手动填写仅用于调试"
+        },
+        {
+          "id": "meituan.logLevel",
+          "name": "日志输出级别",
+          "val": "1",
+          "type": "select",
+          "items": [
+            { "key": "0", "label": "静默（无日志）" },
+            { "key": "1", "label": "基础（关键日志）" },
+            { "key": "2", "label": "详细（所有流程日志）" }
+          ],
+          "desc": "控制美团签到脚本日志的详细程度，调试时可选择详细"
+        },
+        {
+          "id": "meituan.notifySwitch",
+          "name": "通知推送开关",
+          "val": "true",
+          "type": "select",
+          "items": [
+            { "key": "true", "label": "开启（推送签到结果）" },
+            { "key": "false", "label": "关闭（不推送通知）" }
+          ],
+          "desc": "是否推送签到成功/失败、Cookie更新的通知"
+        },
+        {
+          "id": "meituan.lastCaptureAt",
+          "name": "最后抓包更新时间",
+          "val": "",
+          "type": "text",
+          "isReadonly": true,
+          "desc": "Cookie最后更新的时间戳，仅展示不可修改，自动同步"
+        }
+      ]
     }
-  ]
+  ],
+  "rewrite": {
+    "name": "美团配置跨域重写",
+    "author": "@QinyRui",
+    "script": "const res={headers:{...$response.headers,\"Access-Control-Allow-Origin\":\"*\",\"Access-Control-Allow-Methods\":\"GET,OPTIONS\"},body:$response.body};$done(res);",
+    "match": "https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-boxjs.json",
+    "type": "response"
+  }
 }
