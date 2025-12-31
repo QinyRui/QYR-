@@ -23,5 +23,7 @@
       "default": true,
       "desc": "true=开启通知 false=关闭"
     }
+      ]
+    }
   ]
 }
