@@ -32,12 +32,8 @@ http-request ^https?:\/\/.*\.meituan\.com\/.* script-path=https://raw.githubuser
 # 2. 美团每日自动签到（绑定notify开关，自定义Cron时间）
 cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-sign.js, timeout=120, tag=美团-自动签到, enable=true, script-update-interval=0, argument=({notify},{log_level})
 
-# 3. BoxJS跨域重写（解决订阅格式错误）
-http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/Q\/meituan-boxjs\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/BoxJsCors.js, tag=美团-BoxJS跨域, enable=true, script-update-interval=0
-
-# 4. 脚本更新检查（每周日0点检查）
+# 3. 脚本更新检查（每周日0点检查）
 cron "0 0 * * 0" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/CheckUpdate.js, tag=美团-脚本更新检查, enable=true, script-update-interval=0
-
 [Rewrite]
 # 兜底跨域重写（防止远程跨域脚本失效）
 https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/Q\/meituan-boxjs\.json response-body script://MeituanSignCors
