@@ -4,7 +4,7 @@
   "author": "@QinyRui",
   "description": "美团App自动签到领神券账号凭证采集与管理，供Loon脚本复用",
   "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-icon.png",
-  "repo": "https://github.com/QinyRui/QYR-/tree/Q",
+  "repo": "QinyRui/QYR-",
   "updateUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-boxjs.json",
   "apps": [
     {
