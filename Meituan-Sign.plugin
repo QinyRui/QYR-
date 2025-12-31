@@ -1,12 +1,18 @@
 [Switch]
-# 美团Cookie自动抓取开关（默认关闭，需手动开启）
-on = meituan_cookie_capture, title="美团Cookie抓取", desc="开启后自动抓取并写入BoxJS", group="美团签到"
+# 美团Cookie抓取开关
+on = meituan_cookie_capture, title="美团Cookie抓取", desc="开启后自动抓取Cookie并写入BoxJS", group="美团签到", default=on
+
+# 美团签到通知开关
+on = meituan_notify, title="美团签到通知", desc="开启后推送签到/抓包结果通知", group="美团签到", default=on
+
+# 美团日志输出开关
+on = meituan_log, title="美团日志输出", desc="开启后在Loon日志中输出调试信息", group="美团签到", default=on
 
 [Script]
-# 美团Cookie自动抓取脚本（依赖开关 meituan_cookie_capture）
+# 美团Cookie抓取脚本（绑定抓包开关）
 http-request ^https?:\/\/.*\.meituan\.com\/.* script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-cookie-capture.js, requires-body=true, timeout=10, tag=美团Cookie抓取, switch=meituan_cookie_capture
 
-# 美团签到定时任务（每天8点执行，无需开关）
+# 美团签到定时任务（每天8点执行）
 cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-sign.js, tag=美团签到
 
 [MITM]
@@ -14,6 +20,6 @@ hostname = *.meituan.com
 
 [General]
 author=QinyRui
-version=1.0.3
-description=美团自动签到领神券 + BoxJS Cookie自动管理（带抓包开关）
+version=1.0.4
+description=美团自动签到领神券 + BoxJS Cookie管理（带完整开关）
 homepage=https://github.com/QinyRui/QYR-/tree/Q
