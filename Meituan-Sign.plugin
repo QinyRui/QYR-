@@ -1,25 +1,55 @@
-[Switch]
-# 美团Cookie抓取开关
-on = meituan_cookie_capture, title="美团Cookie抓取", desc="开启后自动抓取Cookie并写入BoxJS", group="美团签到", default=on
+#!name = 美团签到领神券 · 自动抓包版
+#!desc = 无需手动开抓包，打开美团App首页/签到页，鉴权字段自动写入BoxJS
+#!openUrl = https://github.com/QinyRui/QYR-/tree/Q
+#!author = QinyRui
+#!homepage = https://github.com/QinyRui/QYR-/tree/Q
+#!tag = 美团、签到、领券
+#!system = iOS,iPadOS,macOS
+#!date = 2025-12-31 00:00:00
+#!version = 1.0.5
+#!system_version = 15
 
-# 美团签到通知开关
-on = meituan_notify, title="美团签到通知", desc="开启后推送签到/抓包结果通知", group="美团签到", default=on
-
-# 美团日志输出开关
-on = meituan_log, title="美团日志输出", desc="开启后在Loon日志中输出调试信息", group="美团签到", default=on
-
-[Script]
-# 美团Cookie抓取脚本（绑定抓包开关）
-http-request ^https?:\/\/.*\.meituan\.com\/.* script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-cookie-capture.js, requires-body=true, timeout=10, tag=美团Cookie抓取, switch=meituan_cookie_capture
-
-# 美团签到定时任务（每天8点执行）
-cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-sign.js, tag=美团签到
-
-[MITM]
-hostname = *.meituan.com
+[Argument]
+# 插件可视化参数（Loon插件页可直接修改）
+capture = switch, "true", "false", tag=自动抓包开关, desc=开启后解析美团请求中的鉴权字段并写入BoxJS
+notify = switch, "true", "false", tag=通知开关, desc=是否推送抓取/签到结果通知
+cron_time = input, "0 8 * * *", tag=签到时间（CRON）, desc=每日自动签到的执行时间（Cron表达式）
+log_level = select, "1", "0|静默|无日志输出", "1|基础|关键日志", "2|详细|全流程日志", tag=日志输出级别, desc=控制脚本日志的详细程度
 
 [General]
+name=美团签到领神券组件
 author=QinyRui
-version=1.0.4
-description=美团自动签到领神券 + BoxJS Cookie管理（带完整开关）
+version=1.0.5
+description=美团自动签到+多维度鉴权抓包+BoxJS存储，适配移动端Token
+icon=https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-icon.png
 homepage=https://github.com/QinyRui/QYR-/tree/Q
+updateUrl=https://raw.githubusercontent.com/QinyRui/QYR-/Q/Meituan-Sign.plugin
+
+[Script]
+# 1. 美团多维度鉴权抓包（绑定capture开关）
+http-request ^https?:\/\/.*\.meituan\.com\/.* script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-capture.js, timeout=15, tag=美团-鉴权抓包, enable={capture}, script-update-interval=0, requires-body=true, argument=({notify},{log_level})
+
+# 2. 美团每日自动签到（绑定notify开关，自定义Cron时间）
+cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-sign.js, timeout=120, tag=美团-自动签到, enable=true, script-update-interval=0, argument=({notify},{log_level})
+
+# 3. BoxJS跨域重写（解决订阅格式错误）
+http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/Q\/meituan-boxjs\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/BoxJsCors.js, tag=美团-BoxJS跨域, enable=true, script-update-interval=0
+
+# 4. 脚本更新检查（每周日0点检查）
+cron "0 0 * * 0" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/CheckUpdate.js, tag=美团-脚本更新检查, enable=true, script-update-interval=0
+
+[Rewrite]
+# 兜底跨域重写（防止远程跨域脚本失效）
+https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/Q\/meituan-boxjs\.json response-body script://MeituanSignCors
+const MeituanSignCors = `
+const res = {
+    headers: {
+        ...$response.headers,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+    },
+    body: $response.body
+};
+$done(res);
+`
