@@ -1,0 +1,19 @@
+{
+  "id": "meituan-sign-cookie",
+  "name": "美团签到 Cookie 管理",
+  "author": "QinyRui",
+  "version": "1.0.0",
+  "description": "自动存储/读取美团 Cookie，适配 Loon 签到脚本",
+  "domain": "meituan-sign",
+  "keys": [
+    {
+      "key": "cookie",
+      "name": "美团 Cookie",
+      "type": "string",
+      "desc": "Loon 自动抓取，无需手动填写",
+      "default": "",
+      "readonly": false
+    }
+  ],
+  "repo": "https://github.com/QinyRui/QYR-/tree/Q"
+}
