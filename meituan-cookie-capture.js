@@ -1,91 +1,55 @@
-// 美团Cookie自动抓取&写入BoxJS | BoxJS 远程控制日志+通知 | Loon专用
-// 仓库链接: https://raw.githubusercontent.com/QinyRui/QYR-/Q/meituan-cookie-capture.js
+// 美团Cookie抓取临时调试版 | 强制日志+通知
 const $ = new Env("美团Cookie抓取");
-const BOXJS_DOMAIN = "meituan-sign";
+const BOXJS_DOMAIN = "QinyRui.MeituanSign"; // 匹配新BoxJS的id
 
-let LOG_LEVEL = 1;
-let NOTIFY_SWITCH = true;
+// 强制配置（临时跳过BoxJS）
+const LOG_LEVEL = 2;
+const NOTIFY_SWITCH = true;
 
 (async function() {
     try {
-        // 第一步：加载 BoxJS 配置
-        await loadBoxJSConfig();
-        log(1, "📌 已加载 BoxJS 配置 | 日志等级:" + LOG_LEVEL + " | 通知开关:" + NOTIFY_SWITCH);
-
-        // 第二步：提取请求头 Cookie
-        const cookie = $request.headers["Cookie"] || $request.headers["cookie"];
-        if (!cookie) {
-            log(1, "❌ 请求头未提取到Cookie");
-            throw new Error("请求头无Cookie");
-        }
-        log(2, "🔍 提取到Cookie（脱敏）: " + cookie.substring(0, 50) + "...");
-
-        // 第三步：对比新旧 Cookie
-        const oldCookie = await getBoxJSData("cookie");
-        log(1, "📥 BoxJS已存储Cookie: " + (oldCookie ? "存在" : "不存在"));
-
-        if (cookie === oldCookie) {
-            log(1, "ℹ️ Cookie未变化，无需更新");
-            $.done({});
-            return;
-        }
-
-        // 第四步：写入新 Cookie 到 BoxJS
-        await setBoxJSData("cookie", cookie);
-        const successMsg = "✅ Cookie已更新并写入BoxJS";
-        log(1, successMsg);
+        // 1. 强制输出请求头（排查是否抓到Cookie）
+        console.log("【调试】请求头完整数据：", JSON.stringify($request.headers));
         
+        // 2. 提取Cookie
+        const cookie = $request.headers["Cookie"] || $request.headers["cookie"];
+        if (!cookie) throw new Error("请求头无Cookie字段");
+        console.log("【调试】提取到Cookie：", cookie.substring(0, 100) + "...");
+
+        // 3. 尝试写入BoxJS（强制指定key）
+        await setBoxJSData("meituan.cookie", cookie);
+        console.log("【调试】Cookie已写入BoxJS：meituan.cookie");
+
+        // 4. 写入更新时间
+        const now = new Date().toLocaleString();
+        await setBoxJSData("meituan.lastCaptureAt", now);
+        
+        // 强制通知
         if (NOTIFY_SWITCH) {
-            $.notify("美团Cookie更新成功", "", successMsg);
+            $notification.post("美团Cookie抓取调试", "", `✅ 提取Cookie成功\n更新时间：${now}`);
         }
 
     } catch (error) {
-        const errMsg = `❌ 抓取失败：${error.message}`;
-        log(1, errMsg);
-        if (NOTIFY_SWITCH) {
-            $.notify("美团Cookie抓取失败", "", error.message);
-        }
+        console.log("【调试错误】", error.message);
+        $notification.post("美团Cookie抓取调试", "", `❌ 失败：${error.message}`);
     } finally {
-        $.done({});
+        $done({});
     }
 })();
 
-// 加载 BoxJS 配置参数
-async function loadBoxJSConfig() {
-    const logLevel = await getBoxJSData("logLevel");
-    LOG_LEVEL = logLevel ? parseInt(logLevel) : 1;
-
-    const notifySwitch = await getBoxJSData("notifySwitch");
-    NOTIFY_SWITCH = notifySwitch === "true" || notifySwitch === true;
-}
-
-// 带等级控制的日志函数
-function log(level, msg) {
-    if (level <= LOG_LEVEL) {
-        $.log(`[${new Date().toLocaleTimeString()}] ${msg}`);
-    }
-}
-
-// BoxJS 数据读写通用函数
+// 简化版BoxJS读写（直接指定key）
 function getBoxJSData(key) {
     return new Promise(resolve => {
-        $persistentStore.read(`${BOXJS_DOMAIN}.${key}`, value => {
-            resolve(value || "");
-        });
+        $persistentStore.read(key, value => resolve(value || ""));
     });
 }
-
 function setBoxJSData(key, value) {
     return new Promise(resolve => {
-        $persistentStore.write(value, `${BOXJS_DOMAIN}.${key}`, () => {
-            resolve();
-        });
+        $persistentStore.write(value, key, () => resolve());
     });
 }
-
-// Loon 环境适配函数
 function Env(name) {
     this.name = name;
-    this.log = msg => console.log(`[${name}] ${msg}`);
-    this.notify = (title, sub, msg) => $notification.post(title, sub, msg);
+    this.log = msg => console.log(msg);
+    this.notify = (t, s, m) => $notification.post(t, s, m);
 }
