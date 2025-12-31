@@ -1,0 +1,15 @@
+[Script]
+# 美团Cookie自动抓取脚本
+http-request ^https?:\/\/.*\.meituan\.com\/.* script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/Loon-Scripts/Meituan/meituan-cookie-capture.js, requires-body=true, timeout=10, tag=美团Cookie抓取
+
+# 美团签到定时任务 (每天8点执行)
+cron "0 8 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/Q/Loon-Scripts/Meituan/meituan-sign.js, tag=美团签到
+
+[MITM]
+hostname = *.meituan.com
+
+[General]
+author=QinyRui
+version=1.0.0
+description=美团自动签到领神券 + BoxJS Cookie自动管理
+homepage=https://github.com/QinyRui/QYR-/tree/Q
