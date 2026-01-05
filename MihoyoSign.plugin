@@ -1,55 +1,26 @@
-#!name = 米游社 · 单号自动签到（自动抓包版）
-#!desc = 抓包自动写入教程→无需手动开抓包开关，直接打开米游社APP社区页，凭证将自动写入ComponentService
-#!openUrl = https://t.me/JiuHaoAPP
+#!name = 米游社 · 极简签到
+#!desc = 抓包+签到二合一，仅需3个文件
 #!author = QinyRui
-#!homepage = https://t.me/JiuHaoAPP
-#!tag = 米游社
-#!system = iOS,iPadOS,macOS
-#!date = 2026-01-05 00:00:00
+#!system = iOS,iPadOS
 #!version = 1.0.0
-#!system_version = 15
 
 [Argument]
-capture = switch, "false", "true", tag=自动抓包开关, desc=开启后访问米游社社区接口自动写入鉴权信息到BoxJs
-notify = switch, "true", "false", tag=通知开关, desc=是否推送签到结果通知
-titlePrefix = input, "米游社签到助手", tag=自定义通知标题, desc=签到结果通知的标题前缀
-cron_time = input, "0 8 * * *", tag=签到时间（CRON）, desc=每日自动签到的执行时间（Cron表达式）
-refreshInterval = input, "1440", tag=小组件刷新间隔（分钟）, desc=小组件自动刷新的时间间隔
+capture = switch, "false", "true", tag=自动抓包开关
+notify = switch, "true", "false", tag=通知开关
+cron_time = input, "0 8 * * *", tag=签到时间(CRON)
 
 [General]
-name=米游社签到组件
-author=QinyRui
-version=1.0.0
-description=自动签到、抓包鉴权、BoxJs跨域同步，联动桌面小组件
+name=米游社极简签到
 icon=https://upload-bbs.mihoyo.com/upload/2022/04/19/127810332/42a860a883808d8073a3621575d96675.png
-homepage=https://t.me/JiuHaoAPP
 updateUrl=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.plugin
 
 [Script]
-# 1. 改：抓包脚本换 MihoyoCapture.js （解决写入问题）
-http-request ^https:\/\/api-takumi\.mihoyo\.com\/community\/apihub\/app\/api\/signIn script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoCapture.js, timeout=10, tag=米游社-抓包写入, enable={capture}, script-update-interval=0, requires-body=true, argument=({notify},{titlePrefix})
+# 抓包触发（调用合写脚本）
+http-request ^https:\/\/api-takumi\.mihoyo\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoCore.js, enable={capture}, argument=("capture",{notify})
 
-# 2. 自动签到（保留原脚本名）
-cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Loon_Mihoyo_Sign.js, timeout=120, tag=米游社-自动签到, enable=true, script-update-interval=0, argument=({notify},{titlePrefix})
+# 签到触发（调用同一个合写脚本）
+cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoCore.js, enable=true, argument=("sign",{notify})
 
-# 3. 改：跨域匹配你的 JSON 文件名 NinebotMihoyo.boxjs.json
-http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/NinebotMihoyo\.boxjs\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/BoxJsCors.js, tag=米游社-BoxJs跨域, enable=true, script-update-interval=0
-
-# 4. 版本更新检查（保留原脚本名）
-cron "0 0 * * 0" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/CheckUpdate.js, tag=米游社-脚本更新检查, enable=true
-
-[Rewrite]
-# 改：兜底跨域也匹配你的 JSON 文件名
-https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/NinebotMihoyo\.boxjs\.json response-body script://MihoyoSignCors
-const MihoyoSignCors = `
-const res = {
-    headers: {
-        ...$response.headers,
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-    },
-    body: $response.body
-};
-$done(res);
-`
+# BoxJS跨域重写
+http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/Mihoyo\.boxjs\.json response-body script://MihoyoCors
+const MihoyoCors = `const res={headers:{...$response.headers,"Access-Control-Allow-Origin":"*"},body:$response.body};$done(res);`
