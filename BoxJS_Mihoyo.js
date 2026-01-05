@@ -4,7 +4,7 @@
   "description": "米游社账号凭证采集与管理，供Loon自动签到脚本复用，支持Cookie/SToken有效性校验",
   "icon": "https://upload-bbs.mihoyo.com/upload/2022/04/19/127810332/42a860a883808d8073a3621575d96675.png",
   "repo": "https://github.com",
-  "updateUrl": "https://raw.githubusercontent.com/your-repo/mihoyo/Mihoyo.boxjs.json",
+  "updateUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Mihoyo.boxjs.json",
   "apps": [
     {
       "id": "DataCollection.Mihoyo",
