@@ -6,8 +6,8 @@
 const updateConfig = {
     localVersion: "1.0.0",
     // 适配 QinyRui 仓库路径
-    remoteVersionUrl: "https://raw.githubusercontent.com/QinyRui/QYR-/main/mihoyo/MihoyoSign.version",
-    downloadUrl: "https://raw.githubusercontent.com/QinyRui/QYR-/main/mihoyo/MihoyoSign.plugin",
+    remoteVersionUrl: "https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.version",
+    downloadUrl: "https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.plugin",
     titlePrefix: $argument?.titlePrefix || "米游社签到助手"
 };
 
