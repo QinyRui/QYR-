@@ -1,11 +1,13 @@
 /*
- * 米游社自动签到脚本（Loon 专用）
+ * 米游社自动签到脚本（Loon 专用，含自动重试）
  * 初始名: Loon_Mihoyo_Sign.js
  * 依赖 BoxJS 存储的 Cookie/SToken
  */
 const boxjs = typeof $boxjs !== 'undefined' ? $boxjs : null;
 const notify = $argument?.[0] === "true";
 const titlePrefix = $argument?.[1] || "米游社签到助手";
+const maxRetry = 2; // 最大重试次数
+const retryDelay = 1000; // 重试间隔（毫秒）
 
 // 读取BoxJS数据
 function getBoxData(key) {
@@ -14,8 +16,13 @@ function getBoxData(key) {
     return "";
 }
 
-// 执行签到
-async function signMihoyo() {
+// 延迟函数
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// 执行签到（支持重试）
+async function signMihoyo(retryCount = 0) {
     const cookie = getBoxData("mihoyo.cookie");
     const stoken = getBoxData("mihoyo.stoken");
 
@@ -40,9 +47,20 @@ async function signMihoyo() {
             if (res.retcode === 10001) return "ℹ️ 今日已签到";
             return `❌ 签到失败: ${res.message || "未知错误"}`;
         }
-        return `❌ 网络错误: HTTP ${response.status}`;
+        
+        // 网络错误时触发重试
+        if (retryCount < maxRetry) {
+            await delay(retryDelay);
+            return signMihoyo(retryCount + 1);
+        }
+        return `❌ 网络错误: HTTP ${response.status}\n已重试${maxRetry}次，仍失败`;
     } catch (e) {
-        return `❌ 脚本异常: ${e.message}`;
+        // 脚本异常时触发重试
+        if (retryCount < maxRetry) {
+            await delay(retryDelay);
+            return signMihoyo(retryCount + 1);
+        }
+        return `❌ 脚本异常: ${e.message}\n已重试${maxRetry}次，仍失败`;
     }
 }
 
