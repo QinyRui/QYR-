@@ -4,13 +4,10 @@
  * 功能: 对比本地与远程版本号，推送更新提示
  */
 const updateConfig = {
-    // 本地插件版本 (需与插件 [General] 中的 version 保持一致)
     localVersion: "1.0.0",
-    // 远程版本信息接口 (建议放在你的 GitHub/Gitee 仓库)
-    remoteVersionUrl: "https://raw.githubusercontent.com/your-repo/mihoyo/MihoyoSign.version",
-    // 远程插件下载地址
-    downloadUrl: "https://raw.githubusercontent.com/your-repo/mihoyo/MihoyoSign.plugin",
-    // 通知标题前缀 (读取插件 Argument 配置)
+    // 适配 QinyRui 仓库路径
+    remoteVersionUrl: "https://raw.githubusercontent.com/QinyRui/QYR-/main/mihoyo/MihoyoSign.version",
+    downloadUrl: "https://raw.githubusercontent.com/QinyRui/QYR-/main/mihoyo/MihoyoSign.plugin",
     titlePrefix: $argument?.titlePrefix || "米游社签到助手"
 };
 
