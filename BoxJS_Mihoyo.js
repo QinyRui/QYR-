@@ -1,18 +1,19 @@
 {
-  "name": "米游社·签到助手",
-  "author": "@Custom",
-  "description": "米游社账号凭证采集与管理，供Loon自动签到脚本复用，支持Cookie/SToken有效性校验",
+  "id": "ByteValley.MihoyoDataCollection",
+  "name": "米游社·签到",
+  "author": "@QinyRui",
+  "description": "米游社账号凭证采集与管理，供自动签到脚本复用，支持多游戏签到切换",
   "icon": "https://upload-bbs.mihoyo.com/upload/2022/04/19/127810332/42a860a883808d8073a3621575d96675.png",
-  "repo": "https://github.com",
+  "repo": "https://t.me/JiuHaoAPP",
   "updateUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Mihoyo.boxjs.json",
   "apps": [
     {
       "id": "DataCollection.Mihoyo",
       "name": "米游社签到配置",
       "descs_html": [
-        "用于保存米游社 App 抓取到的 <code>Cookie</code>、<code>SToken</code> 等核心凭证，支持自动签到、奖励查询等功能。",
-        "<b>凭证获取方式：</b><br/>1）确保客户端已配置米游社抓包脚本并开启开关；<br/>2）打开<b>米游社官方 App</b>，进入「社区」页面触发接口；<br/>3）脚本会自动将凭证写入以下字段，无需手动填写。",
-        "<b>注意事项：</b><br/>• 凭证有效期约7天，若签到失败可重新进入社区页触发更新；<br/>• 字段不可随意修改，清空后需重新抓包获取；<br/>• 可点击「验证有效性」按钮检查配置是否可用。"
+        "用于保存米游社 App 抓取到的 <code>Cookie</code>、<code>SToken</code> 等核心凭证，支持原神、星穹铁道、崩坏3 多游戏签到。",
+        "<b>凭证获取方式：</b><br/>1）确保客户端已配置米游社自动抓包脚本并开启开关；<br/>2）打开<b>米游社官方 App</b>，进入「社区」页面触发接口；<br/>3）脚本会自动将凭证写入以下字段，无需手动填写。",
+        "<b>注意事项：</b><br/>• 凭证有效期约7天，若签到失败可重新进入社区页触发更新；<br/>• 字段不可随意修改，清空后需重新抓包获取；<br/>• 可通过 Loon 插件参数切换目标游戏。"
       ],
       "icons": [
         "https://upload-bbs.mihoyo.com/upload/2022/04/19/127810332/42a860a883808d8073a3621575d96675.png",
@@ -29,7 +30,8 @@
         "mihoyo.notifyFail",
         "mihoyo.logLevel",
         "mihoyo.lastCaptureAt",
-        "mihoyo.captureEnable"
+        "mihoyo.captureEnable",
+        "mihoyo.gameGid"
       ],
       "settings": [
         {
@@ -96,6 +98,18 @@
           "desc": "保存配置时自动检查Cookie/SToken是否有效"
         },
         {
+          "id": "mihoyo.gameGid",
+          "name": "目标游戏GID",
+          "val": "1",
+          "type": "select",
+          "items": [
+            { "key": "1", "label": "原神" },
+            { "key": "2", "label": "星穹铁道" },
+            { "key": "3", "label": "崩坏3" }
+          ],
+          "desc": "选择需要签到的游戏，对应米游社社区ID"
+        },
+        {
           "id": "mihoyo.notifyFail",
           "name": "失败通知开关",
           "val": "true",
@@ -131,9 +145,9 @@
   ],
   "rewrite": {
     "name": "米游社配置跨域重写",
-    "author": "@Custom",
+    "author": "@QinyRui",
     "script": "const res={headers:{...$response.headers,\"Access-Control-Allow-Origin\":\"*\",\"Access-Control-Allow-Methods\":\"GET,OPTIONS\"},body:$response.body};$done(res);",
-    "match": "https://raw.githubusercontent.com/your-repo/mihoyo/Mihoyo.boxjs.json",
+    "match": "https://raw.githubusercontent.com/QinyRui/QYR-/main/mihoyo/Mihoyo.boxjs.json",
     "type": "response"
   }
 }
