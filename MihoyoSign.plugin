@@ -5,7 +5,7 @@
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 米游社
 #!system = iOS,iPadOS,macOS
-#!date = 2026-01-05 22:00:00
+#!date = 2026-01-05 00:00:00
 #!version = 1.0.0
 #!system_version = 15
 
@@ -15,7 +15,6 @@ notify = switch, "true", "false", tag=通知开关, desc=是否推送签到结�
 titlePrefix = input, "米游社签到助手", tag=自定义通知标题, desc=签到结果通知的标题前缀
 cron_time = input, "0 8 * * *", tag=签到时间（CRON）, desc=每日自动签到的执行时间（Cron表达式）
 refreshInterval = input, "1440", tag=小组件刷新间隔（分钟）, desc=小组件自动刷新的时间间隔
-gameGid = input, "1", tag=游戏GID, desc=1=原神 2=星穹铁道 3=崩坏3 填写对应数字
 
 [General]
 name=米游社签到组件
@@ -24,28 +23,24 @@ version=1.0.0
 description=自动签到、抓包鉴权、BoxJs跨域同步，联动桌面小组件
 icon=https://upload-bbs.mihoyo.com/upload/2022/04/19/127810332/42a860a883808d8073a3621575d96675.png
 homepage=https://t.me/JiuHaoAPP
-# 插件更新路径 → 仓库根目录
 updateUrl=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.plugin
 
 [Script]
-# 1. 抓包写入BoxJS → 仓库根目录脚本
-http-request ^https:\/\/api-takumi\.mihoyo\.com\/community\/apihub\/app\/api\/signIn script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoCapture.js, timeout=10, tag=米游社-抓包写入, enable={capture}, script-update-interval=0, requires-body=true, argument=({notify},{titlePrefix})
+# 1. 抓包写入BoxJS（使用初始名 BoxJS_Mihoyo.js）
+http-request ^https:\/\/api-takumi\.mihoyo\.com\/community\/apihub\/app\/api\/signIn script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/BoxJS_Mihoyo.js, timeout=10, tag=米游社-抓包写入, enable={capture}, script-update-interval=0, requires-body=true, argument=({notify},{titlePrefix})
 
-# 2. 每日自动签到 → 仓库根目录脚本
-cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.js, timeout=120, tag=米游社-自动签到, enable=true, script-update-interval=0, argument=({notify},{titlePrefix},{gameGid})
+# 2. 每日自动签到（使用初始名 Loon_Mihoyo_Sign.js）
+cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Loon_Mihoyo_Sign.js, timeout=120, tag=米游社-自动签到, enable=true, script-update-interval=0, argument=({notify},{titlePrefix})
 
-# 3. BoxJS跨域重写 → 仓库根目录脚本
-http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/NinebotMihoyo\.boxjs\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/BoxJsCors.js, tag=米游社-BoxJs跨域, enable=true, script-update-interval=0
+# 3. BoxJS跨域重写（复用九号跨域脚本，若需独立则命名为 BoxJsCors.js）
+http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/BoxJS_Mihoyo\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/BoxJsCors.js, tag=米游社-BoxJs跨域, enable=true, script-update-interval=0
 
-# 4. 版本更新检查 → 仓库根目录脚本
-cron "0 0 * * 0" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/CheckUpdateMihoyo.js, tag=米游社-脚本更新检查, enable=true
-
-# 5. 桌面小组件刷新 → 仓库根目录脚本
-cron "0 */30 * * *" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoWidget.js, tag=米游社-小组件刷新, enable=true, script-update-interval=0, argument=({titlePrefix},{gameGid})
+# 4. 版本更新检查（使用初始名 CheckUpdate.js）
+cron "0 0 * * 0" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/CheckUpdate.js, tag=米游社-脚本更新检查, enable=true
 
 [Rewrite]
-# 兜底跨域重写 → 匹配仓库根目录的BoxJS配置文件
-https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/NinebotMihoyo\.boxjs\.json response-body script://MihoyoSignCors
+# 兜底跨域重写（匹配 BoxJS 配置文件路径）
+https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/BoxJS_Mihoyo\.json response-body script://MihoyoSignCors
 const MihoyoSignCors = `
 const res = {
     headers: {
