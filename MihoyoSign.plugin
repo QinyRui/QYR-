@@ -2,7 +2,7 @@
 #!desc = 抓包+签到二合一，仅需3个文件
 #!author = QinyRui
 #!system = iOS,iPadOS
-#!version = 1.0.0
+#!version = 2.0.0
 
 [Argument]
 capture = switch, "false", "true", tag=自动抓包开关
