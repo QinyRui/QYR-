@@ -1,70 +1,57 @@
 /*
- * 米游社凭证自动抓包脚本 (Loon/BoxJS 配套)
- * 功能: 抓取 Cookie/SToken 写入 BoxJS + 更新抓包时间
- * 适配: 米游社 BoxJS 配置文件格式
+ * 米游社自动签到脚本（Loon 专用）
+ * 初始名: Loon_Mihoyo_Sign.js
+ * 依赖 BoxJS 存储的 Cookie/SToken
  */
-const box = typeof $box !== 'undefined' ? $box : null;
-const captureEnable = box?.getItem("mihoyo.captureEnable") === "true";
+const boxjs = typeof $boxjs !== 'undefined' ? $boxjs : null;
+const notify = $argument?.[0] === "true";
+const titlePrefix = $argument?.[1] || "米游社签到助手";
 
-// 跳过抓包开关关闭的情况
-if (!captureEnable || !box) {
-    $done({});
-    return;
+// 读取BoxJS数据
+function getBoxData(key) {
+    if (boxjs) return boxjs.getItem(key) || "";
+    if (typeof $persistentStore !== 'undefined') return $persistentStore.read(key) || "";
+    return "";
 }
 
-// 核心抓取函数
-function captureMihoyoData(request) {
+// 执行签到
+async function signMihoyo() {
+    const cookie = getBoxData("mihoyo.cookie");
+    const stoken = getBoxData("mihoyo.stoken");
+
+    if (!cookie || !stoken) {
+        return "未配置Cookie/SToken，请先在BoxJS中填写";
+    }
+
+    const signUrl = "https://api-takumi.mihoyo.com/community/apihub/app/api/signIn";
+    const headers = {
+        "Cookie": cookie,
+        "x-rpc-stoken": stoken,
+        "User-Agent": "miHoYoBBS/2.50.1 CFNetwork/3860.200.71 Darwin/25.1.0",
+        "Content-Type": "application/json"
+    };
+    const body = JSON.stringify({ gids: 1 }); // 固定原神签到
+
     try {
-        let cookie = "";
-        let stoken = "";
-        const now = new Date().toLocaleString("zh-CN");
-
-        // 1. 从请求头提取 Cookie (包含 cookie_token/account_id)
-        if (request.headers?.Cookie) {
-            const cookieMatch = request.headers.Cookie.match(/(cookie_token=.*?;|account_id=.*?;)/g);
-            if (cookieMatch) cookie = cookieMatch.join(" ").trim();
+        const response = await $httpClient.post({ url: signUrl, headers: headers, body: body });
+        if (response.status === 200) {
+            const res = response.data;
+            if (res.retcode === 0) return `✅ 签到成功\n奖励: ${res.data?.award?.name || "原石/摩拉"}`;
+            if (res.retcode === 10001) return "ℹ️ 今日已签到";
+            return `❌ 签到失败: ${res.message || "未知错误"}`;
         }
-
-        // 2. 从请求头提取 SToken
-        if (request.headers?.["x-rpc-stoken"]) {
-            stoken = request.headers["x-rpc-stoken"].trim();
-        }
-
-        // 3. 写入 BoxJS (仅当数据有效时更新)
-        if (cookie) box.setItem("mihoyo.cookie", cookie);
-        if (stoken) box.setItem("mihoyo.stoken", stoken);
-        // 4. 更新最后抓包时间
-        if (cookie || stoken) box.setItem("mihoyo.lastCaptureAt", now);
-
-        // 5. 日志输出 (根据配置的日志级别)
-        const logLevel = box.getItem("mihoyo.logLevel") || "simple";
-        if (logLevel === "full") {
-            console.log(`[米游社抓包] 时间: ${now}\nCookie: ${cookie || "未获取"}\nSToken: ${stoken || "未获取"}`);
-        }
-
-        // 6. 推送通知 (仅当开启通知时)
-        const notify = box.getItem("mihoyo.notify") === "true";
-        if (notify && (cookie || stoken)) {
-            box.notify(
-                box.getItem("mihoyo.titlePrefix") || "米游社抓包助手",
-                "凭证抓取成功",
-                `最后更新: ${now}\nCookie: ${cookie ? "已更新" : "无变化"}\nSToken: ${stoken ? "已更新" : "无变化"}`
-            );
-        }
+        return `❌ 网络错误: HTTP ${response.status}`;
     } catch (e) {
-        console.error(`[米游社抓包] 错误: ${e.message}`);
+        return `❌ 脚本异常: ${e.message}`;
     }
 }
 
-// 主逻辑: 监听米游社核心接口请求
-if (typeof $request !== 'undefined') {
-    // 匹配米游社社区/签到相关接口
-    const mihoyoHosts = ["api-takumi.mihoyo.com", "bbs-api.mihoyo.com"];
-    const isTargetHost = mihoyoHosts.some(host => $request.url.includes(host));
-    
-    if (isTargetHost) {
-        captureMihoyoData($request);
-    }
-}
-
-$done({});
+// 主逻辑
+(async function() {
+    const result = await signMihoyo();
+    if (notify) $notification.post(titlePrefix, "签到结果", result);
+    // 缓存签到结果供小组件读取
+    $persistentStore.write(result, "mihoyo_sign_result");
+    $persistentStore.write(new Date().toLocaleString(), "mihoyo_sign_time");
+    $done({});
+})();
