@@ -26,21 +26,21 @@ homepage=https://t.me/JiuHaoAPP
 updateUrl=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.plugin
 
 [Script]
-# 1. 抓包写入BoxJS（使用初始名 BoxJS_Mihoyo.js）
-http-request ^https:\/\/api-takumi\.mihoyo\.com\/community\/apihub\/app\/api\/signIn script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/BoxJS_Mihoyo.js, timeout=10, tag=米游社-抓包写入, enable={capture}, script-update-interval=0, requires-body=true, argument=({notify},{titlePrefix})
+# 1. 改：抓包脚本换 MihoyoCapture.js （解决写入问题）
+http-request ^https:\/\/api-takumi\.mihoyo\.com\/community\/apihub\/app\/api\/signIn script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoCapture.js, timeout=10, tag=米游社-抓包写入, enable={capture}, script-update-interval=0, requires-body=true, argument=({notify},{titlePrefix})
 
-# 2. 每日自动签到（使用初始名 Loon_Mihoyo_Sign.js）
+# 2. 自动签到（保留原脚本名）
 cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/Loon_Mihoyo_Sign.js, timeout=120, tag=米游社-自动签到, enable=true, script-update-interval=0, argument=({notify},{titlePrefix})
 
-# 3. BoxJS跨域重写（复用九号跨域脚本，若需独立则命名为 BoxJsCors.js）
-http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/BoxJS_Mihoyo\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/BoxJsCors.js, tag=米游社-BoxJs跨域, enable=true, script-update-interval=0
+# 3. 改：跨域匹配你的 JSON 文件名 NinebotMihoyo.boxjs.json
+http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/NinebotMihoyo\.boxjs\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/BoxJsCors.js, tag=米游社-BoxJs跨域, enable=true, script-update-interval=0
 
-# 4. 版本更新检查（使用初始名 CheckUpdate.js）
+# 4. 版本更新检查（保留原脚本名）
 cron "0 0 * * 0" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/CheckUpdate.js, tag=米游社-脚本更新检查, enable=true
 
 [Rewrite]
-# 兜底跨域重写（匹配 BoxJS 配置文件路径）
-https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/BoxJS_Mihoyo\.json response-body script://MihoyoSignCors
+# 改：兜底跨域也匹配你的 JSON 文件名
+https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/NinebotMihoyo\.boxjs\.json response-body script://MihoyoSignCors
 const MihoyoSignCors = `
 const res = {
     headers: {
