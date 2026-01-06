@@ -1,56 +1,87 @@
-/* 米游社独立抓包脚本（带日志等级） */
-const boxjs = typeof $boxjs !== 'undefined' ? $boxjs : null;
-const notify = $argument?.[0] === "true";
-const titlePrefix = "米游社抓包";
+/**
+ * MihoyoCapture.js
+ * 米游社 Cookie / SToken 稳定抓包脚本
+ * Author: QinyRui
+ */
 
-// 日志配置
-const LOG_LEVEL = boxjs ? (boxjs.getItem("mihoyo.logLevel") || "simple") : "simple";
-function log(type, msg) {
-  if (LOG_LEVEL === "silent") return;
-  if (LOG_LEVEL === "simple" && type === "debug") return;
-  console.log(`[米游社抓包-${type}] [${new Date().toLocaleTimeString()}] ${msg}`);
-}
+const boxjs = typeof $boxjs !== "undefined" ? $boxjs : null;
+const notify = $argument?.notify === "true" || $argument === "true";
 
-// BoxJS操作
-const getBoxData = (key) => boxjs ? boxjs.getItem(key) || "" : "";
-const setBoxData = (key, val) => {
-  if (boxjs) {
-    boxjs.setItem(key, val);
-    log("debug", `写入${key}=${val ? "有数据" : "空"}`);
-  }
-};
-
-// 抓包核心
 if (!boxjs) {
-  log("error", "BoxJS未连接");
-  notify && $notification.post(titlePrefix, "抓包失败", "BoxJS未初始化");
+  console.log("[米游社抓包] BoxJS 未连接");
   $done({});
 }
 
-const captureEnable = getBoxData("mihoyo.captureEnable") === "true";
-if (!captureEnable) {
-  log("warn", "抓包开关关闭");
-  notify && $notification.post(titlePrefix, "抓包未执行", "开关已关闭");
+// 抓包开关（双保险）
+const captureEnable = boxjs.getItem("mihoyo.captureEnable");
+if (captureEnable === "false") {
+  console.log("[米游社抓包] 抓包开关关闭，跳过");
   $done({});
 }
 
-if (typeof $request !== 'undefined') {
-  log("debug", `抓到请求：${$request.url}`);
-  const cookie = $request.headers?.Cookie?.match(/(cookie_token=.*?;|account_id=.*?;)/g)?.join(" ") || "";
-  const stoken = $request.headers?.["x-rpc-stoken"] || "";
-
-  if (cookie || stoken) {
-    cookie && setBoxData("mihoyo.cookie", cookie);
-    stoken && setBoxData("mihoyo.stoken", stoken);
-    setBoxData("mihoyo.lastCaptureAt", new Date().toLocaleString());
-    log("info", "抓包成功，凭证已写入");
-    notify && $notification.post(titlePrefix, "抓包成功", "凭证已写入BoxJS");
-  } else {
-    log("warn", "未提取到Cookie/SToken");
-    notify && $notification.post(titlePrefix, "抓包无数据", "未提取到有效凭证");
-  }
-} else {
-  log("error", "无请求对象");
+// 只处理 request
+if (!$request || !$request.headers) {
+  $done({});
 }
 
+const url = $request.url;
+const headers = $request.headers;
+
+// 只命中核心接口（防止乱触发）
+if (
+  !/api-takumi\.mihoyo\.com|bbs-api\.mihoyo\.com|passport-api\.mihoyo\.com/.test(
+    url
+  )
+) {
+  $done({});
+}
+
+// ===== 提取 Cookie =====
+const rawCookie =
+  headers.Cookie || headers.cookie || headers["Cookie"] || "";
+
+if (!rawCookie) {
+  console.log("[米游社抓包] 未检测到 Cookie");
+  $done({});
+}
+
+// ===== 提取 SToken =====
+const stoken =
+  headers["x-rpc-stoken"] ||
+  headers["X-Rpc-Stoken"] ||
+  headers["x-rpc-stoken_v2"] ||
+  "";
+
+// ===== 校验关键字段 =====
+if (!/cookie_token=|account_id=/.test(rawCookie) || !stoken) {
+  console.log("[米游社抓包] Cookie / SToken 不完整，跳过");
+  $done({});
+}
+
+// ===== 去重写入 =====
+const oldCookie = boxjs.getItem("mihoyo.cookie");
+const oldStoken = boxjs.getItem("mihoyo.stoken");
+
+if (oldCookie === rawCookie && oldStoken === stoken) {
+  console.log("[米游社抓包] 凭证未变化，跳过写入");
+  $done({});
+}
+
+// ===== 写入 BoxJS =====
+boxjs.setItem("mihoyo.cookie", rawCookie);
+boxjs.setItem("mihoyo.stoken", stoken);
+
+const now = new Date().toLocaleString();
+boxjs.setItem("mihoyo.lastCaptureAt", now);
+
+// ===== 通知 =====
+if (notify) {
+  $notification.post(
+    "米游社抓包成功 ✅",
+    "凭证已更新",
+    `时间：${now}`
+  );
+}
+
+console.log("[米游社抓包] Cookie / SToken 写入成功");
 $done({});
