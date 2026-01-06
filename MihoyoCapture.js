@@ -1,39 +1,38 @@
 /*
- * 米游社抓包脚本（BoxJS授权失败兜底版）
+ * 米游社抓包脚本（修复数据抓取不到问题）
  * author: QinyRui
  * repo: https://github.com/QinyRui/QYR-
- * 功能：无需BoxJS授权，用Loon本地存储保存凭证
+ * 优化：扩大匹配范围+全量提取+详细日志
  */
+const boxjs = typeof $boxjs !== 'undefined' ? $boxjs : null;
 const notify = $argument?.[0] === "true";
-const titlePrefix = "米游社签到助手";
+const titlePrefix = boxjs ? (boxjs.getItem("mihoyo.titlePrefix") || "米游社签到助手") : "米游社签到助手";
 
-// 日志配置（无需BoxJS，直接用固定等级）
-const LOG_LEVEL = "full"; // 调试用full，正常用simple
+// 日志配置（改为full，便于调试）
+const LOG_LEVEL = "full";
 function log(type, msg) {
   if (LOG_LEVEL === "silent") return;
   if (LOG_LEVEL === "simple" && type === "debug") return;
   console.log(`[米游社抓包-${type}] [${new Date().toLocaleTimeString()}] ${msg}`);
 }
 
-// 改用Loon本地存储（替代BoxJS）
+// BoxJS/Loon存储封装
 const store = {
-  get: (key) => $persistentStore.read(key) || "",
+  get: (key) => boxjs ? boxjs.getItem(key) || "" : ($persistentStore.read(key) || ""),
   set: (key, val) => {
-    $persistentStore.write(val, key);
-    log("debug", `写入Loon本地存储：${key}=${val ? "有数据" : "空"}`);
+    if (boxjs) {
+      boxjs.setItem(key, val);
+      log("debug", `写入BoxJS：${key}=${val ? "有数据" : "空"}`);
+    } else {
+      $persistentStore.write(val, key);
+      log("debug", `写入Loon本地：${key}=${val ? "有数据" : "空"}`);
+    }
   }
 };
 
-// 核心抓包逻辑（无需BoxJS连接校验）
+// 核心逻辑（强制开启抓包，跳过开关判定）
 (function main() {
-  // 读取抓包开关（从Loon本地存储读取）
-  const captureEnable = store.get("mihoyo.captureEnable") === "true";
-  if (!captureEnable) {
-    log("warn", "自动抓包开关已关闭，抓包终止");
-    notify && $notification.post(titlePrefix, "抓包未执行", "自动抓包开关已关闭");
-    $done({});
-    return;
-  }
+  log("info", "抓包脚本启动（强制开启，忽略开关状态）");
 
   if (typeof $request === 'undefined') {
     log("error", "无请求对象，无法捕获米游社接口");
@@ -45,34 +44,27 @@ const store = {
   const requestUrl = $request.url;
   const headers = $request.headers || {};
   log("debug", `捕获请求URL：${requestUrl}`);
+  log("debug", `请求头完整数据：${JSON.stringify(headers)}`); // 全量请求头日志
+  log("debug", `Cookie原始值：${headers.Cookie || "无"}`); // Cookie全量日志
 
-  // 仅处理米游社签到相关接口
-  const signApiReg = /\/event\/luna\/(hk4e|sr|zzz)\/resign_info/;
+  // 扩大请求匹配范围：米游社签到/社区/账号接口
+  const signApiReg = /\/(event\/luna|bbs\/api|account\/api|webstatic\/api)\/.*/;
   if (!signApiReg.test(requestUrl)) {
-    log("debug", "非米游社签到接口，跳过凭证提取");
+    log("debug", `非目标接口，跳过：${requestUrl}`);
     $done({});
     return;
   }
 
-  // 提取Cookie（兼容v2版本）
-  const cookieStr = headers.Cookie || "";
-  let cookieToken = "";
-  let accountId = "";
-  const cookieTokenMatch = cookieStr.match(/cookie_token=([^;]+)/) || cookieStr.match(/cookie_token_v2=([^;]+)/);
-  const accountIdMatch = cookieStr.match(/account_id=([^;]+)/) || cookieStr.match(/account_id_v2=([^;]+)/);
-  cookieToken = cookieTokenMatch ? cookieTokenMatch[1] : "";
-  accountId = accountIdMatch ? accountIdMatch[1] : "";
-
-  // 提取SToken和User-Agent
-  const stoken = headers["x-rpc-stoken"] || headers["X-Rpc-Stoken"] || "";
+  // 全量提取凭证（不筛选字段）
+  const cookie = headers.Cookie || "";
+  const stoken = headers["x-rpc-stoken"] || headers["X-Rpc-Stoken"] || headers["stoken"] || "";
   const userAgent = headers["User-Agent"] || "";
 
-  // 写入Loon本地存储
+  // 写入存储
   const updateFields = [];
-  if (cookieToken && accountId) {
-    const standardCookie = `cookie_token=${cookieToken}; account_id=${accountId};`;
-    store.set("mihoyo.cookie", standardCookie);
-    updateFields.push("Cookie（cookie_token/account_id）");
+  if (cookie) {
+    store.set("mihoyo.cookie", cookie);
+    updateFields.push("Cookie（全量）");
   }
   if (stoken) {
     store.set("mihoyo.stoken", stoken);
@@ -93,12 +85,12 @@ const store = {
       $notification.post(
         titlePrefix,
         "抓包成功 ✅",
-        `从原神签到接口提取到：\n${updateFields.join("\n")}\n最后抓包：${captureTime}\n（凭证存于Loon本地）`
+        `提取到以下数据：\n${updateFields.join("\n")}\n最后抓包：${captureTime}`
       );
       log("info", `抓包成功，更新字段：${updateFields.join(", ")}`);
     } else {
-      $notification.post(titlePrefix, "抓包无数据", "未提取到有效Cookie/SToken");
-      log("warn", "签到接口中未提取到有效凭证");
+      $notification.post(titlePrefix, "抓包无数据", "未提取到任何凭证字段（查看日志了解详情）");
+      log("warn", "未提取到凭证：Cookie/SToken均为空");
     }
   }
 
