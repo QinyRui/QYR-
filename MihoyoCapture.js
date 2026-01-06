@@ -1,8 +1,8 @@
 /*
- * 米游社抓包脚本（核心接口提醒+凭证校验+无效清理）
+ * 米游社抓包脚本（核心接口引导+凭证校验+无效清理）
  * author: QinyRui
  * repo: https://github.com/QinyRui/QYR-
- * 优化：核心接口识别、凭证有效性测试、无效数据自动清理
+ * 优化：静态接口过滤、操作引导提示、精准抓包指引
  */
 const boxjs = typeof $boxjs !== 'undefined' ? $boxjs : null;
 const notify = $argument?.[0] === "true";
@@ -28,7 +28,6 @@ const store = {
       log("debug", `写入Loon本地：${key}=${val ? "有数据" : "空"}`);
     }
   },
-  // 【新增】删除指定键数据
   remove: (key) => {
     if (boxjs) {
       boxjs.removeItem(key);
@@ -38,7 +37,6 @@ const store = {
       log("info", `已删除Loon本地中${key}的过期数据`);
     }
   },
-  // 【新增】批量清理米游社相关无效数据
   clearAll: () => {
     const keys = ["mihoyo.cookie", "mihoyo.stoken", "mihoyo.userAgent", "mihoyo.lastCaptureAt"];
     keys.forEach(key => store.remove(key));
@@ -55,9 +53,32 @@ const CORE_API_LIST = [
   "/community/apihub/"    // 社区签到接口
 ];
 
+// 静态资源接口规则（过滤图片/埋点等无凭证接口）
+const STATIC_RULES = {
+  extReg: /\.(png|jpg|jpeg|gif|svg|ico|webp)$/, // 静态文件后缀
+  domainReg: /img-static\.mihoyo\.com|h5collector\.mihoyo\.com/ // 静态资源域名
+};
+
 // 判断是否为核心接口
 function isCoreApi(url) {
   return CORE_API_LIST.some(api => url.includes(api));
+}
+
+// 判断是否为静态资源接口
+function isStaticApi(url) {
+  return STATIC_RULES.extReg.test(url) || STATIC_RULES.domainReg.test(url);
+}
+
+// 【新增】静态接口操作引导提示
+function sendGuideTip(url) {
+  if (!notify) return;
+  const guideContent = `当前捕获的是无凭证静态接口：\n${url}\n\n✅ 请按以下步骤触发核心接口：\n1. 退出米游社 → 重新登录\n2. 进入「我的」→「签到」→「原神签到页」\n3. 点击「补签」按钮（无需真补签）`;
+  
+  $notification.post(
+    `${titlePrefix} - 抓包指引 ⚠️`,
+    "未捕获到核心接口",
+    guideContent
+  );
 }
 
 // 核心接口+凭证提醒
@@ -117,7 +138,7 @@ async function validateCredential(cookie, stoken, userAgent) {
   }
 }
 
-// 核心抓包逻辑（强制开启，不跳过任何接口）
+// 核心抓包逻辑（强制开启，带引导提示）
 async function main() {
   log("info", "抓包脚本启动（强制开启，不跳过任何米游社接口）");
 
@@ -131,7 +152,17 @@ async function main() {
   const requestUrl = $request.url;
   const headers = $request.headers || {};
   log("debug", `捕获请求URL：${requestUrl}`);
-  log("debug", `请求头完整数据：${JSON.stringify(headers)}`);
+
+  // 第一步：过滤静态资源接口，推送引导提示
+  if (isStaticApi(requestUrl)) {
+    log("debug", `跳过静态资源接口：${requestUrl}`);
+    sendGuideTip(requestUrl); // 弹窗引导用户操作
+    // 更新抓包时间戳（保留原有逻辑）
+    const captureTime = new Date().toLocaleString();
+    store.set("mihoyo.lastCaptureAt", captureTime);
+    $done({});
+    return;
+  }
 
   // 全量提取凭证（不筛选）
   const cookie = headers.Cookie || "";
@@ -180,7 +211,7 @@ async function main() {
     // 核心接口但凭证缺失 → 仅提醒，不校验
     sendCoreApiTip(requestUrl, hasCookie, hasStoken);
   } else {
-    // 非核心接口，普通通知（有凭证才推送）
+    // 非核心非静态接口，普通通知（有凭证才推送）
     if (notify && updateFields.length > 0) {
       $notification.post(
         titlePrefix,
