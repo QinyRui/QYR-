@@ -1,59 +1,81 @@
 {
   "id": "Mihoyo.IndependentSign",
-  "name": "米游社独立签到",
+  "name": "米游社独立签到配置",
   "author": "@QinyRui",
   "version": "1.0.0",
+  "description": "米游社自动签到+抓包配置中心，支持凭证管理、日志分级、过期提醒",
+  "homepage": "https://t.me/JiuHaoAPP",
+  "icon": "https://upload-bbs.mihoyo.com/upload/2022/04/19/127810332/42a860a883808d8073a3621575d96675.png",
+  "updateUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Mihoyo.boxjs.json",
   "apps": [
     {
       "id": "Mihoyo.Config",
-      "name": "米游社配置",
+      "name": "米游社签到配置",
+      "descs_html": [
+        "1. 开启抓包开关后，打开米游社APP自动提取Cookie/SToken",
+        "2. 关闭抓包开关不影响签到，仅停止凭证更新",
+        "3. 凭证有效期约7天，过期会推送提醒",
+        "4. 日志等级建议调试时选「完整」，日常用「简洁」"
+      ],
+      "icons": [
+        "https://upload-bbs.mihoyo.com/upload/2022/04/19/127810332/42a860a883808d8073a3621575d96675.png"
+      ],
       "settings": [
         {
           "id": "mihoyo.captureEnable",
           "name": "自动抓包开关",
           "val": "true",
           "type": "select",
-          "items": [{"key":"true","label":"开"},{"key":"false","label":"关"}],
-          "desc": "关闭后仅停止抓包，不影响签到"
+          "items": [
+            { "key": "true", "label": "开启（自动更新凭证）" },
+            { "key": "false", "label": "关闭（仅用已有凭证）" }
+          ],
+          "desc": "关闭后仅停止抓包，不影响签到执行"
         },
         {
           "id": "mihoyo.cookie",
-          "name": "Cookie",
+          "name": "米游社 Cookie",
           "val": "",
           "type": "text",
-          "isSecret": true
+          "isSecret": true,
+          "desc": "格式：cookie_token=xxx; account_id=xxx; 自动抓包会覆盖"
         },
         {
           "id": "mihoyo.stoken",
-          "name": "SToken",
+          "name": "米游社 SToken",
           "val": "",
           "type": "text",
-          "isSecret": true
+          "isSecret": true,
+          "desc": "与Cookie强关联，缺一不可，自动抓包写入"
+        },
+        {
+          "id": "mihoyo.logLevel",
+          "name": "日志输出等级",
+          "val": "simple",
+          "type": "select",
+          "items": [
+            { "key": "silent", "label": "静默（无日志）" },
+            { "key": "simple", "label": "简洁（仅关键信息）" },
+            { "key": "full", "label": "完整（所有流程日志）" }
+          ],
+          "desc": "调试抓包/签到问题时选「完整」，日常使用选「简洁」"
         },
         {
           "id": "mihoyo.lastCaptureAt",
           "name": "最后抓包时间",
           "val": "",
           "type": "text",
-          "isReadonly": true
-        },
-        {
-          "id": "mihoyo.logLevel",
-          "name": "日志等级",
-          "val": "simple",
-          "type": "select",
-          "items": [
-            {"key":"silent","label":"静默"},
-            {"key":"simple","label":"简洁"},
-            {"key":"full","label":"完整"}
-          ]
+          "isReadonly": true,
+          "desc": "凭证最后更新时间，自动同步，不可手动修改"
         }
       ]
     }
   ],
   "rewrite": {
+    "name": "米游社配置跨域支持",
+    "author": "@QinyRui",
+    "script": "const res={headers:{...$response.headers,\"Access-Control-Allow-Origin\":\"*\",\"Access-Control-Allow-Methods\":\"GET,OPTIONS\",\"Access-Control-Allow-Headers\":\"Content-Type\"},body:$response.body};$done(res);",
     "match": "https://raw.githubusercontent.com/QinyRui/QYR-/main/Mihoyo.boxjs.json",
-    "script": "const res={headers:{...$response.headers,\"Access-Control-Allow-Origin\":\"*\"},body:$response.body};$done(res);",
     "type": "response"
   }
 }
