@@ -1,6 +1,6 @@
 /*
  * 米游社抓包脚本（核心接口引导+凭证校验+无效清理）
- * author: QinyRui
+ * author: QinyRui。10:00
  * repo: https://github.com/QinyRui/QYR-
  * 优化：静态接口过滤、操作引导提示、精准抓包指引
  */
