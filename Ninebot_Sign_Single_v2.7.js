@@ -48,6 +48,8 @@ const KEY_LOG_LEVEL = "ninebot.logLevel";
 const KEY_LAST_SIGN_DATE = "ninebot.lastSignDate";
 const KEY_ENABLE_RETRY = "ninebot.enableRetry";
 const KEY_AUTO_REPAIR = "ninebot.autoRepairCard"; // 自动补签开关
+const KEY_AUTOBOX = "ninebot.autoOpenBox"; // 【新增】自动开箱开关常量
+const KEY_AUTO_SHARE = "ninebot.autoShare"; // 可选：预留自动分享开关
 
 /* Endpoints（更新盲盒领取接口） */
 const END = {
@@ -196,8 +198,8 @@ const cfg = {
     userAgent: readPS(KEY_UA) || "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Segway v6 C 609113620",
     debug: (readPS(KEY_DEBUG) === null)? true : (readPS(KEY_DEBUG)!== "false"),
     notify: (readPS(KEY_NOTIFY) === null)? true : (readPS(KEY_NOTIFY)!== "false"),
-    autoOpenBox: readPS(KEY_AUTOBOX) === "true",
-    autoRepair: readPS(KEY_AUTO_REPAIR) === "true", // 自动补签
+    autoOpenBox: (readPS(KEY_AUTOBOX) === null)? true : (readPS(KEY_AUTOBOX)!== "false"), // 【修复】使用定义的常量
+    autoRepair: (readPS(KEY_AUTO_REPAIR) === null)? false : (readPS(KEY_AUTO_REPAIR)!== "false"), // 补签默认关闭
     notifyFail: (readPS(KEY_NOTIFYFAIL) === null)? true : (readPS(KEY_NOTIFYFAIL)!== "false"),
     titlePrefix: readPS(KEY_TITLE) || "九号签到助手",
     logLevel: getLogLevel(),
@@ -318,7 +320,7 @@ function toDateKeyAny(ts) {
                 d = new Date(ts);
             }
         }
-        return!isNaN(d.getTime()) 
+        return!isNaN(d.getTime())
            ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
             : null;
     } catch (e) {
@@ -358,7 +360,7 @@ async function autoRepairSign(headers, signCards) {
 
 /* 盲盒开箱逻辑（适配新接口：blind-box/receive） */
 async function openAllAvailableBoxes(headers) {
-    if (!cfg.autoOpenBox) {
+    if (!cfg.autoOpenBox) { // 【修复】使用 cfg 中定义的变量
         logInfo("自动开箱已关闭，跳过");
         return [];
     }
@@ -495,8 +497,8 @@ async function openAllAvailableBoxes(headers) {
             });
             todayGainNcoin = todayShareRecords.reduce((sum, it) => sum + Number(it.count?? 0), 0);
             logInfo(`今日分享获得N币：+${todayGainNcoin}（共${todayShareRecords.length}条记录）`);
-        } catch (e) { 
-            logWarn("N币统计异常：", String(e)); 
+        } catch (e) {
+            logWarn("N币统计异常：", String(e));
         }
 
         // 5. 查询账户信息（经验/等级）
@@ -518,14 +520,14 @@ async function openAllAvailableBoxes(headers) {
         try {
             const balResp = await httpGet(END.balance, headers);
             nCoinBalance = Number(balResp?.data?.balance?? balResp?.data?.coin?? 0);
-        } catch (e) { 
-            logWarn("N币余额查询异常：", String(e)); 
+        } catch (e) {
+            logWarn("N币余额查询异常：", String(e));
         }
 
         // 7. 自动开启盲盒（核心修复）
         const boxOpenResults = await openAllAvailableBoxes(headers);
-        const boxMsg = boxOpenResults.length > 0 
-            ? `📦 盲盒开箱结果\n${boxOpenResults.join("\n")}` 
+        const boxMsg = boxOpenResults.length > 0
+           ? `📦 盲盒开箱结果\n${boxOpenResults.join("\n")}`
             : "📦 盲盒开箱结果：无可用盲盒";
 
         // 8. 发送通知
@@ -539,12 +541,12 @@ async function openAllAvailableBoxes(headers) {
                 const notOpened = boxResp?.data?.notOpenedBoxes || [];
                 const opened = boxResp?.data?.openedBoxes || [];
 
-                const waitingBoxes = notOpened.length 
+                const waitingBoxes = notOpened.length
                    ? notOpened.map(b => `- ${b.awardDays || "未知"}天盲盒（剩余${Number(b.leftDaysToOpen?? 0)}天）`).join("\n")
                     : "- 无";
 
                 const openedTypes = [...new Set(opened.map(b => b.awardDays + "天"))].join("、");
-                const openedDesc = opened.length 
+                const openedDesc = opened.length
                    ? `🏆 已开${opened.length}个（类型：${openedTypes}）`
                     : "🏆 暂无已开盲盒";
 
@@ -567,7 +569,7 @@ ${blindProgress}`;
 
             const MAX_LEN = 1000;
             if (notifyBody.length > MAX_LEN) notifyBody = notifyBody.slice(0, MAX_LEN - 3) + "...";
-            
+
             notify(cfg.titlePrefix, "", notifyBody);
             logInfo("通知已发送：", notifyBody);
         }
