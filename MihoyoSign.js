@@ -3,20 +3,13 @@
  * author: QinyRui
  * repo: https://github.com/QinyRui/QYR-
  * 优化：从全量Cookie中智能提取核心字段，兼容v2/原生版本
+ * 修复：补全日志函数/通知逻辑/SToken优先级/语法截断
  */
 const boxjs = typeof $boxjs !== 'undefined' ? $boxjs : null;
 const notify = $argument?.[0] === "true";
 const titlePrefix = boxjs ? (boxjs.getItem("mihoyo.titlePrefix") || "米游社签到助手") : "米游社签到助手";
 
-// 日志配置（强制full便于调试，可改回simple）
-const LOG_LEVEL = "full";
-function log(type, msg) {
-  if (LOG_LEVEL === "silent") return;
-  if (LOG_LEVEL === "simple" && type === "debug") return;
-  console.log(`[米游社签到-${type}] [${new Date().toLocaleTimeString()}] ${msg}`);
-}
-
-// BoxJS/Loon本地存储封装（兼容双存储）
+// BoxJS/Loon本地存储封装（兼容双存储）【调整顺序：先定义store再用】
 const store = {
   get: (key) => boxjs ? boxjs.getItem(key) || "" : ($persistentStore.read(key) || ""),
   set: (key, val) => {
@@ -24,6 +17,24 @@ const store = {
     else $persistentStore.write(val, key);
   }
 };
+
+// 日志级别配置 & 日志函数【核心修复：补全定义】
+const LOG_LEVEL = store.get("mihoyo.logLevel") || "full"; // silent/simple/full
+function log(type, msg) {
+  if (LOG_LEVEL === "silent") return;
+  if (LOG_LEVEL === "simple" && type === "debug") return;
+  console.log(`[米游社签到-${type}] [${new Date().toLocaleTimeString()}] ${msg}`);
+}
+
+// 推送通知（适配双开关）【修复逻辑缺失】
+function sendNotification(subtitle, content) {
+  const notifyAll = store.get("mihoyo.notify") !== "false";
+  const notifyOnlyFail = store.get("mihoyo.notifyFail") !== "false";
+  const shouldNotify = subtitle.includes("失败") ? (notifyAll || notifyOnlyFail) : notifyAll;
+  if (shouldNotify && notify) {
+    $notification.post(titlePrefix, subtitle, content);
+  }
+}
 
 // 凭证过期错误码映射
 const EXPIRED_CODES = {
@@ -56,16 +67,6 @@ function parseFullCookie(cookieStr) {
     accountId: cookieObj.account_id || cookieObj.account_id_v2 || cookieObj.accountId || cookieObj.stuid || "",
     stoken: cookieObj.stoken || cookieObj.stoken_v2 || "" // 备用SToken提取
   };
-}
-
-// 推送通知（适配双开关）
-function sendNotification(subtitle, content) {
-  const notifyAll = store.get("mihoyo.notify") === "true";
-  const notifyOnlyFail = store.get("mihoyo.notifyFail") === "true";
-  const shouldNotify = subtitle.includes("成功") ? notifyAll : (notifyAll || notifyOnlyFail);
-  if (shouldNotify && notify) {
-    $notification.post(titlePrefix, subtitle, content);
-  }
 }
 
 // 凭证过期提醒
@@ -210,8 +211,10 @@ async function signMihoyo() {
   if (isExpired) sendExpiredTip();
 
   // 缓存结果
-  $persistentStore.write(result, "mihoyo_sign_result");
-  $persistentStore.write(new Date().toLocaleString(), "mihoyo_sign_time");
+  if (typeof $persistentStore !== 'undefined') {
+    $persistentStore.write(result, "mihoyo_sign_result");
+    $persistentStore.write(new Date().toLocaleString(), "mihoyo_sign_time");
+  }
   log("info", `原神签到流程结束，结果：${result}`);
 }
 
