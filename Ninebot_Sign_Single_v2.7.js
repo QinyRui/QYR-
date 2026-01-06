@@ -6,6 +6,7 @@ Ninebot_Sign_Single_v2.7.0.js
 适配工具：Surge/Quantumult X/Loon
 功能覆盖：自动签到、全盲盒开箱、资产查询、美化通知、自动补签、BoxJs鉴权同步
 脚本作者：QinyRui
+GitHub: https://github.com/QinyRui/QYR-
 ***********************************************/
 
 /* ENV wrapper */
@@ -30,18 +31,16 @@ function formatDateTime(date = new Date()) {
     return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 }
 
-/* BoxJS 配置 - 新增 */
+/* BoxJS 配置 */
 const BOXJS_ROOT_KEY = "ComponentService";
 const BOXJS_NINEBOT_KEY = "ninebot";
-const BOXJS_URL = "http://boxjs.com"; // 可改为你的私有BoxJs地址
+const BOXJS_URL = "http://boxjs.com"; // 可改为私有BoxJs地址
 /* BoxJS keys */
 const KEY_AUTH = "ninebot.authorization";
 const KEY_DEV = "ninebot.deviceId";
 const KEY_UA = "ninebot.userAgent";
 const KEY_DEBUG = "ninebot.debug";
 const KEY_NOTIFY = "ninebot.notify";
-const KEY_AUTOBOX = "ninebot.autoOpenBox";
-const KEY_AUTOREPAIR = "ninebot.autoRepair";
 const KEY_NOTIFYFAIL = "ninebot.notifyFail";
 const KEY_TITLE = "ninebot.titlePrefix";
 const KEY_LAST_CAPTURE = "ninebot.lastCaptureAt";
@@ -55,7 +54,7 @@ const END = {
     sign: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/sign",
     status: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/status",
     blindBoxList: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/list",
-    blindBoxReceive: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive", // 新盲盒领取接口
+    blindBoxReceive: "https://cn-cbu-gateway.ninebot.com/portal/api/user-sign/v2/blind-box/receive", // 新盲盒接口
     balance: "https://cn-cbu-gateway.ninebot.com/portal/self-service/task/account/money/balance?appVersion=609103606",
     creditInfo: "https://api5-h5-app-bj.ninebot.com/web/credit/get-msg",
     creditLst: "https://api5-h5-app-bj.ninebot.com/web/credit/credit-lst",
@@ -270,7 +269,7 @@ function requestWithRetry({ method = "GET", url, headers = {}, body = null, time
 
                 logInfo(`[响应] 状态码: ${resp.status}, 数据: ${data?.slice(0, 500)}${data?.length > 500? "..." : ""}`);
                 let respData = {};
-                try { respData = JSON.parse(data || "{}"); } catch (e) { respData = { raw: data }; }
+                try { respData = JSON.parse(data); } catch (e) { respData = { raw: data }; }
 
                 if (!checkTokenValid({ code: resp.status,...respData })) {
                     const errMsg = "Token失效/未授权";
@@ -573,7 +572,7 @@ ${blindProgress}`;
             logInfo("通知已发送：", notifyBody);
         }
 
-        logInfo("九号自动签到（纯净无分享版 v2.7）完成");
+        logInfo("九号自动签到（纯净无分享版 v2.7.0）完成");
     } catch (e) {
         logErr("自动签到主流程异常：", e);
         if (cfg.notifyFail) notify(cfg.titlePrefix, "任务异常 ⚠️", String(e).slice(0, 50));
