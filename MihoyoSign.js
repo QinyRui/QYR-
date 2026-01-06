@@ -1,6 +1,6 @@
 /**
  * 米游社独立签到脚本（Loon / Surge / QX 通用）
- * Author: QinyRui
+ * Author: QinyRui 11:00
  */
 
 const notify = $argument?.[0] === "true" || $argument === "true";
