@@ -1,6 +1,6 @@
 {
-  "id": "Mihoyo.SimpleSign",
-  "name": "米游社极简签到",
+  "id": "Mihoyo.IndependentSign",
+  "name": "米游社独立签到",
   "author": "@QinyRui",
   "version": "1.0.0",
   "apps": [
@@ -13,7 +13,8 @@
           "name": "自动抓包开关",
           "val": "true",
           "type": "select",
-          "items": [{"key":"true","label":"开"},{"key":"false","label":"关"}]
+          "items": [{"key":"true","label":"开"},{"key":"false","label":"关"}],
+          "desc": "关闭后仅停止抓包，不影响签到"
         },
         {
           "id": "mihoyo.cookie",
@@ -35,6 +36,17 @@
           "val": "",
           "type": "text",
           "isReadonly": true
+        },
+        {
+          "id": "mihoyo.logLevel",
+          "name": "日志等级",
+          "val": "simple",
+          "type": "select",
+          "items": [
+            {"key":"silent","label":"静默"},
+            {"key":"simple","label":"简洁"},
+            {"key":"full","label":"完整"}
+          ]
         }
       ]
     }
