@@ -1,8 +1,8 @@
-#!name = 米游社 · 极简签到
-#!desc = 抓包+签到二合一，仅需3个文件
+#!name = 米游社 · 独立签到/抓包
+#!desc = 抓包签到分离，关抓包不影响签到
 #!author = QinyRui
 #!system = iOS,iPadOS
-#!version = 2.0.0
+#!version = 1.0.0
 
 [Argument]
 capture = switch, "false", "true", tag=自动抓包开关
@@ -10,16 +10,16 @@ notify = switch, "true", "false", tag=通知开关
 cron_time = input, "0 8 * * *", tag=签到时间(CRON)
 
 [General]
-name=米游社极简签到
+name=米游社独立签到
 icon=https://upload-bbs.mihoyo.com/upload/2022/04/19/127810332/42a860a883808d8073a3621575d96675.png
 updateUrl=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.plugin
 
 [Script]
-# 抓包触发（调用合写脚本）
-http-request ^https:\/\/api-takumi\.mihoyo\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoCore.js, enable={capture}, argument=("capture",{notify})
+# 抓包触发（独立脚本）
+http-request ^https:\/\/.*mihoyo\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoCapture.js, enable={capture}, argument=({notify})
 
-# 签到触发（调用同一个合写脚本）
-cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoCore.js, enable=true, argument=("sign",{notify})
+# 签到触发（独立脚本，始终启用）
+cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.js, enable=true, argument=({notify})
 
 # BoxJS跨域重写
 http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/Mihoyo\.boxjs\.json response-body script://MihoyoCors
