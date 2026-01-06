@@ -1,24 +1,19 @@
 /**
- * 米游社独立签到脚本（Loon / Surge / QX 通用）
- * Author: QinyRui 11:00
+ * 米游社独立签到脚本（最终版）
+ * 支持 Loon / Surge / QX / BoxJS
+ * Author: QinyRui
  */
 
 const notify = $argument?.[0] === "true" || $argument === "true";
 const titlePrefix = "米游社签到";
 
-// ===== 存储封装（BoxJS / 原生通用）=====
+// ===== 存储封装 =====
 function getData(key) {
-  return typeof $boxjs !== "undefined"
-    ? $boxjs.getItem(key)
-    : $persistentStore.read(key);
+  return $persistentStore.read(key) || "";
 }
 
 function setData(key, value) {
-  if (typeof $boxjs !== "undefined") {
-    $boxjs.setItem(key, value);
-  } else {
-    $persistentStore.write(value, key);
-  }
+  $persistentStore.write(value, key);
 }
 
 // ===== 日志 =====
@@ -37,10 +32,7 @@ function httpPost(options) {
       if (error) reject(error);
       else {
         try {
-          resolve({
-            status: response.status,
-            data: JSON.parse(data)
-          });
+          resolve({ status: response.status, data: JSON.parse(data) });
         } catch {
           resolve({ status: response.status, data });
         }
@@ -49,7 +41,7 @@ function httpPost(options) {
   });
 }
 
-// ===== 过期码 =====
+// ===== 凭证过期码 =====
 const EXPIRED_CODES = {
   "-100": "登录态失效（Cookie / SToken 过期）",
   "-101": "未登录或凭证错误",
@@ -141,7 +133,8 @@ async function sign() {
   }
 
   setData("mihoyo_sign_result", result);
-  log("info", `结束：${result}`);
+  log("info", `签到结束：${result}`);
 }
 
+// ===== 执行签到 =====
 sign().finally(() => $done({}));
