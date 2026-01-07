@@ -1,4 +1,4 @@
-#!name = 米游社 · 单号自动签到（适配九号配置）
+#!name = 米游社 · 单号自动签到
 #!desc = 抓包自动写入米游社Cookie/SToken，支持自动签到、凭证过期提醒、日志分级
 #!openUrl = https://t.me/JiuHaoAPP
 #!author = QinyRui
@@ -10,41 +10,28 @@
 #!system_version = 15
 
 [Argument]
-# 与BoxJS的mihoyo.captureEnable字段联动
 capture = switch, "false", "true", tag=自动抓包开关, desc=开启后访问米游社接口自动写入Cookie/SToken到BoxJS
-# 与BoxJS的mihoyo.notify字段联动
-notify = switch, "true", "false", tag=通知总开关, desc=全局控制签到/抓包的通知推送（优先级高于细分开关）
-# 与BoxJS的mihoyo.titlePrefix字段联动
-titlePrefix = input, "米游社签到助手", tag=自定义通知标题, desc=签到/抓包通知的标题前缀，支持自定义
-# 签到定时配置
-cron_time = input, "0 8 * * *", tag=签到时间（CRON）, desc=每日自动签到的执行时间（Cron表达式，默认早8点）
-# 日志等级快捷配置（同步BoxJS的mihoyo.logLevel）
-logLevel = select, "simple", "silent|静默（无日志）,simple|简洁（仅错误）,full|完整（所有流程）", tag=日志输出等级, desc=快速设置脚本日志级别，与BoxJS配置二选一生效
+notify = switch, "true", "false", tag=通知总开关, desc=全局控制签到/抓包的通知推送
+titlePrefix = input, "米游社签到助手", tag=自定义通知标题, desc=签到/抓包通知的标题前缀
+cron_time = input, "0 8 * * *", tag=签到时间（CRON）, desc=每日自动签到的执行时间
+logLevel = select, "simple", "silent|静默（无日志）,simple|简洁（仅错误）,full|完整（所有流程）", tag=日志输出等级, desc=快速设置脚本日志级别
 
 [General]
-name=米游社签到组件（九号配置版）
+name=米游社签到组件
 author=QinyRui
 version=1.0.0
-description=适配九号BoxJS配置格式的米游社自动签到，支持抓包、签到、过期提醒
+description=米游社自动签到，支持抓包、签到、过期提醒
 icon=https://upload-bbs.mihoyo.com/upload/2022/04/19/127810332/42a860a883808d8073a3621575d96675.png
 homepage=https://t.me/JiuHaoAPP
 updateUrl=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.plugin
 
 [Script]
-# 1. 抓包触发规则（指向适配后的MihoyoCapture.js）
 http-request ^https:\/\/.*mihoyo\.com script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoCapture.js, timeout=10, tag=米游社-抓包写入, enable={capture}, script-update-interval=0, requires-body=true, argument=({notify})
-
-# 2. 每日自动签到（指向适配后的MihoyoSign.js，始终启用）
 cron {cron_time} script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/MihoyoSign.js, timeout=120, tag=米游社-自动签到, enable=true, script-update-interval=0, argument=({notify})
-
-# 3. BoxJS跨域重写（匹配米游社配置文件路径）
 http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/Mihoyo\.boxjs\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/BoxJsCors.js, tag=米游社-BoxJS跨域, enable=true, script-update-interval=0
-
-# 4. 版本更新检查（复用九号的更新脚本）
 cron "0 0 * * 0" script-path=https://raw.githubusercontent.com/QinyRui/QYR-/main/CheckUpdate.js, tag=米游社-版本检查, enable=true, script-update-interval=0
 
 [Rewrite]
-# 兜底跨域重写（防止单独跨域脚本失效）
 https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/Mihoyo\.boxjs\.json response-body script://MihoyoSignCors
 const MihoyoSignCors = `
 const res = {
