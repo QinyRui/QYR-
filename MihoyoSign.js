@@ -1,171 +1,142 @@
-/*
- * 米游社签到脚本（适配全量Cookie解析）
- * author: QinyRui
- * repo: https://github.com/QinyRui/QYR-
- * 修复：彻底解决 Unexpected token 语法错误
- */
-const boxjs = typeof $boxjs !== "undefined" ? $boxjs : null;
-const notify = $argument?.[0] === "true";
-const titlePrefix = boxjs ? (boxjs.getItem("mihoyo.titlePrefix") || "米游社签到助手") : "米游社签到助手";
+/*****************************************
+ * Mihoyo Auto Sign - Ultimate Edition
+ * Author: @QinyRui
+ * Support: Surge / Loon / Quantumult X
+ *****************************************/
 
-// 存储封装 - 优先BoxJs，兼容Loon/Surge
-const store = {
-    get: function(key) {
-        if (boxjs) return boxjs.getItem(key) || "";
-        return typeof $persistentStore !== "undefined" ? $persistentStore.read(key) || "" : "";
-    },
-    set: function(key, val) {
-        if (boxjs) boxjs.setItem(key, val);
-        if (typeof $persistentStore !== "undefined") $persistentStore.write(val, key);
-    }
+const $store = $persistentStore;
+const $notify = $notification;
+
+/* ================= 配置读取 ================= */
+
+const config = {
+  cookie: $store.read("mihoyo.cookie"),
+  stoken: $store.read("mihoyo.stoken"),
+  ua: $store.read("mihoyo.userAgent") || "miHoYoBBS",
+  title: $store.read("mihoyo.titlePrefix") || "米游社签到",
+  notify: $store.read("mihoyo.notify") !== "false",
+  notifyFail: $store.read("mihoyo.notifyFail") !== "false",
+  logLevel: $store.read("mihoyo.logLevel") || "simple"
 };
 
-// 日志配置与函数
-const LOG_LEVEL = store.get("mihoyo.logLevel") || "full";
-function log(type, msg) {
-    if (LOG_LEVEL === "silent") return;
-    if (LOG_LEVEL === "simple" && type === "debug") return;
-    console.log(`[米游社签到-${type}] [${new Date().toLocaleTimeString()}] ${msg}`);
+/* ================= 日志系统 ================= */
+
+const LEVEL = { silent: 0, simple: 1, full: 2 };
+
+function log(msg, level = "simple") {
+  if ((LEVEL[config.logLevel] ?? 1) >= LEVEL[level]) {
+    console.log(`[Mihoyo] ${msg}`);
+  }
 }
 
-// 通知函数 - 修复逻辑与开关
-function sendNotification(subtitle, content) {
-    const notifyAll = store.get("mihoyo.notify") !== "false";
-    const notifyOnlyFail = store.get("mihoyo.notifyFail") !== "false";
-    const shouldNotify = subtitle.includes("失败") ? (notifyAll || notifyOnlyFail) : notifyAll;
-    if (shouldNotify && notify) {
-        $notification.post(titlePrefix, subtitle, content);
-    }
+/* ================= 运行环境校验 ================= */
+
+if (typeof $request !== "undefined") {
+  log("当前为抓包环境，终止执行", "simple");
+  $done();
+  return;
 }
 
-// 过期错误码映射
-const EXPIRED_CODES = {
-    "-100": "登录态失效（Cookie/SToken过期）",
-    "-101": "未登录或凭证错误",
-    "401": "权限验证失败（凭证过期）",
-    "10001": "接口重复请求（非过期）",
-    "10103": "Cookie无效或已过期"
+log("脚本开始执行", "full");
+
+/* ================= 凭证校验 ================= */
+
+if (!config.cookie || !config.stoken) {
+  log("凭证缺失（cookie / stoken）", "simple");
+  writeStatus("凭证缺失");
+
+  if (config.notifyFail) {
+    notify("❌ 凭证缺失", "请打开米游社 App 重新抓包");
+  }
+  $done();
+  return;
+}
+
+log("凭证读取成功", "full");
+
+/* ================= 签到请求 ================= */
+
+const request = {
+  url: "https://bbs-api.mihoyo.com/apihub/sapi/signIn",
+  method: "POST",
+  headers: {
+    Cookie: config.cookie,
+    "User-Agent": config.ua,
+    Referer: "https://bbs.mihoyo.com/"
+  }
 };
 
-// Cookie解析 - 兼容多格式分隔符
-function parseFullCookie(cookieStr) {
-    const cookieObj = {};
-    if (!cookieStr) {
-        log("warn", "Cookie字符串为空");
-        return cookieObj;
-    }
-    cookieStr.split(/;\s*|，\s*/).forEach(item => {
-        const parts = item.split("=");
-        if (parts.length < 2) return;
-        const key = parts[0].trim();
-        const val = parts.slice(1).join("=").trim();
-        cookieObj[key] = val;
-    });
-    return {
-        cookieToken: cookieObj.cookie_token || cookieObj.cookie_token_v2 || cookieObj.cookieToken || "",
-        accountId: cookieObj.account_id || cookieObj.account_id_v2 || cookieObj.accountId || cookieObj.stuid || "",
-        stoken: cookieObj.stoken || cookieObj.stoken_v2 || ""
-    };
+log("发起签到请求", "full");
+
+$httpClient.post(request, (err, resp, data) => {
+  if (err) {
+    handleFail("请求异常", err);
+    $done();
+    return;
+  }
+
+  log(`接口响应：${data}`, "full");
+
+  let json;
+  try {
+    json = JSON.parse(data);
+  } catch (e) {
+    handleFail("解析失败", e);
+    $done();
+    return;
+  }
+
+  if (json.retcode === 0) {
+    handleSuccess(json);
+  } else {
+    handleApiFail(json);
+  }
+
+  $done();
+});
+
+/* ================= 结果处理 ================= */
+
+function handleSuccess(res) {
+  writeStatus("签到成功");
+  log("签到成功", "simple");
+
+  if (config.notify) {
+    notify("✅ 签到成功", res.message || "今日已完成签到");
+  }
 }
 
-// 过期提醒
-function sendExpiredTip() {
-    sendNotification(
-        "凭证过期提醒 ⚠️",
-        "请重新抓包更新Cookie/SToken\n1. 开启抓包开关 2. 米游社重新登录签到页"
-    );
+function handleApiFail(res) {
+  let reason = res.message || "未知错误";
+
+  if (res.retcode === -100) reason = "登录失效（Cookie 过期）";
+  if (res.retcode === -5003) reason = "今日已签到";
+
+  writeStatus(reason);
+  log(`签到失败：${reason}`, "simple");
+
+  if (config.notifyFail) {
+    notify("❌ 签到失败", reason);
+  }
 }
 
-// 响应解析
-function parseSignResponse(data) {
-    if (data.signed) {
-        return `✅ 签到成功\n本月已签：${data.sign_days}天\n漏签：${data.sign_cnt_missed}天\n米游币：${data.coin_cnt}`;
-    } else {
-        return `❌ 签到失败\n原因：${data.message || "未知错误"}\n本月可补签：${data.resign_limit_monthly - data.resign_cnt_monthly}次`;
-    }
+function handleFail(title, err) {
+  writeStatus(title);
+  log(`${title}：${err}`, "simple");
+
+  if (config.notifyFail) {
+    notify(`❌ ${title}`, String(err));
+  }
 }
 
-// 核心签到请求
-async function sendSignRequest(parsedCookie, stoken, userAgent) {
-    const { cookieToken, accountId } = parsedCookie;
-    const signUrl = "https://api-takumi.mihoyo.com/event/luna/hk4e/sign";
-    const infoUrl = "https://api-takumi.mihoyo.com/event/luna/hk4e/resign_info";
-    const headers = {
-        "Cookie": `cookie_token=${cookieToken}; account_id=${accountId};`,
-        "x-rpc-stoken": stoken,
-        "User-Agent": userAgent || "miHoYoBBS/2.50.1",
-        "Content-Type": "application/json",
-        "Referer": "https://webstatic.mihoyo.com/",
-        "Origin": "https://webstatic.mihoyo.com"
-    };
+/* ================= BoxJS 状态回写 ================= */
 
-    if (!cookieToken || !accountId || !stoken) {
-        return { success: false, msg: "凭证缺失：cookie_token/account_id/SToken 不全", isExpired: false };
-    }
-
-    try {
-        // 查询状态
-        const infoRes = await $httpClient.get({ url: infoUrl, headers });
-        if (infoRes.status !== 200) return { success: false, msg: `HTTP错误：${infoRes.status}`, isExpired: false };
-        const infoData = infoRes.data;
-        if (infoData.retcode !== 0) {
-            const isExpired = Object.keys(EXPIRED_CODES).includes(infoData.retcode.toString());
-            return { success: false, msg: EXPIRED_CODES[infoData.retcode] || infoData.message, isExpired };
-        }
-        if (infoData.data.signed) return { success: true, msg: parseSignResponse(infoData.data), isExpired: false };
-
-        // 发起签到
-        const signRes = await $httpClient.post({
-            url: signUrl,
-            headers,
-            body: JSON.stringify({ act_id: "e202307121442271", region: "cn_gf01", uid: accountId })
-        });
-        if (signRes.status !== 200) return { success: false, msg: `签到请求失败：${signRes.status}`, isExpired: false };
-        const signData = signRes.data;
-        if (signData.retcode !== 0) {
-            const isExpired = Object.keys(EXPIRED_CODES).includes(signData.retcode.toString());
-            return { success: false, msg: EXPIRED_CODES[signData.retcode] || signData.message, isExpired };
-        }
-
-        // 最终状态查询
-        const finalRes = await $httpClient.get({ url: infoUrl, headers });
-        return { success: true, msg: parseSignResponse(finalRes.data.data), isExpired: false };
-    } catch (e) {
-        return { success: false, msg: `脚本异常：${e.message}`, isExpired: false };
-    }
+function writeStatus(text) {
+  $store.write(text, "mihoyo.captureStatus");
 }
 
-// 主逻辑（带重试）
-async function signMihoyo() {
-    log("info", "米游社签到脚本启动");
-    const fullCookie = store.get("mihoyo.cookie");
-    const stoken = store.get("mihoyo.stoken") || store.get("mihoyo.x-rpc-stoken");
-    const userAgent = store.get("mihoyo.userAgent");
-    const parsedCookie = parseFullCookie(fullCookie);
+/* ================= 通知封装 ================= */
 
-    log("debug", `Cookie解析结果：${parsedCookie.cookieToken ? "有效" : "无效"}`);
-    log("debug", `SToken状态：${stoken ? "存在" : "缺失"}`);
-
-    let result = "";
-    let isExpired = false;
-    const maxRetry = 2;
-    for (let i = 0; i <= maxRetry; i++) {
-        const res = await sendSignRequest(parsedCookie, stoken, userAgent);
-        result = res.msg;
-        isExpired = res.isExpired;
-        if (res.success || isExpired) break;
-        if (i < maxRetry) {
-            log("warn", `重试(${i+1}/${maxRetry})...`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-    }
-
-    sendNotification("原神签到结果", result);
-    if (isExpired) sendExpiredTip();
-    store.set("mihoyo_sign_result", result);
-    store.set("mihoyo_sign_time", new Date().toLocaleString());
-    log("info", `签到结束：${result}`);
+function notify(subtitle, body = "") {
+  $notify.post(config.title, subtitle, body);
 }
-
-// 执行入口
-signMihoyo().then(() => $done({}));
