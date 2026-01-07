@@ -1,6 +1,6 @@
 /*************************************************
  * Mihoyo Auto Sign - Ultimate Anti-Risk Edition
- * Author: @QinyRui
+ * Author: @QinyRui 08:00
  * Support: Surge / Loon / Quantumult X
  *************************************************/
 
