@@ -358,6 +358,45 @@ async function autoRepairSign(headers, signCards) {
     }
 }
 
+/* ========== 新增：最近7天收入查询函数 ========== */
+async function getRecentIncome(headers) {
+    try {
+        const [nCoinResp, creditResp] = await Promise.all([
+            httpPost(END.nCoinRecord, headers, { tranType: 1, size: 7, page: 1 }, "query"),
+            httpPost(END.creditLst, headers, { page: 1, size: 7 }, "query")
+        ]);
+
+        const recentIncome = [];
+        const today = todayKey();
+
+        // 处理N币记录
+        const nCoinList = Array.isArray(nCoinResp?.data?.list)? nCoinResp.data.list : [];
+        nCoinList.forEach(item => {
+            const date = toDateKeyAny(item.occurrenceTime);
+            if (!date) return;
+            recentIncome.push(`${date === today? "[今日]" : date} N币 +${item.count || 0}（来源：${item.source || "未知"}）`);
+        });
+
+        // 处理经验记录（仅签到相关）
+        const creditList = Array.isArray(creditResp?.data?.list)? creditResp.data.list : [];
+        creditList.forEach(item => {
+            const date = toDateKeyAny(item.create_date);
+            if (!date || item.change_code!== "1") return;
+            recentIncome.push(`${date === today? "[今日]" : date} 经验 +${item.credit || 0}（类型：${item.change_msg || "未知"}）`);
+        });
+
+        // 按时间倒序排序
+        return recentIncome.sort((a, b) => {
+            const aDate = a.match(/\[今日\]|(\d{4}-\d{2}-\d{2})/)[0].replace("[今日]", today);
+            const bDate = b.match(/\[今日\]|(\d{4}-\d{2}-\d{2})/)[0].replace("[今日]", today);
+            return bDate.localeCompare(aDate);
+        });
+    } catch (e) {
+        logErr("查询最近收入异常：", e);
+        return ["❌ 最近收入查询失败"];
+    }
+}
+
 /* 盲盒开箱逻辑（适配新接口：blind-box/receive） */
 async function openAllAvailableBoxes(headers) {
     if (!cfg.autoOpenBox) { // 【修复】使用 cfg 中定义的变量
@@ -453,14 +492,14 @@ async function openAllAvailableBoxes(headers) {
                     writePS(today, KEY_LAST_SIGN_DATE);
                     const signExp = signResp.data.rewardList.filter(r => r.rewardType === 1).reduce((s, r) => s + Number(r.rewardValue), 0);
                     todayGainExp = signExp;
-                    signMsg = `✨ 今日签到：成功（+${signExp}经验）`;
+                    signMsg = `✨ 今日签到状态：成功 | 签到经验：+${signExp}`;
                     logInfo("签到成功", signMsg);
                 } else if (signResp.code === 540004 || /已签到/.test(signResp.msg || signResp.message || "")) {
-                    signMsg = "✨ 今日签到：已完成（重复请求）";
+                    signMsg = "✨ 今日签到状态：已完成";
                     writePS(today, KEY_LAST_SIGN_DATE);
                 } else {
                     const errMsg = signResp.msg || signResp.message || "未知错误";
-                    signMsg = `❌ 签到失败：${errMsg}`;
+                    signMsg = `❌ 今日签到状态：失败 | 原因：${errMsg}`;
                     logWarn("签到失败", errMsg);
                     if (cfg.autoRepair && signCards > 0) {
                         repairMsg = await autoRepairSign(headers, signCards);
@@ -468,11 +507,11 @@ async function openAllAvailableBoxes(headers) {
                     }
                 }
             } catch (e) {
-                signMsg = `❌ 签到异常：${String(e).slice(0, 30)}`;
+                signMsg = `❌ 今日签到状态：异常 | 原因：${String(e).slice(0, 30)}`;
                 logErr("签到请求异常", e);
             }
         } else {
-            signMsg = "✨ 今日签到：已完成";
+            signMsg = "✨ 今日签到状态：已完成";
             logInfo("今日已签到，跳过");
             try {
                 const creditResp = await httpPost(END.creditLst, headers, { page: 1, size: 100 });
@@ -482,6 +521,7 @@ async function openAllAvailableBoxes(headers) {
                 if (signRecords.length > 0) {
                     const exp = signRecords.reduce((sum, it) => sum + (Number(it.credit?? 0) || 0), 0);
                     todayGainExp = exp;
+                    signMsg = `✨ 今日签到状态：已完成 | 签到经验：+${exp}`;
                     logInfo(`已签到时统计经验：+${exp}（去重后）`);
                 }
             } catch (e) { logWarn("已签到时统计经验异常：", e); }
@@ -526,50 +566,58 @@ async function openAllAvailableBoxes(headers) {
 
         // 7. 自动开启盲盒（核心修复）
         const boxOpenResults = await openAllAvailableBoxes(headers);
-        const boxMsg = boxOpenResults.length > 0
-           ? `📦 盲盒开箱结果\n${boxOpenResults.join("\n")}`
-            : "📦 盲盒开箱结果：无可用盲盒";
 
-        // 8. 发送通知
+        // 8. 发送通知（核心修改：匹配目标排版）
         if (cfg.notify) {
-            const rewardDetail = `🎁 今日奖励明细：+${todayGainExp || 0} 经验/+${todayGainNcoin || 0} N 币`;
+            // 隐藏0值今日奖励明细
+            let rewardDetail = "";
+            if (todayGainExp > 0 || todayGainNcoin > 0) {
+                rewardDetail = `🎁 今日奖励明细：+${todayGainExp || 0} 经验/+${todayGainNcoin || 0} N 币`;
+            }
 
-            // 盲盒进度格式化
-            let blindProgress = "";
+            // 单独获取待开盲盒信息（并入账户状态）
+            let pendingBoxes = "- 无";
             try {
                 const boxResp = await httpGet(END.blindBoxList, headers);
                 const notOpened = boxResp?.data?.notOpenedBoxes || [];
-                const opened = boxResp?.data?.openedBoxes || [];
-
-                const waitingBoxes = notOpened.length
-                   ? notOpened.map(b => `- ${b.awardDays || "未知"}天盲盒（剩余${Number(b.leftDaysToOpen?? 0)}天）`).join("\n")
-                    : "- 无";
-
-                const openedTypes = [...new Set(opened.map(b => b.awardDays + "天"))].join("、");
-                const openedDesc = opened.length
-                   ? `🏆 已开${opened.length}个（类型：${openedTypes}）`
-                    : "🏆 暂无已开盲盒";
-
-                blindProgress = `- 待开盲盒：\n${waitingBoxes}\n${openedDesc}`;
+                if (notOpened.length > 0) {
+                    pendingBoxes = notOpened.map(b => `- ${b.awardDays || "未知"}天盲盒（剩余${Number(b.leftDaysToOpen?? 0)}天）`).join("\n");
+                }
             } catch (e) {
-                blindProgress = `- 待开盲盒：\n- 查询异常\n🏆 已开盲盒：查询异常`;
+                pendingBoxes = "- 查询异常";
             }
 
-            let notifyBody = `${signMsg}
-${repairMsg? `${repairMsg}\n` : ""}${rewardDetail}
-${boxMsg}
-📊 账户状态
-- 当前经验：${creditData.credit?? 0}${creditData.level? `（LV.${creditData.level}）` : ""}
-- 距离升级：${need?? 0} 经验
-- 当前 N 币：${nCoinBalance || 0}
-- 补签卡：${signCards} 张
-- 连续签到：${consecutiveDays} 天
-📦 盲盒进度
-${blindProgress}`;
+            // 盲盒开箱结果（有开箱才显示）
+            let boxOpenMsg = "";
+            if (boxOpenResults.length > 0) {
+                boxOpenMsg = `📦 盲盒开箱结果\n${boxOpenResults.join("\n")}`;
+            }
 
-            const MAX_LEN = 1000;
+            // 查询最近7天收入
+            const recentIncomeList = await getRecentIncome(headers);
+            const recentIncomeText = `📈 最近7天收入明细：
+${recentIncomeList.join("\n")}`;
+
+            // 最终通知体组装（严格匹配目标格式）
+            let notifyBody = [
+                signMsg,
+                repairMsg || "",
+                rewardDetail || "",
+                boxOpenMsg || "",
+                "📊 账户状态",
+                `- 当前经验：${creditData.credit?? 0}${creditData.level? `（LV.${creditData.level}）` : ""}`,
+                `- 距离升级：${need?? 0} 经验`,
+                `- 当前 N 币：${nCoinBalance || 0}`,
+                `- 补签卡：${signCards} 张`,
+                `- 连续签到：${consecutiveDays} 天`,
+                `- 待开盲盒：`,
+                pendingBoxes,
+                recentIncomeText || ""
+            ].filter(line => line.trim()!== "").join("\n");
+
+            const MAX_LEN = 1500;
             if (notifyBody.length > MAX_LEN) notifyBody = notifyBody.slice(0, MAX_LEN - 3) + "...";
-
+            
             notify(cfg.titlePrefix, "", notifyBody);
             logInfo("通知已发送：", notifyBody);
         }
