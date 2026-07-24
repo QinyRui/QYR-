@@ -14,10 +14,10 @@ capture = switch, "false", "true", tag=自动抓包开关, desc=开启后访问�
 # 抓包写入鉴权信息（签到/盲盒相关）
 http-response ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/(status|sign|blind-box/receive) script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.9.js, timeout=10, tag=九号-抓包写入, enable={capture}, script-update-interval=0, requires-body=true
 
-# 抓包写入成就数据（uid/车型编号/设备序列号）- 新增
+# 抓包写入成就数据（uid/车型编号/设备序列号）
 http-response ^https:\/\/api5-h5-app-bj\.ninebot\.com\/web\/rank\/my-achievement script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.9.js, timeout=10, tag=九号-成就抓包, enable={capture}, script-update-interval=0, requires-body=true
 
-# BoxJs 跨域兼容（保持原远程）
+# BoxJs 跨域兼容
 http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/jiuhao\/Ninebot\.boxjs\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/BoxJsCors.js, tag=九号-BoxJs跨域, enable=true, script-update-interval=0
 [Rewrite]
 https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/jiuhao\/Ninebot\.boxjs\.json response-body script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/BoxJsCors.js
