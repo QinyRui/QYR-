@@ -1,18 +1,21 @@
 #!name = 九号智能电动车 · 单号自动签到（自动抓包版）
-#!desc = 抓包自动写入教程→打开抓包开关，直接打开九号APP签到页，凭证将自动写入boxjs保存即可
+#!desc = 抓包自动写入+成就数据自动抓取。打开抓包开关，打开九号APP签到页凭证自动写入boxjs，打开排行榜页自动抓取uid/车型/车架号
 #!openUrl = https://t.me/JiuHaoAPP
 #!author = QinyRui
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
-#!date = 2026-06-08
-#!version = 2.9.1 + Portal车辆接口最终修复版（全远程）
+#!date = 2026-07-24
+#!version = 2.9.2 + 成就数据自动抓取版
 #!system_version = 15
 [Argument]
 capture = switch, "false", "true", tag=自动抓包开关, desc=开启后访问九号签到接口自动写入鉴权信息到BoxJs
 [Script]
-# 抓包写入鉴权信息（全远程脚本）
+# 抓包写入鉴权信息（签到/盲盒相关）
 http-response ^https:\/\/cn-cbu-gateway\.ninebot\.com\/portal\/api\/user-sign\/v2\/(status|sign|blind-box/receive) script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.9.js, timeout=10, tag=九号-抓包写入, enable={capture}, script-update-interval=0, requires-body=true
+
+# 抓包写入成就数据（uid/车型编号/设备序列号）- 新增
+http-response ^https:\/\/api5-h5-app-bj\.ninebot\.com\/web\/rank\/my-achievement script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot_Sign_Single_v2.9.js, timeout=10, tag=九号-成就抓包, enable={capture}, script-update-interval=0, requires-body=true
 
 # BoxJs 跨域兼容（保持原远程）
 http-response ^https:\/\/raw\.githubusercontent\.com\/QinyRui\/QYR-\/main\/jiuhao\/Ninebot\.boxjs\.json script-path=https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/BoxJsCors.js, tag=九号-BoxJs跨域, enable=true, script-update-interval=0
