@@ -13,6 +13,7 @@
       "descs_html": [
         "用于保存九号智能电动车 App 抓取到的 <code>Authorization</code>、<code>DeviceId</code> 等核心凭证，支持自动签到、盲盒开箱等功能。",
         "<b>凭证获取方式：</b><br/>1）确保客户端已配置九号自动抓包脚本并开启开关；<br/>2）打开<b>九号智能电动车官方 App</b>，进入「签到」页面触发接口；<br/>3）脚本会自动将凭证写入以下字段，无需手动填写。",
+        "<b>成就数据获取：</b><br/>1）打开<b>九号APP → 排行榜页面</b>；<br/>2）脚本自动抓取 uid / 车型编号 / 设备序列号；<br/>3）通知弹出「成就数据已抓取」即成功。",
         "<b>注意事项：</b><br/>• 凭证有有效期，若签到失败可重新进入签到页触发更新；<br/>• 字段不可随意修改，清空后需重新抓包获取。"
       ],
       "icons": [
@@ -39,7 +40,10 @@
         "ninebot.lockStatus",
         "ninebot.batteryTemp",
         "ninebot.speed",
-        "ninebot.vehicleLastUpdate"
+        "ninebot.vehicleLastUpdate",
+        "ninebot.achievementUid",
+        "ninebot.achievementVehicleType",
+        "ninebot.achievementWnumber"
       ],
       "settings": [
         {
@@ -146,6 +150,27 @@
           "type": "text",
           "isReadonly": true,
           "desc": "凭证最后更新的时间戳，仅展示不可修改，自动同步"
+        },
+        {
+          "id": "ninebot.achievementUid",
+          "name": "🏆 用户ID (uid)",
+          "val": "",
+          "type": "text",
+          "desc": "排行榜API所需，打开九号APP排行榜页面自动抓取，也可手动填写"
+        },
+        {
+          "id": "ninebot.achievementVehicleType",
+          "name": "🏆 车型编号",
+          "val": "",
+          "type": "text",
+          "desc": "排行榜API所需，打开九号APP排行榜页面自动抓取，也可手动填写"
+        },
+        {
+          "id": "ninebot.achievementWnumber",
+          "name": "🏆 设备序列号",
+          "val": "",
+          "type": "text",
+          "desc": "排行榜API所需，打开九号APP排行榜页面自动抓取，也可手动填写"
         },
         {
           "id": "ninebot.vehicleSn",
