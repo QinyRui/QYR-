@@ -3,7 +3,7 @@
   "name": "九号·数据",
   "author": "@QinyRui",
   "description": "九号智能电动车账号凭证采集与管理，供自动签到脚本复用",
-  "icon": "https://raw.githubusercontent.com/QinyRui/scripting/九号/photos/LOUGO.png",
+  "icon": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icons/1.PNG",
   "repo": "https://t.me/JiuHaoAPP",
   "updateUrl": "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/Ninebot.boxjs.json",
   "apps": [
@@ -17,8 +17,8 @@
         "<b>注意事项：</b><br/>• 凭证有有效期，若签到失败可重新进入签到页触发更新；<br/>• 字段不可随意修改，清空后需重新抓包获取。"
       ],
       "icons": [
-        "https://raw.githubusercontent.com/QinyRui/QYR-/Q/icons/1.PNG",
-        "https://raw.githubusercontent.com/QinyRui/QYR-/Q/icons/1.PNG"
+        "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icons/1.PNG",
+        "https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icons/1.PNG"
       ],
       "keys": [
         "#ComponentService",
