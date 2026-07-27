@@ -6,7 +6,7 @@
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 九号智能电动车
 #!system = iOS,iPadOS,macOS
-#!date = 2026-07-24
+#!date = 2026-07-27
 #!version = 2.9.2 + 成就数据自动抓取版
 #!system_version = 15
 [Argument]
