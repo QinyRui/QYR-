@@ -1,6 +1,7 @@
 #!name = 九号智能电动车 · 单号自动签到（自动抓包版）
 #!desc = 抓包自动写入+成就数据自动抓取。打开抓包开关，打开九号APP签到页凭证自动写入boxjs，打开排行榜页自动抓取uid/车型/车架号
 #!openUrl = https://t.me/JiuHaoAPP
+#!icons = https://raw.githubusercontent.com/QinyRui/QYR-/jiuhao/icons/1.PNG
 #!author = QinyRui
 #!homepage = https://t.me/JiuHaoAPP
 #!tag = 九号智能电动车
